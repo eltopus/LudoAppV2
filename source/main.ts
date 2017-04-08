@@ -2,9 +2,9 @@
 import {Preloader} from "./states/Preloader";
 import {Game} from "./states/Game";
 
-export class LudoGame extends Phaser.Game{
+export class LudoGame extends Phaser.Game {
     constructor() {
-        super(800, 600, Phaser.AUTO, "gameContainer");
+        super(900, 720, Phaser.AUTO, "gameContainer");
         this.state.add("Preloader", Preloader, false);
         this.state.add("Game", Game, false);
         this.state.start("Preloader"); 
@@ -13,4 +13,4 @@ export class LudoGame extends Phaser.Game{
 
 window.onload = function() {
     let game = new LudoGame();
-}
+};
