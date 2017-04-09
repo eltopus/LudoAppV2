@@ -7,7 +7,7 @@ export class LudoGame extends Phaser.Game {
         super(900, 720, Phaser.AUTO, "gameContainer");
         this.state.add("Preloader", Preloader, false);
         this.state.add("Game", Game, false);
-        this.state.start("Preloader"); 
+        this.state.start("Preloader");
    }
 }
 

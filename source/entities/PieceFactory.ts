@@ -1,6 +1,9 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
+/// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 import {Piece} from "../entities/Piece";
 import {ColorType} from "../enums/ColorType";
+import {PiecePosition} from "../entities/PiecePosition";
+import { UUID } from "angular2-uuid";
 
 export abstract class PieceFactory {
 
@@ -14,35 +17,39 @@ export abstract class PieceFactory {
 
         let type = this.getImageKey(colorType);
         if (type === "red_piece") {
-            let redPieces = [
-                new Piece(this.game, 118, 72, type, "1", colorType, playerId),
-                new Piece(this.game, 72, 118, type, "2", colorType, playerId),
-                new Piece(this.game, 168, 118, type, "3", colorType, playerId),
-                new Piece(this.game, 120, 168, type, "4", colorType, playerId)
+            let startPosition = new PiecePosition(49, 287);
+            let redPieces: Piece[] = [
+                new Piece(this.game, 118, 72, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 72, 118, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 168, 118, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 120, 168, type, colorType, playerId, UUID.UUID(), startPosition),
             ];
             return redPieces;
         }else if (type === "blue_piece") {
-            let bluePieces = [
-                new Piece(this.game, 552, 72, type, "5", colorType, playerId),
-                new Piece(this.game, 503, 118, type, "6", colorType, playerId),
-                new Piece(this.game, 600, 118, type, "7", colorType, playerId),
-                new Piece(this.game, 552, 168, type, "8", colorType, playerId)
+            let startPosition = new PiecePosition(384, 48);
+            let bluePieces: Piece[] = [
+                new Piece(this.game, 552, 72, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 503, 118, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 600, 118, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 552, 168, type, colorType, playerId, UUID.UUID(), startPosition),
             ];
             return bluePieces;
         }else if (type === "yellow_piece") {
-            let yellowPieces = [
-                new Piece(this.game, 552, 503, type, "9", colorType, playerId),
-                new Piece(this.game, 503, 552, type, "10", colorType, playerId),
-                new Piece(this.game, 600, 552, type, "11", colorType, playerId),
-                new Piece(this.game, 552, 600, type, "12", colorType, playerId)
+            let startPosition = new PiecePosition(624, 385);
+            let yellowPieces: Piece[] = [
+                new Piece(this.game, 552, 503, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 503, 552, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 600, 552, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 552, 600, type, colorType, playerId, UUID.UUID(), startPosition),
             ];
             return yellowPieces;
         }else if (type === "green_piece") {
-            let greenPieces = [
-                new Piece(this.game, 118, 503, type, "13", colorType, playerId),
-                new Piece(this.game, 72, 552, type, "14", colorType, playerId),
-                new Piece(this.game, 168, 552, type, "15", colorType, playerId),
-                new Piece(this.game, 118, 600, type, "16", colorType, playerId)
+            let startPosition = new PiecePosition(287, 622);
+            let greenPieces: Piece[] = [
+                new Piece(this.game, 118, 503, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 72, 552, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 168, 552, type, colorType, playerId, UUID.UUID(), startPosition),
+                new Piece(this.game, 118, 600, type, colorType, playerId, UUID.UUID(), startPosition),
             ];
             return greenPieces;
         }else {
