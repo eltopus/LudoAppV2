@@ -11,6 +11,7 @@ export interface PlayerInterface {
     playerId: string;
     turn: boolean;
     pieces: Piece[];
+    signal: Phaser.Signal;
 }
 
 export class Player extends PieceFactory implements PlayerInterface {
@@ -18,16 +19,18 @@ export class Player extends PieceFactory implements PlayerInterface {
     public playerId: string;
     public turn: boolean;
     public pieces: Piece[] = [];
+    public signal: Phaser.Signal;
 
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[]) {
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal) {
         super(game);
         this.name = name;
         this.playerId = playerId;
         this.turn = turn;
         this.pieces = new Array<Piece>();
+        this.signal = signal;
 
         for (let x = 0; x < colorTypes.length; x++) {
-            let playerPieces = this.getPiece(colorTypes[x], playerId);
+            let playerPieces = this.getPiece(colorTypes[x], playerId, this.signal);
             for (let piece of playerPieces){
                 this.pieces.push(piece);
             }

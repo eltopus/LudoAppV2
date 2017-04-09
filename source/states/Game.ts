@@ -7,6 +7,7 @@ import {ColorType} from "../enums/ColorType";
 import {Board} from "../entities/Board";
 import {factory} from "../logging/ConfigLog4j";
 
+
 const log = factory.getLogger("model.Game");
 
 export class Game extends Phaser.State {
@@ -15,21 +16,10 @@ export class Game extends Phaser.State {
         this.add.sprite(0, 0, "board");
         let playerOnecolors = [ColorType.Red, ColorType.Blue];
         let playerTwocolors = [ColorType.Yellow, ColorType.Green];
-        let playerOne: Player = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors);
-        let playerTwo: Player = new Player(this.game, "PlayerTwo", UUID.UUID(), true, playerTwocolors);
-
-        let board: Board = new Board();
-        let x = 0;
-        for (let piece of playerOne.pieces) {
-            piece.index = x;
-            board.addPieceToActiveBoard(piece);
-            ++x;
-        }
-
-        for (let piece of playerTwo.pieces) {
-            piece.index = 12;
-            board.addPieceToActiveBoard(piece);
-        }
+        let signal = new Phaser.Signal();
+        let board: Board = new Board(signal);
+        let playerOne: Player = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, signal);
+        let playerTwo: Player = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, signal);
 
         let p1 = playerOne.pieces[2];
         p1.moveToStart();
@@ -45,8 +35,6 @@ export class Game extends Phaser.State {
 
         let uniqueIds = board.activeBoard.getValue(12);
 
-        for (let id of uniqueIds){
-            log.debug("ID: " + id);
-        }
     }
+
 }
