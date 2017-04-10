@@ -1,9 +1,10 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 import {ColorType} from "../enums/ColorType";
 import {States} from "../enums/States";
-import {Move} from "../movement/PieceMovement";
+import {Move} from "../movement/Movement";
 import {PiecePosition} from "../entities/PiecePosition";
 import {factory} from "../logging/ConfigLog4j";
+import {Path} from "../entities/Path";
 
 const log = factory.getLogger("model.Piece");
 
@@ -18,6 +19,8 @@ export interface PieceInterface {
     homePosition: PiecePosition;
     signal: Phaser.Signal;
     movePiece(newIndex: number): void;
+    setActivePiece(uniqueId: string): void;
+    moveToStart(continueMoving: boolean): void;
 }
 
 export class Piece extends Phaser.Sprite implements PieceInterface {
@@ -32,6 +35,8 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public startPosition: PiecePosition;
     public homePosition: PiecePosition;
     public signal: Phaser.Signal;
+    public movement: Move;
+    public path: Path;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, color: ColorType,
     playerId: string, uniqueId: string, startPosition: PiecePosition, signal: Phaser.Signal) {
@@ -54,12 +59,15 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.anchor.x = -0.07;
         this.anchor.y = -0.07;
         this.inputEnabled = true;
-        this.events.onInputDown.add(this.moveToHome, this);
+        this.movement = new Move();
+        this.path = null;
+        this.events.onInputDown.add(this.setActivePiece, this);
     }
 
     public movePiece(newIndex: number): void {
+        this.path = this.movement.constructActivePath(this, newIndex);
         if (this.isAtHome) {
-            this.state = States.Active;
+            this.moveToStart(true);
         }
     }
 
@@ -75,17 +83,35 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public isExited(): boolean {
         return (this.state === States.Exited);
     }
-
-    public moveToStart(): void {
+    public moveTo(): void {
+        log.debug("path: " + this.path.x.join());
+        let tween = this.game.add.tween(this).to(this.path, 2000,
+        Phaser.Easing.Linear.None, true).interpolation(function(v: number[], k: number){
+            return Phaser.Math.linearInterpolation(v, k);
+        });
+    }
+    public handleContinueMoving(): void {
+        this.moveTo();
+    }
+    /**
+     * Moves piece to the start position
+     * Sends eom signal to Game and Board child classes
+     */
+    public moveToStart(continueMoving: boolean): void {
         this.state = States.Active;
         this.index = this.startIndex;
         this.signal.dispatch("eom", this.uniqueId, this.index);
         this.game.world.bringToTop(this.group);
         let tween = this.game.add.tween(this).to({ x: this.startPosition.x, y: this.startPosition.y}, 1000,
         Phaser.Easing.Linear.None, true);
-        tween.onComplete.add(this.dispatchEndOfMovement, this);
+        if (continueMoving) {
+            tween.onComplete.add(this.handleContinueMoving, this);
+        }
     }
-
+    /**
+     * Moves piece to homePosition
+     * Sends backToHome signal to Game and Board child classes
+     */
     public moveToHome(): void {
         this.state = States.AtHome;
         this.signal.dispatch("backToHome", this.uniqueId, this.index);
@@ -93,13 +119,55 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.game.world.bringToTop(this.group);
         this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y}, 1000,
         Phaser.Easing.Linear.None, true);
+
     }
 
-    public dispatchEndOfMovement(): void {
-        //this.signal.dispatch("eom", this.uniqueId, this.index);
+    /**
+     * Dispatches select signal to player
+     * Player and piece must have the same player id
+     * @param uniqueId
+     */
+    public setActivePiece(): void {
+        this.signal.dispatch("select", this.uniqueId, this.playerId);
+    }
+    /**
+     * Dispatches select signal to player
+     * Player and piece must have the same player id
+     * @param uniqueId
+     */
+    public unsetActivePiece(): void {
+        this.signal.dispatch("unselect", this.uniqueId, this.playerId);
+        this.frame = 0;
     }
 
-    public getStartIndex(color: ColorType): number {
+    public select(): void {
+        this.frame = 1;
+    }
+
+    public unselect(): void {
+        this.frame = 0;
+    }
+
+    public ifYouAre(color: ColorType): boolean {
+        return (color === this.color);
+    }
+
+    public getEndIndex(): number {
+        switch (this.color) {
+            case ColorType.Red:
+            return 51;
+            case ColorType.Blue:
+            return 12;
+            case ColorType.Yellow:
+            return 25;
+            case ColorType.Green:
+            return 28;
+            default:
+            return -1;
+        }
+    }
+
+    private getStartIndex(color: ColorType): number {
         switch (color) {
             case ColorType.Red:
             return 1;

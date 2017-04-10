@@ -12,6 +12,8 @@ export interface PlayerInterface {
     turn: boolean;
     pieces: Piece[];
     signal: Phaser.Signal;
+    currentPiece: Piece;
+    selectCurrentPiece(listener: string, uniqueId: string, playerId: string): void;
 }
 
 export class Player extends PieceFactory implements PlayerInterface {
@@ -20,6 +22,7 @@ export class Player extends PieceFactory implements PlayerInterface {
     public turn: boolean;
     public pieces: Piece[] = [];
     public signal: Phaser.Signal;
+    public currentPiece: Piece;
 
     constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal) {
         super(game);
@@ -28,12 +31,36 @@ export class Player extends PieceFactory implements PlayerInterface {
         this.turn = turn;
         this.pieces = new Array<Piece>();
         this.signal = signal;
+        this.signal.add(this.selectCurrentPiece, this, 0, "select");
+        this.currentPiece = null;
 
         for (let x = 0; x < colorTypes.length; x++) {
             let playerPieces = this.getPiece(colorTypes[x], playerId, this.signal);
             for (let piece of playerPieces){
                 this.pieces.push(piece);
             }
+        }
+    }
+
+    /**
+     * Receives select signal from piece and set select or unselect on piece
+     * using piece uniqueId
+     * @param uniqueId
+     */
+    public selectCurrentPiece(listener: string, uniqueId: string, playerId: string): void {
+        // check if you are the right owner of the piece
+        if (this.playerId === playerId) {
+            if (listener === "select") {
+                for (let piece of this.pieces) {
+                    if (piece.uniqueId === uniqueId) {
+                        piece.select();
+                        this.currentPiece = piece;
+                    }else {
+                        piece.unselect();
+                    }
+                }
+            }
+
         }
     }
 
