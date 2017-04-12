@@ -44,12 +44,12 @@ export class ActiveBoard extends Board {
     public movement(listener: string, uniqueId: string, index: number): void {
         if (listener === "eom") {
             this.activeBoard.setValue(uniqueId, index);
-            log.debug("From Listener: " + listener + " I am adding <" + uniqueId + ", " + index
-             + "> to active board " + this.activeBoard.size());
+            // log.debug("From Listener: " + listener + " I am adding <" + uniqueId + ", " + index
+             // + "> to active board " + this.activeBoard.size());
         }else if (listener === "backToHome") {
             this.activeBoard.remove(uniqueId);
-            log.debug("From Listener: " + listener + " I am removing <" + uniqueId + ", " +
-            index + "> from activeBoard " + this.activeBoard.size());
+            // log.debug("From Listener: " + listener + " I am removing <" + uniqueId + ", " +
+            // index + "> from activeBoard " + this.activeBoard.size());
         }
     }
     public containsInActiveBoard(piece: Piece): boolean {

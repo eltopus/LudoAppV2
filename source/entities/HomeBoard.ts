@@ -38,13 +38,13 @@ export class HomeBoard extends Board {
         if (listener === "eom") {
             if (index >= 0) {
                 this.homeBoard.remove(uniqueId);
-                log.debug("From Listener: " + listener + " I am removing <" + uniqueId +
-                " " + index + "> from homeboard: " + this.homeBoard.size());
+                // log.debug("From Listener: " + listener + " I am removing <" + uniqueId +
+                // " " + index + "> from homeboard: " + this.homeBoard.size());
             }
         }else if (listener === "backToHome") {
             this.homeBoard.setValue(uniqueId, index);
-            log.debug("From Listener: " + listener + " I am adding <" + uniqueId
-             + " " + index + "> to homeboard " + this.homeBoard.size());
+            // log.debug("From Listener: " + listener + " I am adding <" + uniqueId
+            // + " " + index + "> to homeboard " + this.homeBoard.size());
         }
     }
     /**

@@ -17,10 +17,11 @@ export interface PieceInterface {
     state: States;
     startPosition: PiecePosition;
     homePosition: PiecePosition;
+    speedConstant: number;
     signal: Phaser.Signal;
     movePiece(newIndex: number): void;
+    movePieceTo(path: Path, speed: number): void;
     setActivePiece(uniqueId: string): void;
-    moveToStart(continueMoving: boolean): void;
 }
 
 export class Piece extends Phaser.Sprite implements PieceInterface {
@@ -36,7 +37,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public homePosition: PiecePosition;
     public signal: Phaser.Signal;
     public movement: Move;
-    public path: Path;
+    public speedConstant: number;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, color: ColorType,
     playerId: string, uniqueId: string, startPosition: PiecePosition, signal: Phaser.Signal) {
@@ -60,53 +61,26 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.anchor.y = -0.07;
         this.inputEnabled = true;
         this.movement = new Move();
-        this.path = null;
+        this.speedConstant = 6000 * 12;
         this.events.onInputDown.add(this.setActivePiece, this);
     }
 
     public movePiece(newIndex: number): void {
-        this.path = this.movement.constructActivePath(this, newIndex);
         if (this.isAtHome) {
-            this.moveToStart(true);
+            this.index = this.startIndex;
         }
+        let path = this.movement.constructActivePath(this, newIndex);
+        this.signal.dispatch("eom", this.uniqueId, this.index);
+        this.game.world.bringToTop(this.group);
+        let speed = this.getSpeed(path.x.length);
+        this.movePieceTo(path, speed);
     }
 
-    public isAtHome(): boolean {
-        return (this.state === States.AtHome);
-    }
-    public isActive(): boolean {
-        return (this.state === States.Active);
-    }
-    public isOnWayOut(): boolean {
-        return (this.state === States.onWayOut);
-    }
-    public isExited(): boolean {
-        return (this.state === States.Exited);
-    }
-    public moveTo(): void {
-        log.debug("path: " + this.path.x.join());
-        let tween = this.game.add.tween(this).to(this.path, 2000,
+    public movePieceTo(path: Path, speed: number): void {
+        let tween = this.game.add.tween(this).to(path, 6000,
         Phaser.Easing.Linear.None, true).interpolation(function(v: number[], k: number){
             return Phaser.Math.linearInterpolation(v, k);
         });
-    }
-    public handleContinueMoving(): void {
-        this.moveTo();
-    }
-    /**
-     * Moves piece to the start position
-     * Sends eom signal to Game and Board child classes
-     */
-    public moveToStart(continueMoving: boolean): void {
-        this.state = States.Active;
-        this.index = this.startIndex;
-        this.signal.dispatch("eom", this.uniqueId, this.index);
-        this.game.world.bringToTop(this.group);
-        let tween = this.game.add.tween(this).to({ x: this.startPosition.x, y: this.startPosition.y}, 1000,
-        Phaser.Easing.Linear.None, true);
-        if (continueMoving) {
-            tween.onComplete.add(this.handleContinueMoving, this);
-        }
     }
     /**
      * Moves piece to homePosition
@@ -119,7 +93,30 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.game.world.bringToTop(this.group);
         this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y}, 1000,
         Phaser.Easing.Linear.None, true);
-
+    }
+    public getSpeed(distance: number) {
+        return Math.floor(this.speedConstant / distance);
+    }
+    public isAtHome(): boolean {
+        return (this.state === States.AtHome);
+    }
+    public isActive(): boolean {
+        return (this.state === States.Active);
+    }
+    public isOnWayOut(): boolean {
+        return (this.state === States.onWayOut);
+    }
+    public isExited(): boolean {
+        return (this.state === States.Exited);
+    }
+    public setAtHome(): void {
+        this.state = States.AtHome;
+    }
+    public setActive(): void {
+        this.state = States.Active;
+    }
+    public setExited(): void {
+        this.state = States.Exited;
     }
 
     /**
@@ -139,6 +136,18 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.signal.dispatch("unselect", this.uniqueId, this.playerId);
         this.frame = 0;
     }
+    /**
+     * Always use this method to get index of piece
+     */
+    public getCurrentIndex(): number {
+        if (this.isActive()) {
+            return (this.index % 51);
+        }else if (this.isAtHome) {
+            return this.index % 6;
+        }else {
+            return this.index;
+        }
+    }
 
     public select(): void {
         this.frame = 1;
@@ -152,7 +161,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         return (color === this.color);
     }
 
-    public getEndIndex(): number {
+    public getExitIndex(): number {
         switch (this.color) {
             case ColorType.Red:
             return 51;
@@ -161,7 +170,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
             case ColorType.Yellow:
             return 25;
             case ColorType.Green:
-            return 28;
+            return 38;
             default:
             return -1;
         }

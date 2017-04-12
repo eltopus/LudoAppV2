@@ -34,18 +34,13 @@ export class Game extends Phaser.State {
         }
 
         let p1 = playerOne.pieces[2];
-        p1.moveToStart(false);
-
         let p2 = playerOne.pieces[5];
-        p2.moveToStart(false);
-
         let p3 = playerTwo.pieces[2];
-        p3.moveToStart(false);
-
         let p4 = playerTwo.pieces[5];
-        p4.moveToStart(false);
-
-        p1.movePiece(5);
+        p1.movePiece(9);
+        p2.movePiece(12);
+        p3.movePiece(7);
+        p4.movePiece(16);
 
     }
 

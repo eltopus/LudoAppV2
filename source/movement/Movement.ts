@@ -3,10 +3,11 @@ import {Piece} from "../entities/Piece";
 import * as Paths from "../entities/Paths";
 import {Path} from "../entities/Path";
 import {factory} from "../logging/ConfigLog4j";
+import {MoveStatus} from "../enums/MoveStatus";
 const log = factory.getLogger("model.Movement");
 
 export interface Movement {
-    constructActivePath(piece: Piece, destinationIndex: number): Path;
+    constructActivePath(piece: Piece, newIndex: number): Path;
 }
 
 export class Move implements Movement {
@@ -24,20 +25,12 @@ export class Move implements Movement {
         this.greenHomepath = new Paths.GreenHomePath();
     }
 
-    public constructActivePath(piece: Piece, destinationIndex: number): Path {
-        let currentIndex = piece.index + 1;
-        let destIndex = piece.index + destinationIndex + 1;
+    public constructActivePath(piece: Piece, newIndex: number): Path {
+        let currentIndex = piece.getCurrentIndex();
         let path: Path = new Path();
-        let pathX: number[] = new Array();
-        let pathY: number[] = new Array();
-        if (destIndex <= piece.getEndIndex()) {
-            for (let x = 0; x < destIndex; x++) {
-                pathX.push(this.activePath.x[x]);
-                pathY.push(this.activePath.y[x]);
-            }
-        }
-        path.setPath(pathX, pathY);
+        let finalIndex = piece.index + newIndex;
+        log.debug("finalIndex " + finalIndex + " index: " + piece.index);
+        path = this.activePath.getPath(piece, finalIndex, path);
         return path;
-
     }
 }
