@@ -13,6 +13,8 @@ import * as Path from "../entities/Path";
 const log = factory.getLogger("model.Game");
 
 export class Game extends Phaser.State {
+    public playerOne: Player;
+    public playerTwo: Player;
 
     public create() {
         this.add.sprite(0, 0, "board");
@@ -22,26 +24,42 @@ export class Game extends Phaser.State {
         let activeboard: ActiveBoard = new ActiveBoard(signal);
         let homeboard: HomeBoard = new HomeBoard(signal);
 
-        let playerOne: Player = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, signal);
-        let playerTwo: Player = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, signal);
+        this.playerOne = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, signal);
+        this.playerTwo = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, signal);
+        let playBtn = this.make.button(763, 540, "play", this.playDice, this, 2, 1, 0);
+        let buttonGroup = this.add.group();
+        buttonGroup.add(playBtn);
+        this.game.stage.disableVisibilityChange = true;
 
         // All Player pieces must be added to homeboard
-        for (let piece of playerOne.pieces){
+        for (let piece of this.playerOne.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
-        for (let piece of playerTwo.pieces){
+        for (let piece of this.playerTwo.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
 
-        let p1 = playerOne.pieces[2];
-        let p2 = playerOne.pieces[5];
-        let p3 = playerTwo.pieces[2];
-        let p4 = playerTwo.pieces[5];
-        p1.movePiece(9);
-        p2.movePiece(12);
-        p3.movePiece(7);
-        p4.movePiece(16);
+        /*
+        let p1 = this.playerTwo.pieces[5];
+        p1.x = 384;
+        p1.y = 672;
+        p1.index = 37;
+        p1.setActive();
+        */
 
+
+
+
+    }
+
+    public playDice(): void {
+        let dice = 12;
+        if (this.playerOne.currentPiece !== null) {
+            this.playerOne.currentPiece.movePiece(dice);
+        }
+        if (this.playerTwo.currentPiece !== null) {
+            this.playerTwo.currentPiece.movePiece(dice);
+        }
     }
 
 }

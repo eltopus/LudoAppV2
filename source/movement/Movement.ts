@@ -12,25 +12,31 @@ export interface Movement {
 
 export class Move implements Movement {
     public activePath: Paths.ActivePath;
-    public redHomePath: Paths.RedHomePath;
-    public blueHomePath: Paths.BlueHomePath;
-    public yellowHomePath: Paths.YellowHomePath;
-    public greenHomepath: Paths.GreenHomePath;
-
+    public homePaths: Paths.HomePaths;
     constructor() {
         this.activePath = new Paths.ActivePath();
-        this.redHomePath = new Paths.RedHomePath();
-        this.blueHomePath = new Paths.BlueHomePath();
-        this.yellowHomePath = new Paths.YellowHomePath();
-        this.greenHomepath = new Paths.GreenHomePath();
+        this.homePaths = new Paths.HomePaths();
     }
 
     public constructActivePath(piece: Piece, newIndex: number): Path {
-        let currentIndex = piece.getCurrentIndex();
+        let currentIndex = piece.index;
         let path: Path = new Path();
-        let finalIndex = piece.index + newIndex;
-        log.debug("finalIndex " + finalIndex + " index: " + piece.index);
+        let finalIndex = currentIndex + newIndex;
+        // log.debug("Moving to finalIndex " + finalIndex + " from: " + currentIndex);
         path = this.activePath.getPath(piece, finalIndex, path);
+        // path.remainder has to be greater than zero to make this call
+        if (path.moveStatus === MoveStatus.ShouldBeExiting && path.moveRemainder > 0) {
+            path = this.constructHomePath(piece, 0, path.moveRemainder, path);
+        }
+        return path;
+    }
+
+    public constructHomePath(piece: Piece, from: number, newIndex: number, path?: Path): Path {
+        if (typeof path === "undefined") {
+            path = new Path();
+            log.debug("Path is not defined");
+        }
+        path = this.homePaths.getPath(piece, from, newIndex, path);
         return path;
     }
 }

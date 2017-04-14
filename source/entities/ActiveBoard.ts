@@ -41,15 +41,16 @@ export class ActiveBoard extends Board {
      * @param piece
      * @return boolean
      */
-    public movement(listener: string, uniqueId: string, index: number): void {
+    public movement(listener: string, piece: Piece): void {
         if (listener === "eom") {
-            this.activeBoard.setValue(uniqueId, index);
-            // log.debug("From Listener: " + listener + " I am adding <" + uniqueId + ", " + index
-             // + "> to active board " + this.activeBoard.size());
+            this.activeBoard.setValue(piece.uniqueId, piece.index);
+            log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
+              + "> to active board " + this.activeBoard.size());
+            this.signal.dispatch("rom", piece);
         }else if (listener === "backToHome") {
-            this.activeBoard.remove(uniqueId);
-            // log.debug("From Listener: " + listener + " I am removing <" + uniqueId + ", " +
-            // index + "> from activeBoard " + this.activeBoard.size());
+            this.activeBoard.remove(piece.uniqueId);
+             log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
+             piece.index + "> from activeBoard " + this.activeBoard.size());
         }
     }
     public containsInActiveBoard(piece: Piece): boolean {

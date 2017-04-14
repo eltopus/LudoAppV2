@@ -7,6 +7,7 @@ export class Preloader extends Phaser.State {
         this.load.spritesheet("blue_piece", "images/blue.png", 42, 42, 2);
         this.load.spritesheet("green_piece", "images/green.png", 42, 42, 2);
         this.load.spritesheet("yellow_piece", "images/yellow.png", 42, 42, 2);
+        this.load.image("play", "images/playbutton.png");
         this.load.image("board", "images/board.jpg");
     }
 

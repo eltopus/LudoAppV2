@@ -3,6 +3,7 @@
 import * as Collections from "typescript-collections";
 import { UUID } from "angular2-uuid";
 import {factory} from "../logging/ConfigLog4j";
+import {Piece} from "../entities/Piece";
 
 const log = factory.getLogger("model.Board");
 
@@ -13,6 +14,6 @@ export abstract class Board {
         this.signal = signal;
         this.signal.add(this.movement, this, 0, "eom");
     }
-    public abstract movement(listener: string, uniqueId: string, index: number): void;
+    public abstract movement(listener: string, piece: Piece): void;
 
 }

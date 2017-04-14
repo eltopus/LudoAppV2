@@ -55,6 +55,7 @@ export class Player extends PieceFactory implements PlayerInterface {
                     if (piece.uniqueId === uniqueId) {
                         piece.select();
                         this.currentPiece = piece;
+                        //log.debug("I am being selected..." + this.currentPiece.uniqueId);
                     }else {
                         piece.unselect();
                     }

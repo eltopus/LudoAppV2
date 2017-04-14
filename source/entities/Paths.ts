@@ -2,7 +2,8 @@ import {ColorType} from "../enums/ColorType";
 import {MoveStatus} from "../enums/MoveStatus";
 import {Path} from "./Path";
 import {factory} from "../logging/ConfigLog4j";
-const log = factory.getLogger("model.ActivePath");
+const alog = factory.getLogger("model.Paths.ActivePath");
+const hlog = factory.getLogger("model.Paths.HomePath");
 import {Piece} from "../entities/Piece";
 export class ActivePath {
     public x: number[] = [
@@ -23,111 +24,115 @@ export class ActivePath {
     ];
 
     public getPath(piece: Piece, to: number, path: Path): Path {
-
         // check if piece is at home
-        let from = piece.index + 1;
-        let exitPoint = piece.getExitIndex();
         if (piece.isAtHome()) {
-            // log.debug("Piece is at home. Setting start position x: " + piece.startPosition.x + " y: " + piece.startPosition.y);
             path.x.push(piece.startPosition.x);
             path.y.push(piece.startPosition.y);
             piece.setActive();
+            // alog.debug("Setting piece to active: " + piece.isActive());
         }
-        // log.debug("Stepping into From: " + from + " to: " + to + " exitPoint: " + exitPoint);
+
+        let exitPoint = piece.exitIndex;
+        let from = piece.index + 1;
+
+        // Necessary to force condition that moves piece in to exitpoint index
+        if (piece.isAtExitPoint())  {
+            from = piece.index;
+        }
+
+        // alog.debug("Stepping into From: " + from + " to: " + to + " exitPoint: " + exitPoint);
         for (let i = from; i < to + 1; i++) {
+            // When piece has reached exit index and needs to enter exitpoint
             if (i < 52) {
-                path.x.push(this.x[i]);
-                path.y.push(this.y[i]);
-            }
-            if (i > 51) {
+                if (i === exitPoint) {
+                    // Make sure to push exit point
+                    path.x.push(this.x[i]);
+                    path.y.push(this.y[i]);
+                    let remainder = (to % exitPoint);
+                    // alog.debug("Remainder is " + remainder + " to  is " + to);
+                    path.moveRemainder = remainder;
+                    path.newIndex = exitPoint;
+                    path.moveStatus = MoveStatus.ShouldBeExiting;
+                    alog.debug("i === exitPoint " + exitPoint + " time to enter exit with " + path.moveRemainder);
+                    break;
+                }else {
+                     // when a piece is somewhere between exit index and end of active index
+                    path.x.push(this.x[i]);
+                    path.y.push(this.y[i]);
+                    path.newIndex = i;
+                }
+                // When a piece has reached end of active index and needs to roundrobin
+            }else if (i > 51) {
                 let remainder = (to % 51);
-                // log.debug("k > 51 " + i + " time to round robin with remainder " + remainder);
+                // hlog.debug("k > 51 " + i + " time to round robin with remainder " + remainder);
                 for (let j = 0; j < remainder; j++) {
-                    // log.debug("After x " + this.x[j] + " y: " + this.y[j] + " remainder: " + remainder);
+                    // alog.debug("After x " + this.x[j] + " y: " + this.y[j] + " remainder: " + remainder);
                     path.x.push(this.x[j]);
                     path.y.push(this.y[j]);
                 }
-                // log.debug("Path x " + path.x.join());
-                // log.debug("Path y " + path.y.join());
-                return path;
-            }else if (i === exitPoint) {
-                path.moveRemainder = (to % 51);
-                // log.debug("i === exitPoint " + exitPoint + " time to enter exit with " + path.moveRemainder);
-                return path;
+                path.newIndex  = remainder - 1;
+                break;
             }
         }
         // log.debug("Nothing to do.... " + path.moveRemainder);
-        // log.debug("Path x " + path.x.join());
-        // log.debug("Path y " + path.y.join());
+        // hlog.debug("Path x " + path.x.join());
+        // hlog.debug("Path y " + path.y.join());
         return path;
     }
 
 }
 
-export class RedHomePath {
-    public x: number[] = [
-       48,  96, 144, 192, 240, 288,
-    ];
-    public y: number[] = [
-        336, 336, 336, 336, 336, 336,
-    ];
+export class HomePaths {
+    public red_x: number[] = [48,  96, 144, 192, 240, 288];
+    public red_y: number[] = [336, 336, 336, 336, 336, 336];
 
-    public getPath(from: number, to: number, exitPoint: number, path: Path): Path {
-        for (let x = from; x < to; x++) {
-            path.x.push(this.x[x]);
-            path.y.push(this.y[x]);
-        }
-        return path;
+    public blue_x: number[] = [336, 336, 336, 336, 336, 336];
+    public blue_y: number[] = [48, 96,  144, 192, 240, 288];
+
+    public yellow_x: number[] = [624, 576, 528, 480, 432, 384];
+    public yellow_y: number[] = [336, 336,  336, 336, 336, 336];
+
+    public green_x: number[] = [336, 336, 336, 336, 336, 336];
+    public green_y: number[] = [624, 572, 528, 480, 432, 384];
+
+    public getPath(piece: Piece, from: number, to: number, path: Path): Path {
+        let x: number[] = [];
+        let y: number[] = [];
+        hlog.debug("Piece " + piece.uniqueId + " is on the way out ");
+        switch (piece.color) {
+            case ColorType.Red:
+                x = this.red_x;
+                y = this.red_y;
+                break;
+            case ColorType.Blue:
+                x = this.blue_x;
+                y = this.blue_y;
+                break;
+            case ColorType.Yellow:
+                x = this.yellow_x;
+                y = this.yellow_y;
+                break;
+            case ColorType.Green:
+                x = this.green_x;
+                y = this.green_y;
+                break;
+            default:
+                break;
+            }
+            if (to > 6) {
+                hlog.debug("to " + to + " is greater than six! Something went wrong!!!");
+                to = 6;
+            }
+            for (let i = from; i < to; i++) {
+                path.x.push(x[i]);
+                path.y.push(y[i]);
+            }
+            path.newIndex = to - 1;
+            piece.setOnWayOut();
+            // hlog.debug("Path x " + path.x.join());
+            // hlog.debug("Path y " + path.y.join());
+            return path;
     }
-}
 
-export class BlueHomePath {
-    public x: number[] = [
-       336, 336, 336, 336, 336, 336,
-    ];
-    public y: number[] = [
-        48, 96,  144, 192, 240, 288,
-    ];
-    public getPath(from: number, to: number, exitPoint: number, path: Path): Path {
-        for (let x = from; x < to; x++) {
-            path.x.push(this.x[x]);
-            path.y.push(this.y[x]);
-        }
-        return path;
-    }
-}
-
-export class YellowHomePath {
-    public x: number[] = [
-       624, 576, 528, 480, 432, 384,
-    ];
-    public y: number[] = [
-        336, 336,  336, 336, 336, 336,
-    ];
-
-    public getPath(from: number, to: number, exitPoint: number, path: Path): Path {
-        for (let x = from; x < to; x++) {
-            path.x.push(this.x[x]);
-            path.y.push(this.y[x]);
-        }
-        return path;
-    }
-}
-
-export class GreenHomePath {
-    public x: number[] = [
-       336, 336, 336, 336, 336, 336,
-    ];
-    public y: number[] = [
-        624, 572, 528, 480, 432, 384,
-    ];
-
-    public getPath(from: number, to: number, exitPoint: number, path: Path): Path {
-        for (let x = from; x < to; x++) {
-            path.x.push(this.x[x]);
-            path.y.push(this.y[x]);
-        }
-        return path;
-    }
 }
 
