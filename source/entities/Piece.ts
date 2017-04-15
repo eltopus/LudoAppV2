@@ -56,8 +56,8 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.startIndex = this.getStartIndex(color);
         this.state = States.AtHome;
         this.group = this.game.add.group();
-        this.signal = signal;
         this.group.add(this);
+        this.signal = signal;
         this.scale.x = 1.1;
         this.scale.y = 1.1;
         this.anchor.x = -0.07;
@@ -94,7 +94,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         tween.onComplete.add(this.onCompleteMovementBackToHome, this);
     }
     public onCompleteMovementBackToHome(): void {
-        log.debug("My index is " + this.index);
+        log.debug("My index is " + this.index + " my state is " + this.getState());
     }
     /**
      * Moves piece to homePosition
@@ -185,6 +185,36 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
             return 38;
             default:
             return -1;
+        }
+    }
+
+    public getColor(): string {
+        switch (this.color) {
+            case ColorType.Red:
+            return "RED";
+            case ColorType.Blue:
+            return "BLUE";
+            case ColorType.Yellow:
+            return "YELLOW";
+            case ColorType.Green:
+            return "GREEN";
+            default:
+            return "";
+        }
+    }
+
+    public getState(): string {
+        switch (this.state) {
+            case States.Active:
+            return "ACTIVE";
+            case States.AtHome:
+            return "AT HOME";
+            case States.Exited:
+            return "EXITED";
+            case States.onWayOut:
+            return "ON WAY OUT";
+            default:
+            return "";
         }
     }
 

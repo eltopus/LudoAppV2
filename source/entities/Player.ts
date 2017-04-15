@@ -3,6 +3,8 @@ import {Piece} from "../entities/Piece";
 import {PieceFactory} from "../entities/PieceFactory";
 import {ColorType} from "../enums/ColorType";
 import {factory} from "../logging/ConfigLog4j";
+import {Board} from "./Board";
+import {Dice} from "./Dice";
 
 const log = factory.getLogger("model.Player");
 
@@ -23,7 +25,6 @@ export class Player extends PieceFactory implements PlayerInterface {
     public pieces: Piece[] = [];
     public signal: Phaser.Signal;
     public currentPiece: Piece;
-
     constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal) {
         super(game);
         this.name = name;
@@ -40,6 +41,44 @@ export class Player extends PieceFactory implements PlayerInterface {
                 this.pieces.push(piece);
             }
         }
+    }
+
+    public roll(dice: Dice): void {
+        dice.roll(this.playerId);
+    }
+
+
+    public getActivePieces(board: Board): Piece[] {
+        let activePieces: Piece[] = [];
+        for (let piece of this.pieces) {
+            let index = board.board.getValue(piece.uniqueId);
+            if (typeof index !== "undefined" && piece.isActive()) {
+                activePieces.push(piece);
+            }
+        }
+        return activePieces;
+    }
+
+    public getHomePieces(board: Board): Piece[] {
+        let homePieces: Piece[] = [];
+        for (let piece of this.pieces) {
+            let index = board.board.getValue(piece.uniqueId);
+            if (typeof index !== "undefined" && piece.isAtHome()) {
+                homePieces.push(piece);
+            }
+        }
+        return homePieces;
+    }
+
+    public getOnWayOutPieces(board: Board): Piece[] {
+        let onWayOutPieces: Piece[] = [];
+        for (let piece of this.pieces) {
+            let index = board.board.getValue(piece.uniqueId);
+            if (typeof index !== "undefined" && piece.setOnWayOut()) {
+                onWayOutPieces.push(piece);
+            }
+        }
+        return onWayOutPieces;
     }
 
     /**

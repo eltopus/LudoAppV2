@@ -13,10 +13,8 @@ const log = factory.getLogger("model.ActiveBoard");
 export class ActiveBoard extends Board {
     // Using MutiDictionary for both ActiveBoard and HomeBoard led to unexpected behavior
     // remove function worked for activeBoard but not for homeBoard
-    public activeBoard: Collections.Dictionary<String, Number>;
     constructor(signal: Phaser.Signal) {
         super(signal);
-        this.activeBoard = new Collections.Dictionary<String, Number>();
     }
 
     /**
@@ -26,7 +24,7 @@ export class ActiveBoard extends Board {
      * @return void
      */
     public addPieceToActiveBoard(piece: Piece): void {
-        this.activeBoard.setValue(piece.uniqueId, piece.index);
+        this.board.setValue(piece.uniqueId, piece.index);
     }
     /**
      * Removes <key, value> <piece.uniqueId, piece.index> from active board dictionary
@@ -34,7 +32,7 @@ export class ActiveBoard extends Board {
      * @return void
      */
     public removePieceFromActiveBoard(piece: Piece): void {
-        this.activeBoard.remove(piece.uniqueId);
+        this.board.remove(piece.uniqueId);
     }
     /**
      * Returns appropriate boolean if active board contains piece.index
@@ -43,17 +41,17 @@ export class ActiveBoard extends Board {
      */
     public movement(listener: string, piece: Piece): void {
         if (listener === "eom") {
-            this.activeBoard.setValue(piece.uniqueId, piece.index);
+            this.board.setValue(piece.uniqueId, piece.index);
             log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
-              + "> to active board " + this.activeBoard.size());
+              + "> to active board " + this.board.size());
             this.signal.dispatch("rom", piece);
         }else if (listener === "backToHome") {
-            this.activeBoard.remove(piece.uniqueId);
+            this.board.remove(piece.uniqueId);
              log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
-             piece.index + "> from activeBoard " + this.activeBoard.size());
+             piece.index + "> from activeBoard " + this.board.size());
         }
     }
     public containsInActiveBoard(piece: Piece): boolean {
-        return this.activeBoard.containsKey(piece.uniqueId);
+        return this.board.containsKey(piece.uniqueId);
     }
 }

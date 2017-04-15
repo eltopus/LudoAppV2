@@ -5,16 +5,14 @@ import {factory} from "../logging/ConfigLog4j";
 import {Board} from "./Board";
 import {Piece} from "../entities/Piece";
 
-const log = factory.getLogger("model.Home");
+const log = factory.getLogger("model.HomeBoard");
 
 /**
  * Stores the <piece.uniqueId, piece.index> of all home pieces
  */
 export class HomeBoard extends Board {
-    public homeBoard: Collections.Dictionary<String, Number>;
     constructor(signal: Phaser.Signal) {
         super(signal);
-        this.homeBoard = new Collections.Dictionary<String, Number>();
     }
 
     /**
@@ -24,7 +22,7 @@ export class HomeBoard extends Board {
      * @return void
      */
     public addPieceToHomeBoard(piece: Piece): void {
-        this.homeBoard.setValue(piece.uniqueId, piece.index);
+        this.board.setValue(piece.uniqueId, piece.index);
     }
     /**
      * Removes <key, value> <piece.uniqueId, piece.index> from home board dictionary
@@ -32,19 +30,19 @@ export class HomeBoard extends Board {
      * @return void
      */
     public removePieceFromHomeBoard(piece: Piece): void {
-        this.homeBoard.remove(piece.uniqueId);
+        this.board.remove(piece.uniqueId);
     }
     public movement(listener: string, piece: Piece): void {
         if (listener === "rom") {
-            if (this.homeBoard.containsKey(piece.uniqueId)) {
-                this.homeBoard.remove(piece.uniqueId);
+            if (this.board.containsKey(piece.uniqueId)) {
+                this.board.remove(piece.uniqueId);
             log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId +
-            " " + piece.index + "> from homeboard: New size: " + this.homeBoard.size());
+            " " + piece.index + "> from homeboard: New size: " + this.board.size());
             }
         }else if (listener === "backToHome") {
-            this.homeBoard.setValue(piece.uniqueId, piece.index);
+            this.board.setValue(piece.uniqueId, piece.index);
              log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId
-             + " " + piece.index + "> to homeboard: New Size " + this.homeBoard.size());
+             + " " + piece.index + "> to homeboard: New Size " + this.board.size());
         }
     }
     /**
@@ -53,6 +51,6 @@ export class HomeBoard extends Board {
      * @return boolean
      */
     public containsInHomeBoard(piece: Piece): boolean {
-        return this.homeBoard.containsKey(piece.uniqueId);
+        return this.board.containsKey(piece.uniqueId);
     }
 }
