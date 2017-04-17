@@ -13,6 +13,7 @@
         "removeComments": true,
         "noLib": false,
         "preserveConstEnums": true,
+        "allowJs": true,
         "suppressImplicitAnyIndexErrors": true
     }
 }

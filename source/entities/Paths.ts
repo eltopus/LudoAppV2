@@ -5,6 +5,7 @@ import {factory} from "../logging/ConfigLog4j";
 const alog = factory.getLogger("model.Paths.ActivePath");
 const hlog = factory.getLogger("model.Paths.HomePath");
 import {Piece} from "../entities/Piece";
+import {PiecePosition} from "./PiecePosition";
 export class ActivePath {
     public x: number[] = [
         0, 48, 96, 144, 192, 240, 288, 288, 288, 288,
@@ -32,31 +33,31 @@ export class ActivePath {
             // alog.debug("Setting piece to active: " + piece.isActive());
         }
 
-        let exitPoint = piece.exitIndex;
+        let entryPoint = piece.entryIndex;
         let from = piece.index + 1;
 
-        // Necessary to force condition that moves piece in to exitpoint index
-        if (piece.isAtExitPoint())  {
+        // Necessary to force condition that moves piece in to entrypoint index
+        if (piece.isAtEntryPoint())  {
             from = piece.index;
         }
 
-        // alog.debug("Stepping into From: " + from + " to: " + to + " exitPoint: " + exitPoint);
+        // alog.debug("Stepping into From: " + from + " to: " + to + " entryPoint: " + entryPoint);
         for (let i = from; i < to + 1; i++) {
-            // When piece has reached exit index and needs to enter exitpoint
+            // When piece has reached entry index and needs to enter entrytpoint
             if (i < 52) {
-                if (i === exitPoint) {
-                    // Make sure to push exit point
+                if (i === entryPoint) {
+                    // Make sure to push entry point
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
-                    let remainder = (to % exitPoint);
+                    let remainder = (to % entryPoint);
                     // alog.debug("Remainder is " + remainder + " to  is " + to);
                     path.moveRemainder = remainder;
-                    path.newIndex = exitPoint;
+                    path.newIndex = entryPoint;
                     path.moveStatus = MoveStatus.ShouldBeExiting;
-                    alog.debug("i === exitPoint " + exitPoint + " time to enter exit with " + path.moveRemainder);
+                    alog.debug("i === entryPoint " + entryPoint + " time to enter entry with " + path.moveRemainder);
                     break;
                 }else {
-                     // when a piece is somewhere between exit index and end of active index
+                     // when a piece is somewhere between entryindex and end of active index
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
                     path.newIndex = i;
@@ -79,6 +80,16 @@ export class ActivePath {
         // hlog.debug("Path y " + path.y.join());
         return path;
     }
+
+    public getPiecePostionByIndex(index: number): PiecePosition {
+        if (index > 51) {
+            let newIndex: number = index % 51;
+            return new PiecePosition(this.x[newIndex], this.y[newIndex]);
+        }else {
+            return new PiecePosition(this.x[index], this.y[index]);
+        }
+    }
+
 
 }
 

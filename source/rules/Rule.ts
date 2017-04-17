@@ -1,11 +1,21 @@
 import {Actions} from "../enums/Actions";
 export class Rule {
-    public diceValue: number;
     public pieceId: string;
     public action: Actions;
-    constructor(diceValue: number, pieceId: string, action: Actions) {
-        this.diceValue = diceValue;
-        this.pieceId = pieceId;
-        this.action = action;
+    public diceId: string;
+    public playBothDice: boolean;
+
+    constructor() {
+        this.pieceId = " ";
+        this.action = Actions.DO_NOTHING;
+        this.pieceId = " ";
+        this.playBothDice = false;
+    }
+
+    public resetRule(): void {
+        this.pieceId = "";
+        this.action = Actions.DO_NOTHING;
+        this.pieceId = "";
+        this.playBothDice = false;
     }
 }

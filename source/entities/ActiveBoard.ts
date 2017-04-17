@@ -42,13 +42,13 @@ export class ActiveBoard extends Board {
     public movement(listener: string, piece: Piece): void {
         if (listener === "eom") {
             this.board.setValue(piece.uniqueId, piece.index);
-            log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
-              + "> to active board " + this.board.size());
+            // log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
+             // + "> to active board " + this.board.size());
             this.signal.dispatch("rom", piece);
         }else if (listener === "backToHome") {
             this.board.remove(piece.uniqueId);
-             log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
-             piece.index + "> from activeBoard " + this.board.size());
+             // log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
+             // piece.index + "> from activeBoard " + this.board.size());
         }
     }
     public containsInActiveBoard(piece: Piece): boolean {

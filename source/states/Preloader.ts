@@ -11,7 +11,6 @@ export class Preloader extends Phaser.State {
         this.load.image("diceBtn", "images/dicebtn.png");
         this.load.image("play", "images/playbutton.png");
         this.load.image("board", "images/board.jpg");
-        
     }
 
     public create() {

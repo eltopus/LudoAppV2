@@ -35,6 +35,7 @@ export class Die extends Phaser.Sprite {
         // log.debug("Roll complete");
         let rand = Math.floor(Math.random() * 6);
         this.frame = this.diceArr[rand];
+        // this.frame = 0;
         this.signal.dispatch("endOfDieRoll");
     }
 
@@ -75,7 +76,7 @@ export class Die extends Phaser.Sprite {
             case 5:
                 return 3;
             case 6:
-            return 4;
+                return 4;
             default:
                 return 0;
         }

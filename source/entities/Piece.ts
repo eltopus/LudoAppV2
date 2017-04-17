@@ -5,6 +5,7 @@ import {Move} from "../movement/Movement";
 import {PiecePosition} from "../entities/PiecePosition";
 import {factory} from "../logging/ConfigLog4j";
 import {Path} from "../entities/Path";
+// import * as Phasertips from "../Phasertips";
 
 const log = factory.getLogger("model.Piece");
 
@@ -19,7 +20,7 @@ export interface PieceInterface {
     homePosition: PiecePosition;
     speedConstant: number;
     signal: Phaser.Signal;
-    exitIndex: number;
+    entryIndex: number;
     movePiece(newIndex: number): void;
     movePieceTo(path: Path, speed: number): void;
     setActivePiece(uniqueId: string): void;
@@ -39,7 +40,8 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public signal: Phaser.Signal;
     public movement: Move;
     public speedConstant: number;
-    public exitIndex: number;
+    public entryIndex: number;
+    // public tips: Phasertips;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, color: ColorType,
     playerId: string, uniqueId: string, startPosition: PiecePosition, signal: Phaser.Signal) {
@@ -52,7 +54,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.game.physics.enable(this, Phaser.Physics.ARCADE);
         this.frame = 0;
         this.index = -1;
-        this.exitIndex = this.getExitIndex();
+        this.entryIndex = this.getEntryIndex();
         this.startIndex = this.getStartIndex(color);
         this.state = States.AtHome;
         this.group = this.game.add.group();
@@ -65,6 +67,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.inputEnabled = true;
         this.movement = new Move();
         this.speedConstant = 6000 * 12;
+        //this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
         this.events.onInputDown.add(this.setActivePiece, this);
     }
 
@@ -139,8 +142,8 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public setOnWayOut(): void {
         this.state = States.onWayOut;
     }
-    public isAtExitPoint(): boolean {
-        return (this.index === this.exitIndex);
+    public isAtEntryPoint(): boolean {
+        return (this.index === this.entryIndex);
     }
 
     /**
@@ -173,7 +176,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         return (color === this.color);
     }
 
-    public getExitIndex(): number {
+    public getEntryIndex(): number {
         switch (this.color) {
             case ColorType.Red:
             return 51;
@@ -216,6 +219,12 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
             default:
             return "";
         }
+    }
+    public setParameters(x: number, y: number, index: number, state: States): void {
+        this.x = x;
+        this.y = y;
+        this.state = state;
+        this.index = index;
     }
 
     private getStartIndex(color: ColorType): number {

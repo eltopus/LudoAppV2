@@ -5,91 +5,65 @@ import {Piece} from "../entities/Piece";
 import {factory} from "../logging/ConfigLog4j";
 import {Actions} from "../enums/Actions";
 import {Rule} from "./Rule";
+import {AbstractRules} from "./AbstractRules";
 import {Scheduler} from "../rules/Scheduler";
 import {Dice} from "../entities/Dice";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
+import {HomeRules} from "./HomeRules";
+import {ActiveRules} from "./ActiveRules";
+import {OnWayOutRules} from "./OnWayOutRules";
 
 const log = factory.getLogger("model.Rules");
 
 export class Rules {
-
+protected homeRule: HomeRules;
+protected activeRule: ActiveRules;
+protected onWayOutRule: OnWayOutRules;
 private signal: Phaser.Signal;
 private rollCounter = 0;
 private schedule: Scheduler;
-private dice: Dice;
-private activeBoard: ActiveBoard;
-private homeBoard: HomeBoard;
 
-constructor(signal: Phaser.Signal, scheduler: Scheduler, dice: Dice, activeBoard: ActiveBoard, homeBoard: HomeBoard) {
+constructor(signal: Phaser.Signal, schedule: Scheduler, dice: Dice, activeBoard: ActiveBoard, homeBoard: HomeBoard) {
+    this.activeRule = new ActiveRules(dice, schedule, activeBoard);
+    this.homeRule = new HomeRules(dice, schedule, homeBoard);
+    this.onWayOutRule = new OnWayOutRules(dice, schedule, homeBoard);
+    this.schedule = schedule;
     this.signal = signal;
-    this.schedule = scheduler;
-    this.dice = dice;
-    this.activeBoard = activeBoard;
-    this.homeBoard = homeBoard;
     this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
 }
 
 
 
 public generateRules(player: Player): Rule[] {
-    let dieOne = this.dice.dieOne.getValue();
-    let dieTwo = this.dice.dieTwo.getValue();
-    log.debug("DieOne " + dieOne + " dieTwo " + dieTwo);
-    this.generateActiveRules(player);
-    this.generateHomeRules(player);
+    let activeRules: Rule[] = this.activeRule.generateRules(player);
+    let homeRules: Rule[] = this.homeRule.generateRules(player);
+    // log.debug("Total # of rules: " + homeRules.length);
+    for (let rule of homeRules){
+        log.debug(this.homeRule.decodeRule(rule));
+    }
+    for (let rule of activeRules){
+        log.debug(this.activeRule.decodeRule(rule));
+    }
+    this.homeRule.addSpentRulesBackToPool(homeRules);
+    this.activeRule.addSpentRulesBackToPool(activeRules);
+    // this.activeRule.showFinalResults();
+    // this.homeRule.showFinalResults();
     return null;
 }
 
-public generateActiveRules(player: Player): Rule[] {
-    let activePieces: Piece[] = player.getActivePieces(this.activeBoard);
-    for (let p of activePieces) {
-        log.debug("Active PiecesId: " + p.uniqueId + " PlayerID: " + player.name);
-    }
-    return null;
-}
-
-public generateHomeRules(player: Player): Rule[] {
-    let homePieces: Piece[] = player.getHomePieces(this.homeBoard);
-    for (let p of homePieces) {
-        log.debug("HomePiecesId: " + p.uniqueId + " PlayerID: " + player.name);
-    }
-    return null;
-}
 
 public generateOnWayOutRules(piece: Piece): Rule[] {
     return null;
 }
 
-public decodeRule(rule: Rule): string {
-    if (rule.action === Actions.DO_NOTHING) {
-        return "DO NOTHING";
-    }else if (rule.action === Actions.EXIT) {
-         return "EXIT " + rule.pieceId;
-    }else if (rule.action === Actions.PLAY) {
-        return "PLAY " + rule.diceValue + " ON " + rule.pieceId;
-    }else if (rule.action === Actions.ROLL) {
-        return "ROLL";
-    }else if (rule.action === Actions.SKIP) {
-        return "SKIP";
-    }else {
-        return "DO NOTHING";
-    }
-}
 
-
-    public endOfDiceRoll(listener: string): void {
+public endOfDiceRoll(listener: string): void {
         if (listener === "endOfDieRoll") {
             ++this.rollCounter;
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
                 let player: Player = this.schedule.getCurrentPlayer();
-                // Duplicate! Condition already checked in Die object
-                if (this.dice.dieOne.getPlayerId() === player.playerId) {
-                    // log.debug("Player Id and dice id matches " + player.name);
-                }else {
-                    // log.debug("Player Id and dice id DO NOT match");
-                }
                 this.generateRules(player);
             }
         }
