@@ -67,7 +67,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.inputEnabled = true;
         this.movement = new Move();
         this.speedConstant = 6000 * 12;
-        //this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
+        // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
         this.events.onInputDown.add(this.setActivePiece, this);
     }
 

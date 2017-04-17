@@ -35,7 +35,6 @@ export class Game extends Phaser.State {
         let signal = new Phaser.Signal();
         let activeboard: ActiveBoard = new ActiveBoard(signal);
         let homeboard: HomeBoard = new HomeBoard(signal);
-
         this.playerOne = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, signal);
         this.playerTwo = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, signal);
         // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
@@ -56,7 +55,9 @@ export class Game extends Phaser.State {
         diceBtn.scale.y = 0.2;
         buttonGroup.add(diceBtn);
         this.game.stage.disableVisibilityChange = true;
-        this.dice = new Dice(this.game, "die", signal);
+        let dieOneUUID = UUID.UUID();
+        let dieTwoUUID = UUID.UUID();
+        this.dice = new Dice(this.game, "die", signal, dieOneUUID, dieTwoUUID);
 
         let rule = new Rules(signal, this.schedule, this.dice, activeboard, homeboard);
 
@@ -79,8 +80,6 @@ export class Game extends Phaser.State {
             homeboard.addPieceToHomeBoard(piece);
         }
         */
-        
-
     }
 
     public rollDice(): void {

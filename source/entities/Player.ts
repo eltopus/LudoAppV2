@@ -36,7 +36,7 @@ export class Player extends PieceFactory implements PlayerInterface {
         this.currentPiece = null;
 
         for (let x = 0; x < colorTypes.length; x++) {
-            let playerPieces = this.getPiece(colorTypes[x], playerId, this.signal);
+            let playerPieces = this.createNewPieces(colorTypes[x], playerId, this.signal);
             for (let piece of playerPieces){
                 this.pieces.push(piece);
             }

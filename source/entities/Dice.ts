@@ -10,14 +10,10 @@ export class Dice {
     public dieOne: Die;
     public dieTwo: Die;
     private signal: Phaser.Signal;
-    private dieOneUniqueId: string;
-    private dieTwoUniqueId: string;
 
-    constructor(game: Phaser.Game, imageId: string, signal: Phaser.Signal) {
-        this.dieOneUniqueId = UUID.UUID();
-        this.dieTwoUniqueId = UUID.UUID();
-        this.dieOne = new Die(game, 330, 390, imageId, this.dieOneUniqueId, signal);
-        this.dieTwo = new Die(game, 390, 330, imageId, this.dieTwoUniqueId, signal);
+    constructor(game: Phaser.Game, imageId: string, signal: Phaser.Signal, dieOneUUID: string, dieTwoUUID: string) {
+        this.dieOne = new Die(game, 330, 390, imageId, dieOneUUID, signal);
+        this.dieTwo = new Die(game, 390, 330, imageId, dieTwoUUID, signal);
         this.signal = signal;
     }
 
