@@ -3,7 +3,7 @@ import {MoveStatus} from "../enums/MoveStatus";
 import {Path} from "./Path";
 import {factory} from "../logging/ConfigLog4j";
 const alog = factory.getLogger("model.Paths.ActivePath");
-const hlog = factory.getLogger("model.Paths.HomePath");
+const hlog = factory.getLogger("model.Paths.OnWayOutPaths");
 import {Piece} from "../entities/Piece";
 import {PiecePosition} from "./PiecePosition";
 export class ActivePath {
@@ -93,7 +93,7 @@ export class ActivePath {
 
 }
 
-export class HomePaths {
+export class OnWayOutPaths {
     public red_x: number[] = [48,  96, 144, 192, 240, 288];
     public red_y: number[] = [336, 336, 336, 336, 336, 336];
 
@@ -107,43 +107,75 @@ export class HomePaths {
     public green_y: number[] = [624, 572, 528, 480, 432, 384];
 
     public getPath(piece: Piece, from: number, to: number, path: Path): Path {
-        let x: number[] = [];
-        let y: number[] = [];
-        hlog.debug("Piece " + piece.uniqueId + " is on the way out ");
+        let pieceOnWayoutPath: [number[], number[]];
+        pieceOnWayoutPath = this.getPiecePath(piece);
+        let x: number[] = pieceOnWayoutPath[0];
+        let y: number[] = pieceOnWayoutPath[1];
+        // hlog.debug("Piece " + piece.uniqueId + " is on the way out ");
+
+        // Different workflow depending on the states
+        if (piece.isActive()) {
+            // This condition should have been taken care of by the Rule.
+            if (to > 6){
+                hlog.debug("to " + to + " is greater than six! Something went wrong!!!");
+            }else{
+                for (let i = from; i < to; i++) {
+                    path.x.push(x[i]);
+                    path.y.push(y[i]);
+                }
+                path.newIndex = to - 1;
+                piece.setOnWayOut();
+                // hlog.debug("Active Path x " + path.x.join() + " newIndex " + to);
+                // hlog.debug("Active Path y " + path.y.join() + " newIndex " + to);
+
+            }
+        }else if (piece.isOnWayOut()) {
+            if (to > 5){
+                hlog.debug("to " + to + " is greater than five! Something went wrong!!!");
+            }else{
+                for (let i = from; i < to + 1; i++) {
+                    path.x.push(x[i]);
+                    path.y.push(y[i]);
+                }
+                path.newIndex = to;
+                // hlog.debug("On Way Out Path x " + path.x.join() + " newIndex " + to);
+                // hlog.debug("On Way Out Path y " + path.y.join() + " newIndex " + to);
+            }
+        }
+        return path;
+    }
+
+    public getPiecePostionByIndex(piece: Piece, newIndex: number): PiecePosition {
+        let pieceOnWayoutPath: [number[], number[]];
+        pieceOnWayoutPath = this.getPiecePath(piece);
+        let x: number[] = pieceOnWayoutPath[0];
+        let y: number[] = pieceOnWayoutPath[1];
+        if (newIndex > 6) {
+            hlog.debug("Error!!! Index cannot be greater than six");
+            return;
+        }else {
+            return new PiecePosition(x[newIndex], y[newIndex]);
+        }
+    }
+
+    private getPiecePath(piece: Piece):[number[], number[]]{
+        let pieceOnWayoutPath: [number[], number[]];
         switch (piece.color) {
             case ColorType.Red:
-                x = this.red_x;
-                y = this.red_y;
+                pieceOnWayoutPath = [this.red_x, this.red_y];
                 break;
             case ColorType.Blue:
-                x = this.blue_x;
-                y = this.blue_y;
+                pieceOnWayoutPath = [this.blue_x, this.blue_y];
                 break;
             case ColorType.Yellow:
-                x = this.yellow_x;
-                y = this.yellow_y;
+                pieceOnWayoutPath = [this.yellow_x, this.yellow_y];
                 break;
             case ColorType.Green:
-                x = this.green_x;
-                y = this.green_y;
+                pieceOnWayoutPath = [this.green_x, this.green_y];
                 break;
             default:
                 break;
             }
-            if (to > 6) {
-                hlog.debug("to " + to + " is greater than six! Something went wrong!!!");
-                to = 6;
-            }
-            for (let i = from; i < to; i++) {
-                path.x.push(x[i]);
-                path.y.push(y[i]);
-            }
-            path.newIndex = to - 1;
-            piece.setOnWayOut();
-            // hlog.debug("Path x " + path.x.join());
-            // hlog.debug("Path y " + path.y.join());
-            return path;
+        return pieceOnWayoutPath;
     }
-
 }
-

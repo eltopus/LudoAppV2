@@ -3,7 +3,7 @@ import {Scheduler} from "../rules/Scheduler";
 import {Dice} from "../entities/Dice";
 import {Board} from "../entities/Board";
 import {Actions} from "../enums/Actions";
-import {Rule} from "./Rule";
+import {Move} from "./Move";
 import {Piece} from "../entities/Piece";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
@@ -15,8 +15,8 @@ const log = factory.getLogger("model.AbstractRules");
 export abstract class AbstractRules {
     protected dice: Dice;
     protected schedule: Scheduler;
-    protected rulesPool: Rule[];
-    protected activeRulePool: Rule[];
+    protected rulesPool: Move[];
+    protected activeRulePool: Move[];
     protected board: Board;
 
     constructor(dice: Dice, schedule: Scheduler, board: Board) {
@@ -27,7 +27,7 @@ export abstract class AbstractRules {
         this.activeRulePool = new Array();
         // Define object pooling for rules coz we used them a lot
         for (let i = 0; i < 10; ++i) {
-            this.rulesPool.push(new Rule());
+            this.rulesPool.push(new Move());
         }
     }
 
@@ -54,13 +54,13 @@ export abstract class AbstractRules {
     }
 
 
-    public getNewRule(): Rule {
-        let rule: Rule = null;
+    public getNewRule(): Move {
+        let rule: Move = null;
 
         if (this.rulesPool.length > 0) {
             rule = this.rulesPool.pop();
         }else {
-            rule = new Rule();
+            rule = new Move();
             this.activeRulePool.push(rule);
         }
         return rule;
@@ -75,12 +75,12 @@ export abstract class AbstractRules {
     }
 
     /**
-     *Add spent rules object back to pool
-     * @param rules
+     *Add spent moves object back to pool
+     * @param moves
      */
-    public addSpentRulesBackToPool(rules: Rule[]): void {
-        for (let rule of rules){
-            this.addToRulePool(rule);
+    public addSpentRulesBackToPool(moves: Move[]): void {
+        for (let move of moves){
+            this.addToRulePool(move);
         }
     }
     /**
@@ -141,15 +141,15 @@ export abstract class AbstractRules {
         return this.dice.getHigherDieValue();
     }
 
-    private addToRulePool(rule: Rule): void {
+    private addToRulePool(move: Move): void {
         for (let i = 0, l = this.activeRulePool.length; i < l; i++) {
-            if (this.activeRulePool[i] === rule) {
+            if (this.activeRulePool[i] === move) {
                 this.activeRulePool.splice(i, 1);
                // log.debug("Deleting from active pieces " + this.activeRules.length);
             }
         }
-        rule.resetRule();
-        this.rulesPool.push(rule);
+        move.resetRule();
+        this.rulesPool.push(move);
     }
 
 

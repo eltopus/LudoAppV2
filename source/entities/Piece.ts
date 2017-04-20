@@ -1,7 +1,7 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 import {ColorType} from "../enums/ColorType";
 import {States} from "../enums/States";
-import {Move} from "../movement/Movement";
+import {PieceMovement} from "../movement/Movement";
 import {PiecePosition} from "../entities/PiecePosition";
 import {factory} from "../logging/ConfigLog4j";
 import {Path} from "../entities/Path";
@@ -18,6 +18,7 @@ export interface PieceInterface {
     state: States;
     startPosition: PiecePosition;
     homePosition: PiecePosition;
+    movement: PieceMovement;
     speedConstant: number;
     signal: Phaser.Signal;
     entryIndex: number;
@@ -38,7 +39,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public startPosition: PiecePosition;
     public homePosition: PiecePosition;
     public signal: Phaser.Signal;
-    public movement: Move;
+    public movement: PieceMovement;
     public speedConstant: number;
     public entryIndex: number;
     // public tips: Phasertips;
@@ -65,27 +66,41 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.anchor.x = -0.07;
         this.anchor.y = -0.07;
         this.inputEnabled = true;
-        this.movement = new Move();
+        this.movement = new PieceMovement();
         this.speedConstant = 6000 * 12;
         // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
         this.events.onInputDown.add(this.setActivePiece, this);
     }
 
     public movePiece(newIndex: number): void {
+        // If piece hasn't come out yet
         if (this.isAtHome()) {
             this.index = this.startIndex;
             // log.debug("Piece is still at home " + this.index);
         }
-        let path = this.movement.constructActivePath(this, newIndex);
-        // Check is path received at least one movement path
-        if (path.isEmpty()) {
+        if (this.isOnWayOut()){
+            let path = this.movement.constructOnWayOutPath(this, this.index, newIndex);
+            if (path.isEmpty()) {
+            log.debug("On Way out Path is empty! Nothing to do...");
+            }else {
+                this.index = path.newIndex;
+                this.signal.dispatch("eom", this);
+                this.game.world.bringToTop(this.group);
+                let speed = this.getSpeed(path.x.length);
+                this.movePieceTo(path, speed);
+            }
+        }else{
+            let path = this.movement.constructActivePath(this, newIndex);
+            // Check is path received at least one movement path
+            if (path.isEmpty()) {
             log.debug("Path is empty! Nothing to do...");
-        }else {
-            this.index = path.newIndex;
-            this.signal.dispatch("eom", this);
-            this.game.world.bringToTop(this.group);
-            let speed = this.getSpeed(path.x.length);
-            this.movePieceTo(path, speed);
+            }else {
+                this.index = path.newIndex;
+                this.signal.dispatch("eom", this);
+                this.game.world.bringToTop(this.group);
+                let speed = this.getSpeed(path.x.length);
+                this.movePieceTo(path, speed);
+            }
         }
     }
 
@@ -104,7 +119,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      * Sends backToHome signal to Game and Board child classes
      */
     public moveToHome(): void {
-        let path = this.movement.constructHomePath(this, this.index, this.index);
+        let path = this.movement.constructOnWayOutPath(this, this.index, this.index);
         if (!path.isEmpty) {
             this.signal.dispatch("backToHome", this);
             this.index = path.newIndex;
@@ -242,5 +257,3 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         }
     }
 }
-
-

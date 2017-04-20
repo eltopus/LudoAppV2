@@ -6,6 +6,7 @@ import {Player} from "../entities/Player";
 import {ColorType} from "../enums/ColorType";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
+import {OnWayOutBoard} from "../entities/OnWayOutBoard";
 import {Dice} from "../entities/Dice";
 import {Rules} from "../rules/Rules";
 import {factory} from "../logging/ConfigLog4j";
@@ -14,6 +15,7 @@ import * as Paths from "../entities/Paths";
 import {States} from "../enums/States";
 import {Board} from "../entities/Board";
 import {PiecePosition} from "../entities/PiecePosition";
+import {Move} from "../rules/Move";
 
 
 const log = factory.getLogger("model.Game");
@@ -25,6 +27,8 @@ export class Game extends Phaser.State {
     public playerFour: Player;
     public schedule: Scheduler;
     public dice: Dice;
+    public signal: Phaser.Signal;
+    public rule: Rules;
 
     public create() {
         this.add.sprite(0, 0, "board");
@@ -32,11 +36,13 @@ export class Game extends Phaser.State {
         let playerTwocolors = [ColorType.Green, ColorType.Yellow];
         // let playerThreecolors = [ColorType.Blue];
         // let playerFourcolors = [ColorType.Green];
-        let signal = new Phaser.Signal();
-        let activeboard: ActiveBoard = new ActiveBoard(signal);
-        let homeboard: HomeBoard = new HomeBoard(signal);
-        this.playerOne = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, signal);
-        this.playerTwo = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, signal);
+        this.signal = new Phaser.Signal();
+        this.signal.add(this.readAllMoves, this, 0, "moves");
+        let activeboard: ActiveBoard = new ActiveBoard(this.signal);
+        let homeboard: HomeBoard = new HomeBoard(this.signal);
+        let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
+        this.playerOne = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, this.signal);
+        this.playerTwo = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal);
         // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
         // this.playerFour = new Player(this.game, "PlayerFour", UUID.UUID(), false, playerFourcolors, signal);
         this.schedule = new Scheduler();
@@ -57,9 +63,9 @@ export class Game extends Phaser.State {
         this.game.stage.disableVisibilityChange = true;
         let dieOneUUID = UUID.UUID();
         let dieTwoUUID = UUID.UUID();
-        this.dice = new Dice(this.game, "die", signal, dieOneUUID, dieTwoUUID);
+        this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID);
 
-        let rule = new Rules(signal, this.schedule, this.dice, activeboard, homeboard);
+        this.rule = new Rules(this.signal, this.schedule, this.dice, activeboard, homeboard, onWayOutBoard);
 
         // All Player pieces must be added to homeboard
         for (let piece of this.playerOne.pieces){
@@ -70,7 +76,11 @@ export class Game extends Phaser.State {
         }
 
         let p1 = this.playerTwo.pieces[2];
-        this.setPieceParameters(p1, 38, States.Active, activeboard);
+        homeboard.removePieceFromHomeBoard(p1);
+        this.setActivePieceParameters(p1, 37, States.Active, activeboard);
+        let p2 = this.playerTwo.pieces[3];
+        homeboard.removePieceFromHomeBoard(p2);
+        this.setOnWayOutPieceParameters(p2, 2, States.onWayOut, onWayOutBoard);
 
         /*
         for (let piece of this.playerThree.pieces){
@@ -108,9 +118,25 @@ export class Game extends Phaser.State {
 
     }
 
-    private setPieceParameters(piece: Piece, index: number, state: States, board: Board): void {
+    public readAllMoves(listener: string, moves: Move[]): void {
+        if (listener === "moves") {
+            for (let move of moves){
+               log.debug( this.rule.decodeMoves(move));
+            }
+           this.rule.addSpentMovesBackToPool(moves);
+        }
+    }
+
+    private setActivePieceParameters(piece: Piece, index: number, state: States, board: Board): void {
         let path = new Paths.ActivePath();
         let position = path.getPiecePostionByIndex(index);
+        piece.setParameters(position.x, position.y, index, state);
+        board.board.setValue(piece.uniqueId, index);
+    }
+
+    private setOnWayOutPieceParameters(piece: Piece, index: number, state: States, board: Board): void {
+        let path = new Paths.OnWayOutPaths();
+        let position = path.getPiecePostionByIndex(piece, index);
         piece.setParameters(position.x, position.y, index, state);
         board.board.setValue(piece.uniqueId, index);
     }

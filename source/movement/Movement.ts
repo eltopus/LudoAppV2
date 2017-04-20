@@ -10,12 +10,12 @@ export interface Movement {
     constructActivePath(piece: Piece, newIndex: number): Path;
 }
 
-export class Move implements Movement {
+export class PieceMovement implements Movement {
     public activePath: Paths.ActivePath;
-    public homePaths: Paths.HomePaths;
+    public onWayOutPaths: Paths.OnWayOutPaths;
     constructor() {
         this.activePath = new Paths.ActivePath();
-        this.homePaths = new Paths.HomePaths();
+        this.onWayOutPaths = new Paths.OnWayOutPaths();
     }
 
     public constructActivePath(piece: Piece, newIndex: number): Path {
@@ -26,17 +26,19 @@ export class Move implements Movement {
         path = this.activePath.getPath(piece, finalIndex, path);
         // path.remainder has to be greater than zero to make this call
         if (path.moveStatus === MoveStatus.ShouldBeExiting && path.moveRemainder > 0) {
-            path = this.constructHomePath(piece, 0, path.moveRemainder, path);
+            path = this.constructOnWayOutPath(piece, 0, path.moveRemainder, path);
         }
         return path;
     }
 
-    public constructHomePath(piece: Piece, from: number, newIndex: number, path?: Path): Path {
+    public constructOnWayOutPath(piece: Piece, from: number, newIndex: number, path?: Path): Path {
         if (typeof path === "undefined") {
             path = new Path();
-            log.debug("Path is not defined");
+            let finalIndex = piece.index + newIndex;
+            path = this.onWayOutPaths.getPath(piece, from, finalIndex, path);
+        }else {
+            path = this.onWayOutPaths.getPath(piece, from, newIndex, path);
         }
-        path = this.homePaths.getPath(piece, from, newIndex, path);
         return path;
     }
 }

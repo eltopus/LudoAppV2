@@ -74,7 +74,7 @@ export class Player extends PieceFactory implements PlayerInterface {
         let onWayOutPieces: Piece[] = [];
         for (let piece of this.pieces) {
             let index = board.board.getValue(piece.uniqueId);
-            if (typeof index !== "undefined" && piece.setOnWayOut()) {
+            if (typeof index !== "undefined" && piece.isOnWayOut()) {
                 onWayOutPieces.push(piece);
             }
         }
