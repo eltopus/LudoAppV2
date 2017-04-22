@@ -12,10 +12,14 @@ export class Scheduler {
     }
 
     public getNextPlayer(): Player {
-        // log.debug("Before schedule " + this.schedule.peek().name);
-        let player: Player = this.schedule.dequeue();
+        // let player: Player = this.schedule.dequeue();
+        let player: Player = this.getCurrentPlayer();
+        /*
+        player.unselectAllPiece();
         this.schedule.enqueue(player);
-        // log.debug("After schedule " + this.schedule.peek().name);
+        player = this.schedule.peek();
+        player.selectAllPiece();
+        */
         return player;
     }
 

@@ -5,6 +5,7 @@ import {Board} from "../entities/Board";
 import {Actions} from "../enums/Actions";
 import {Move} from "./Move";
 import {Piece} from "../entities/Piece";
+import {States} from "../enums/States";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
 import {factory} from "../logging/ConfigLog4j";
@@ -139,6 +140,24 @@ export abstract class AbstractRules {
      */
     public getHigherDieValue(): string {
         return this.dice.getHigherDieValue();
+    }
+
+    protected generatePieceMovement(dieUniqueIds: string[], piece: Piece, state: States): Move {
+        let move: Move = this.getNewRule();
+        if (dieUniqueIds.length === 2) {
+            let uniqueId = dieUniqueIds[0] + "#" + dieUniqueIds[1];
+            move.action = Actions.PLAY;
+            move.diceId = uniqueId;
+            move.state = state;
+            move.pieceId = piece.uniqueId;
+        }else if (dieUniqueIds.length === 1) {
+            let uniqueId = dieUniqueIds[0];
+            move.action = Actions.PLAY;
+            move.diceId = uniqueId;
+            move.state = state;
+            move.pieceId = piece.uniqueId;
+        }
+        return move;
     }
 
     private addToRulePool(move: Move): void {

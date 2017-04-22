@@ -17,9 +17,9 @@ export class Dice {
         this.signal = signal;
     }
 
-    public roll(playerId: string): void {
-        this.dieOne.roll(playerId);
-        this.dieTwo.roll(playerId);
+    public roll(playerId: string, value1?: number, value2?: number): void {
+        this.dieOne.roll(playerId, value1);
+        this.dieTwo.roll(playerId, value2);
     }
 
     public getHigherDieValue(): string {
@@ -66,4 +66,29 @@ export class Dice {
         return uniqueIds;
     }
 
+    public getSelectedDiceUniqueIds(): string[] {
+        let diceUniqueIds: string[] = [];
+        if (this.dieOne.isSelected()) {
+            diceUniqueIds.push(this.dieOne.uniqueId);
+        }
+        if (this.dieTwo.isSelected()) {
+            diceUniqueIds.push(this.dieTwo.uniqueId);
+        }
+        return diceUniqueIds;
+    }
+
+    public consumeDieValueSix(uniqueId: string): void {
+        let ids = uniqueId.split("#");
+        log.debug("Show me: " + ids.join());
+        for (let id of ids){
+            if (id === this.dieOne.uniqueId && this.dieOne.equalsValueSix()) {
+                this.dieOne.consume();
+                break;
+            }
+            if (id === this.dieTwo.uniqueId && this.dieTwo.equalsValueSix()) {
+                this.dieTwo.consume();
+                break;
+            }
+        }
+    }
 }

@@ -28,7 +28,7 @@ private rollCounter = 0;
 private schedule: Scheduler;
 private dice: Dice;
 
-constructor(signal: Phaser.Signal, schedule: Scheduler, dice: Dice, activeBoard: ActiveBoard, 
+constructor(signal: Phaser.Signal, schedule: Scheduler, dice: Dice, activeBoard: ActiveBoard,
 homeBoard: HomeBoard, onWayOutBoard: OnWayOutBoard) {
     this.activeMove = new ActiveRules(dice, schedule, activeBoard);
     this.homeMove = new HomeRules(dice, schedule, homeBoard);
@@ -36,7 +36,6 @@ homeBoard: HomeBoard, onWayOutBoard: OnWayOutBoard) {
     this.schedule = schedule;
     this.signal = signal;
     this.dice = dice;
-    this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
 }
 
 
@@ -45,41 +44,26 @@ public generateAllPossibleMoves(player: Player): Move[] {
     let activeMoves: Move[] = this.activeMove.generateMoves(player);
     let homeMoves: Move[] = this.homeMove.generateMoves(player);
     let onWayOutMoves: Move[] = this.onWayOutMove.generateMoves(player);
-   
     let finalMoves: Move[] = homeMoves.concat(activeMoves).concat(onWayOutMoves);
     return finalMoves;
 }
 
-public addSpentMovesBackToPool(moves: Move[]): void{
+public addSpentMovesBackToPool(moves: Move[]): void {
 
-    if (moves.length > 0){
-        if (moves[0].state === States.Active){
+    if (moves.length > 0) {
+        if (moves[0].state === States.Active) {
             this.activeMove.addSpentRulesBackToPool(moves);
-        }else if (moves[0].state === States.AtHome){
+        }else if (moves[0].state === States.AtHome) {
             this.homeMove.addSpentRulesBackToPool(moves);
-        }else if (moves[0].state === States.onWayOut){
+        }else if (moves[0].state === States.onWayOut) {
             this.onWayOutMove.addSpentRulesBackToPool(moves);
         }
     }
 
 }
 
-
-public endOfDiceRoll(listener: string): void {
-        if (listener === "endOfDieRoll") {
-            ++this.rollCounter;
-            if (this.rollCounter === 2) {
-                this.rollCounter = 0;
-                let player: Player = this.schedule.getCurrentPlayer();
-                let moves: Move[] = this.generateAllPossibleMoves(player);
-                this.signal.dispatch("moves", moves);
-            }
-        }
-    }
-
-    public decodeMoves(move: Move): string {
-
-        switch(move.state){
+    public decodeMove(move: Move): string {
+        switch (move.state) {
             case States.Active:
             return this.decodeActiveMove(move);
             case States.AtHome:
@@ -140,5 +124,16 @@ public endOfDiceRoll(listener: string): void {
         }
     }
 
-
+    public generatePieceMovement(dieUniqueIds: string[], piece: Piece): Move {
+        switch (piece.state) {
+            case States.Active:
+            return this.activeMove.generateActivePieceMovement(dieUniqueIds, piece);
+            case States.AtHome:
+            return this.homeMove.generateHomePieceMovement(dieUniqueIds, piece);
+            case States.onWayOut:
+            return this.onWayOutMove.generateOnWayOutPieceMovement(dieUniqueIds, piece);
+            default:
+            return null;
+        }
+    }
 }

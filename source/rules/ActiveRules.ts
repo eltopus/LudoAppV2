@@ -13,6 +13,7 @@ const log = factory.getLogger("model.ActiveRules");
 
 
 export class ActiveRules extends AbstractRules {
+    protected state: States = States.Active;
     constructor(dice: Dice, schedule: Scheduler, board: Board) {
         super(dice, schedule, board);
     }
@@ -34,7 +35,7 @@ export class ActiveRules extends AbstractRules {
                         move.action = Actions.PLAY;
                         move.diceId = id;
                         move.pieceId = piece.uniqueId;
-                        move.state = States.Active;
+                        move.state = this.state;
                         moves.push(move);
                         // log.debug("Exit crossing alert!!! Dice id " + id + " will take piece on way out piece " + piece.uniqueId);
                     }
@@ -45,7 +46,7 @@ export class ActiveRules extends AbstractRules {
                         move.action = Actions.PLAY;
                         move.diceId = uniqueId;
                         move.pieceId = piece.uniqueId;
-                        move.state = States.Active;
+                        move.state = this.state;
                         moves.push(move);
                         log.debug("Dice id makes sense " + uniqueId + " will take piece on way out piece " + piece.uniqueId);
                     }
@@ -57,23 +58,27 @@ export class ActiveRules extends AbstractRules {
                     move.action = Actions.PLAY;
                     move.diceId = this.dice.dieOne.uniqueId;
                     move.pieceId = piece.uniqueId;
-                    move.state = States.Active;
+                    move.state = this.state;
                     moves.push(move);
                     move = this.getNewRule();
                     move.action = Actions.PLAY;
                     move.diceId = this.dice.dieTwo.uniqueId;
                     move.pieceId = piece.uniqueId;
-                    move.state = States.Active;
+                    move.state = this.state;
                     moves.push(move);
                     move = this.getNewRule();
                     move.action = Actions.PLAY;
                     // # indicates that two dice values are needed
                     move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
                     move.pieceId = piece.uniqueId;
-                    move.state = States.Active;
+                    move.state = this.state;
                     moves.push(move);
             }
         }
         return moves;
+    }
+
+    public generateActivePieceMovement(dieUniqueIds: string[], piece: Piece): Move {
+        return this.generatePieceMovement(dieUniqueIds, piece, this.state);
     }
 }

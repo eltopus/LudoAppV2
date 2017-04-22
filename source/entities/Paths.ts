@@ -30,6 +30,7 @@ export class ActivePath {
             path.x.push(piece.startPosition.x);
             path.y.push(piece.startPosition.y);
             piece.setActive();
+            path.newIndex = piece.startIndex;
             // alog.debug("Setting piece to active: " + piece.isActive());
         }
 

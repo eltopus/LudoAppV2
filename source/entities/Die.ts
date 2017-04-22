@@ -12,6 +12,7 @@ export class Die extends Phaser.Sprite {
     private animation: Phaser.Animation;
     private playerId: string;
     private diceArr: number[] = [5, 1, 6, 2, 0, 4];
+    private extFrame: number = null;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, uniqueId: string, signal: Phaser.Signal) {
         super(game, x, y, imageId);
@@ -29,26 +30,45 @@ export class Die extends Phaser.Sprite {
 
         this.animation = this.animations.add("roll", this.pixels);
         this.animation.onComplete.add(this.rollComplete, this);
+        this.events.onInputDown.add(this.selectActiveDie, this);
+    }
+
+    public selectActiveDie(): void {
+        if (this.alpha === 0.5) {
+            this.alpha = 1;
+        }else {
+            this.alpha = 0.5;
+        }
+    }
+
+    public isSelected(): boolean {
+        return (this.alpha === 0.5);
     }
 
     public rollComplete(): void {
         // log.debug("Roll complete");
         let rand = Math.floor(Math.random() * 6);
         this.frame = this.diceArr[rand];
-        // this.frame = 0;
+        if (this.extFrame !== null) {
+            this.frame = this.extFrame;
+            this.extFrame = null;
+        }
         this.signal.dispatch("endOfDieRoll");
     }
 
-    public roll(playerId: string): void {
+    public roll(playerId: string, value?: number): void {
         if (this.playerId === playerId) {
-             this.animation.play(20);
+            this.animation.play(20);
         }else {
             log.debug("Dice PlayerId " + this.playerId + " does not match playerId: " + playerId);
+        }
+        if (typeof value !== "undefined") {
+            this.extFrame = this.getFrame(value);
         }
     }
 
     public consume(): void {
-        this.frame = 1;
+        this.frame = 8;
     }
 
     public isConsume(): boolean {
@@ -61,6 +81,29 @@ export class Die extends Phaser.Sprite {
 
     public getPlayerId(): string {
         return this.playerId;
+    }
+
+    public equalsValueSix(): boolean {
+        return (this.getValue() === 6);
+    }
+
+    public getFrame(value: number): number {
+        switch (value) {
+            case 1:
+                return 1;
+            case 2:
+                return 2;
+            case 3:
+                return 5;
+            case 4:
+                return 6;
+            case 5:
+                return 4;
+            case 6:
+                return 0;
+            default:
+                return 8;
+        }
     }
 
     public getValue(): number {

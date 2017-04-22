@@ -13,6 +13,7 @@ const log = factory.getLogger("model.OnWayOutRules");
 
 
 export class OnWayOutRules extends AbstractRules {
+    public state: States = States.onWayOut;
     constructor(dice: Dice, schedule: Scheduler, board: Board) {
         super(dice, schedule, board);
     }
@@ -32,7 +33,7 @@ export class OnWayOutRules extends AbstractRules {
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId1;
                 move.pieceId = piece.uniqueId;
-                move.state = States.onWayOut;
+                move.state = this.state;
                 moves.push(move);
             }
             if ((this.dice.dieTwo.getValue() + piece.index) <= 5) {
@@ -40,29 +41,22 @@ export class OnWayOutRules extends AbstractRules {
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId2;
                 move.pieceId = piece.uniqueId;
-                move.state = States.onWayOut;
+                move.state = this.state;
                 moves.push(move);
             }
             if ((this.dice.dieOne.getValue() + this.dice.dieTwo.getValue() + piece.index) <= 5) {
                 let move = this.getNewRule();
                 move.action = Actions.PLAY;
-                move.diceId = uniqueId1 + "#" +uniqueId2;
+                move.diceId = uniqueId1 + "#" + uniqueId2;
                 move.pieceId = piece.uniqueId;
-                move.state = States.onWayOut;
+                move.state = this.state;
                 moves.push(move);
             }
         }
 
-        if (moves.length < 1) {
-            let move = this.getNewRule();
-            move.action = Actions.SKIP;
-            move.diceId = "";
-            move.pieceId = "";
-            move.state = States.onWayOut;
-            moves.push(move);
-        }
         return moves;
     }
-
-
+    public generateOnWayOutPieceMovement(dieUniqueIds: string[], piece: Piece): Move {
+        return this.generatePieceMovement(dieUniqueIds, piece, this.state);
+    }
 }

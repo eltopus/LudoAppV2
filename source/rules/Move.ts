@@ -22,4 +22,12 @@ export class Move {
         this.playBothDice = false;
         this.state = null;
     }
+
+    public compare(move: Move): boolean {
+        let match = false;
+        if (move.action === this.action && move.diceId === this.diceId && move.pieceId === this.pieceId) {
+            match = true;
+        }
+        return match;
+    }
 }

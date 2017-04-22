@@ -23,7 +23,6 @@ export interface PieceInterface {
     signal: Phaser.Signal;
     entryIndex: number;
     movePiece(newIndex: number): void;
-    movePieceTo(path: Path, speed: number): void;
     setActivePiece(uniqueId: string): void;
 }
 
@@ -73,12 +72,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     }
 
     public movePiece(newIndex: number): void {
-        // If piece hasn't come out yet
-        if (this.isAtHome()) {
-            this.index = this.startIndex;
-            // log.debug("Piece is still at home " + this.index);
-        }
-        if (this.isOnWayOut()){
+        if (this.isOnWayOut()) {
             let path = this.movement.constructOnWayOutPath(this, this.index, newIndex);
             if (path.isEmpty()) {
             log.debug("On Way out Path is empty! Nothing to do...");
@@ -89,7 +83,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
                 let speed = this.getSpeed(path.x.length);
                 this.movePieceTo(path, speed);
             }
-        }else{
+        }else {
             let path = this.movement.constructActivePath(this, newIndex);
             // Check is path received at least one movement path
             if (path.isEmpty()) {
@@ -104,13 +98,6 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         }
     }
 
-    public movePieceTo(path: Path, speed: number): void {
-        let tween = this.game.add.tween(this).to(path, 1000,
-        Phaser.Easing.Linear.None, true).interpolation(function(v: number[], k: number){
-            return Phaser.Math.linearInterpolation(v, k);
-        });
-        tween.onComplete.add(this.onCompleteMovementBackToHome, this);
-    }
     public onCompleteMovementBackToHome(): void {
         log.debug("My index is " + this.index + " my state is " + this.getState());
     }
@@ -240,6 +227,14 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.y = y;
         this.state = state;
         this.index = index;
+    }
+
+    private movePieceTo(path: Path, speed: number): void {
+        let tween = this.game.add.tween(this).to(path, 1000,
+        Phaser.Easing.Linear.None, true).interpolation(function(v: number[], k: number){
+            return Phaser.Math.linearInterpolation(v, k);
+        });
+        tween.onComplete.add(this.onCompleteMovementBackToHome, this);
     }
 
     private getStartIndex(color: ColorType): number {

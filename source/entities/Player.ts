@@ -43,8 +43,8 @@ export class Player extends PieceFactory implements PlayerInterface {
         }
     }
 
-    public roll(dice: Dice): void {
-        dice.roll(this.playerId);
+    public roll(dice: Dice, value1?: number, value2?: number): void {
+        dice.roll(this.playerId, value1, value2);
     }
 
 
@@ -81,6 +81,18 @@ export class Player extends PieceFactory implements PlayerInterface {
         return onWayOutPieces;
     }
 
+    public selectAllPiece(): void {
+        for (let piece of this.pieces) {
+            piece.alpha = 1;
+        }
+    }
+
+    public unselectAllPiece(): void {
+        for (let piece of this.pieces) {
+            piece.alpha = 0.5;
+        }
+    }
+
     /**
      * Receives select signal from piece and set select or unselect on piece
      * using piece uniqueId
@@ -94,7 +106,7 @@ export class Player extends PieceFactory implements PlayerInterface {
                     if (piece.uniqueId === uniqueId) {
                         piece.select();
                         this.currentPiece = piece;
-                        //log.debug("I am being selected..." + this.currentPiece.uniqueId);
+                        // log.debug("I am being selected..." + this.currentPiece.uniqueId);
                     }else {
                         piece.unselect();
                     }

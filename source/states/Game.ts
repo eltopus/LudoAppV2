@@ -11,6 +11,7 @@ import {Dice} from "../entities/Dice";
 import {Rules} from "../rules/Rules";
 import {factory} from "../logging/ConfigLog4j";
 import {Scheduler} from "../rules/Scheduler";
+import {RuleEnforcer} from "../rules/RuleEnforcer";
 import * as Paths from "../entities/Paths";
 import {States} from "../enums/States";
 import {Board} from "../entities/Board";
@@ -25,10 +26,10 @@ export class Game extends Phaser.State {
     public playerTwo: Player;
     public playerThree: Player;
     public playerFour: Player;
-    public schedule: Scheduler;
     public dice: Dice;
     public signal: Phaser.Signal;
-    public rule: Rules;
+    public enforcer: RuleEnforcer;
+    public scheduler: Scheduler;
 
     public create() {
         this.add.sprite(0, 0, "board");
@@ -37,7 +38,6 @@ export class Game extends Phaser.State {
         // let playerThreecolors = [ColorType.Blue];
         // let playerFourcolors = [ColorType.Green];
         this.signal = new Phaser.Signal();
-        this.signal.add(this.readAllMoves, this, 0, "moves");
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
         let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
@@ -45,9 +45,9 @@ export class Game extends Phaser.State {
         this.playerTwo = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal);
         // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
         // this.playerFour = new Player(this.game, "PlayerFour", UUID.UUID(), false, playerFourcolors, signal);
-        this.schedule = new Scheduler();
-        this.schedule.schedule.enqueue(this.playerTwo);
-        this.schedule.schedule.enqueue(this.playerOne);
+        this.scheduler = new Scheduler();
+        this.scheduler.schedule.enqueue(this.playerTwo);
+        this.scheduler.schedule.enqueue(this.playerOne);
         // this.schedule.schedule.enqueue(this.playerThree);
         // this.schedule.schedule.enqueue(this.playerFour);
 
@@ -64,8 +64,8 @@ export class Game extends Phaser.State {
         let dieOneUUID = UUID.UUID();
         let dieTwoUUID = UUID.UUID();
         this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID);
-
-        this.rule = new Rules(this.signal, this.schedule, this.dice, activeboard, homeboard, onWayOutBoard);
+        this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard, onWayOutBoard);
+        this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
 
         // All Player pieces must be added to homeboard
         for (let piece of this.playerOne.pieces){
@@ -74,58 +74,30 @@ export class Game extends Phaser.State {
         for (let piece of this.playerTwo.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
-
         let p1 = this.playerTwo.pieces[2];
         homeboard.removePieceFromHomeBoard(p1);
         this.setActivePieceParameters(p1, 37, States.Active, activeboard);
         let p2 = this.playerTwo.pieces[3];
         homeboard.removePieceFromHomeBoard(p2);
         this.setOnWayOutPieceParameters(p2, 2, States.onWayOut, onWayOutBoard);
-
-        /*
-        for (let piece of this.playerThree.pieces){
-            homeboard.addPieceToHomeBoard(piece);
-        }
-        for (let piece of this.playerFour.pieces){
-            homeboard.addPieceToHomeBoard(piece);
-        }
-        */
     }
 
     public rollDice(): void {
-        this.dice.setDicePlayerId(this.playerTwo.playerId);
-        this.playerTwo.roll(this.dice);
+        this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 6, 1);
     }
 
     public playDice(): void {
-        let dice = this.dice.dieOne.getValue() + this.dice.dieTwo.getValue();
-        if (this.playerOne.currentPiece !== null) {
-            this.playerOne.currentPiece.movePiece(dice);
-        }
-        if (this.playerTwo.currentPiece !== null) {
-            this.playerTwo.currentPiece.movePiece(dice);
-        }
+        let dieIds = this.dice.getSelectedDiceUniqueIds();
+        let player = this.scheduler.getCurrentPlayer();
 
-        /*
-        if (this.playerThree.currentPiece !== null) {
-            this.playerThree.currentPiece.movePiece(dice);
+        if (player.currentPiece !== null && (this.dice.dieOne.isSelected() || this.dice.dieTwo.isSelected())) {
+            this.enforcer.generatePieceMovement(dieIds, player.currentPiece);
+        }else {
+            log.debug("No die selected or no piece selected");
         }
-        if (this.playerFour.currentPiece !== null) {
-            this.playerFour.currentPiece.movePiece(dice);
-        }
-        */
-        // let player = this.schedule.getNextPlayer();
-
     }
 
-    public readAllMoves(listener: string, moves: Move[]): void {
-        if (listener === "moves") {
-            for (let move of moves){
-               log.debug( this.rule.decodeMoves(move));
-            }
-           this.rule.addSpentMovesBackToPool(moves);
-        }
-    }
 
     private setActivePieceParameters(piece: Piece, index: number, state: States, board: Board): void {
         let path = new Paths.ActivePath();

@@ -13,6 +13,7 @@ const log = factory.getLogger("model.HomeRules");
 
 
 export class HomeRules extends AbstractRules {
+    protected state: States = States.AtHome;
     constructor(dice: Dice, schedule: Scheduler, board: Board) {
         super(dice, schedule, board);
     }
@@ -32,13 +33,19 @@ export class HomeRules extends AbstractRules {
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId1;
                 move.pieceId = piece.uniqueId;
-                move.state = States.AtHome;
+                move.state = this.state;
                 moves.push(move);
                 move = this.getNewRule();
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId2;
                 move.pieceId = piece.uniqueId;
-                move.state = States.AtHome;
+                move.state = this.state;
+                moves.push(move);
+                move = this.getNewRule();
+                move.action = Actions.PLAY;
+                move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
+                move.pieceId = piece.uniqueId;
+                move.state = this.state;
                 moves.push(move);
                 // log.debug("HomePiecesId1: " + piece.uniqueId + " PlayerID: " + player.name);
             }
@@ -55,16 +62,21 @@ export class HomeRules extends AbstractRules {
                 move.playBothDice = true;
                 move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
                 move.pieceId = piece.uniqueId;
-                move.state = States.AtHome;
+                move.state = this.state;
                 moves.push(move);
-                // log.debug("HomePiecesId: " + piece.uniqueId + " PlayerID: " + player.name);
+                // Play six on an home piece regardless of the value of the second die
+                move = this.getNewRule();
+                move.action = Actions.PLAY;
+                move.diceId = uniqueId;
+                move.pieceId = piece.uniqueId;
+                move.state = this.state;
+                moves.push(move);
             }
-        }else {
-            let move = this.getNewRule();
-            move.action = Actions.SKIP;
-            move.state = States.AtHome;
-            moves.push(move);
         }
         return moves;
+    }
+
+    public generateHomePieceMovement(dieUniqueIds: string[], piece: Piece): Move {
+        return this.generatePieceMovement(dieUniqueIds, piece, this.state);
     }
 }
