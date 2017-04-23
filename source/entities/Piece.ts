@@ -99,7 +99,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     }
 
     public onCompleteMovementBackToHome(): void {
-        log.debug("My index is " + this.index + " my state is " + this.getState());
+        // log.debug("My index is " + this.index + " my state is " + this.getState());
     }
     /**
      * Moves piece to homePosition

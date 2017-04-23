@@ -12,14 +12,11 @@ export class Scheduler {
     }
 
     public getNextPlayer(): Player {
-        // let player: Player = this.schedule.dequeue();
-        let player: Player = this.getCurrentPlayer();
-        /*
+        let player: Player = this.schedule.dequeue();
         player.unselectAllPiece();
         this.schedule.enqueue(player);
         player = this.schedule.peek();
         player.selectAllPiece();
-        */
         return player;
     }
 

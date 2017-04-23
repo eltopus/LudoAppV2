@@ -10,11 +10,13 @@ export class Dice {
     public dieOne: Die;
     public dieTwo: Die;
     private signal: Phaser.Signal;
+    private rolledDoubleSix: boolean;
 
     constructor(game: Phaser.Game, imageId: string, signal: Phaser.Signal, dieOneUUID: string, dieTwoUUID: string) {
         this.dieOne = new Die(game, 330, 390, imageId, dieOneUUID, signal);
         this.dieTwo = new Die(game, 390, 330, imageId, dieTwoUUID, signal);
         this.signal = signal;
+        this.rolledDoubleSix = false;
     }
 
     public roll(playerId: string, value1?: number, value2?: number): void {
@@ -34,8 +36,12 @@ export class Dice {
         this.dieOne.setPlayerId(playerId);
         this.dieTwo.setPlayerId(playerId);
     }
-
-    public getDieByValue(value: number): string {
+    /**
+     * Returns the uniqueId of the first occurrence
+     * of the die matching the value
+     * @param value
+     */
+    public getDieUniqueIdByValue(value: number): string {
         if (this.dieOne.getValue() === value) {
             return this.dieOne.uniqueId;
         }else if (this.dieTwo.getValue() === value) {
@@ -44,8 +50,11 @@ export class Dice {
             return null;
         }
     }
-
-    public getDieValueByUniqueId(uniqueId: string): number[] {
+    /**
+     * Returns an array of dice values
+     * @param uniqueId
+     */
+    public getDieValueArrayByUniqueId(uniqueId: string): number[] {
         let uniqueIds: number[] = [];
         let ids = uniqueId.split("#");
         for (let id of ids){
@@ -60,12 +69,11 @@ export class Dice {
                 break;
             }
         }
-
-
-        // log.debug("IDS: " + ids.join());
         return uniqueIds;
     }
-
+    /**
+     * Returns an array of uniqueIds of selected dice
+     */
     public getSelectedDiceUniqueIds(): string[] {
         let diceUniqueIds: string[] = [];
         if (this.dieOne.isSelected()) {
@@ -79,7 +87,6 @@ export class Dice {
 
     public consumeDieValueSix(uniqueId: string): void {
         let ids = uniqueId.split("#");
-        log.debug("Show me: " + ids.join());
         for (let id of ids){
             if (id === this.dieOne.uniqueId && this.dieOne.equalsValueSix()) {
                 this.dieOne.consume();
@@ -90,5 +97,26 @@ export class Dice {
                 break;
             }
         }
+    }
+
+    public consumeDieValueById(uniqueId: string): void {
+        let ids = uniqueId.split("#");
+        for (let id of ids){
+            if (id === this.dieOne.uniqueId) {
+                this.dieOne.consume();
+                // log.debug("Die id " + id + " consumed");
+            }
+            if (id === this.dieTwo.uniqueId) {
+                this.dieTwo.consume();
+                // log.debug("Die id " + id + " consumed");
+            }
+        }
+    }
+
+    public isDieOneConsumed(): boolean {
+        return this.dieOne.isConsumed();
+    }
+    public isDieTwoConsumed(): boolean {
+        return this.dieTwo.isConsumed();
     }
 }

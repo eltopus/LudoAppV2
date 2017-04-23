@@ -55,7 +55,7 @@ export class ActivePath {
                     path.moveRemainder = remainder;
                     path.newIndex = entryPoint;
                     path.moveStatus = MoveStatus.ShouldBeExiting;
-                    alog.debug("i === entryPoint " + entryPoint + " time to enter entry with " + path.moveRemainder);
+                    // alog.debug("i === entryPoint " + entryPoint + " time to enter entry with " + path.moveRemainder);
                     break;
                 }else {
                      // when a piece is somewhere between entryindex and end of active index

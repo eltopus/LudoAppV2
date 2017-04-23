@@ -15,6 +15,7 @@ import {HomeRules} from "./HomeRules";
 import {ActiveRules} from "./ActiveRules";
 import {OnWayOutRules} from "./OnWayOutRules";
 import {States} from "../enums/States";
+import {AllPossibleMoves} from "./AllPossibleMoves";
 
 
 const log = factory.getLogger("model.Rules");
@@ -27,6 +28,7 @@ private signal: Phaser.Signal;
 private rollCounter = 0;
 private schedule: Scheduler;
 private dice: Dice;
+private allPossibleMoves: AllPossibleMoves;
 
 constructor(signal: Phaser.Signal, schedule: Scheduler, dice: Dice, activeBoard: ActiveBoard,
 homeBoard: HomeBoard, onWayOutBoard: OnWayOutBoard) {
@@ -36,30 +38,56 @@ homeBoard: HomeBoard, onWayOutBoard: OnWayOutBoard) {
     this.schedule = schedule;
     this.signal = signal;
     this.dice = dice;
+    this.allPossibleMoves = new AllPossibleMoves();
 }
 
 
 
-public generateAllPossibleMoves(player: Player): Move[] {
-    let activeMoves: Move[] = this.activeMove.generateMoves(player);
-    let homeMoves: Move[] = this.homeMove.generateMoves(player);
-    let onWayOutMoves: Move[] = this.onWayOutMove.generateMoves(player);
-    let finalMoves: Move[] = homeMoves.concat(activeMoves).concat(onWayOutMoves);
-    return finalMoves;
+public generateAllPossibleMoves(player: Player): AllPossibleMoves {
+    this.allPossibleMoves.activeMoves = this.activeMove.generateMoves(player);
+    this.allPossibleMoves.homeMoves = this.homeMove.generateMoves(player);
+    this.allPossibleMoves.onWayOutMoves = this.onWayOutMove.generateMoves(player);
+    return this.allPossibleMoves;
 }
 
-public addSpentMovesBackToPool(moves: Move[]): void {
-
-    if (moves.length > 0) {
-        if (moves[0].state === States.Active) {
-            this.activeMove.addSpentRulesBackToPool(moves);
-        }else if (moves[0].state === States.AtHome) {
-            this.homeMove.addSpentRulesBackToPool(moves);
-        }else if (moves[0].state === States.onWayOut) {
-            this.onWayOutMove.addSpentRulesBackToPool(moves);
+public generatePieceMovement(dieUniqueIds: string[], piece: Piece): Move {
+        switch (piece.state) {
+            case States.Active:
+            return this.activeMove.generateActivePieceMovement(dieUniqueIds, piece);
+            case States.AtHome:
+            return this.homeMove.generateHomePieceMovement(dieUniqueIds, piece);
+            case States.onWayOut:
+            return this.onWayOutMove.generateOnWayOutPieceMovement(dieUniqueIds, piece);
+            default:
+            return null;
         }
     }
 
+public addSpentMovesBackToPool(moves: Move[]): void {
+
+    let activeMoves: Move[] = [];
+    let homeMoves: Move[] = [];
+    let onWayOutMoves: Move[] = [];
+
+    for (let move of moves) {
+        if (move.state === States.Active) {
+            activeMoves.push(move);
+        }else if (move.state === States.AtHome) {
+            homeMoves.push(move);
+        }else if (move.state === States.onWayOut) {
+            onWayOutMoves.push(move);
+        }
+    }
+
+    if (activeMoves.length > 0) {
+        this.activeMove.addSpentRulesBackToPool(activeMoves);
+    }
+    if (homeMoves.length > 0) {
+        this.homeMove.addSpentRulesBackToPool(homeMoves);
+    }
+    if (onWayOutMoves.length > 0) {
+        this.onWayOutMove.addSpentRulesBackToPool(moves);
+    }
 }
 
     public decodeMove(move: Move): string {
@@ -82,7 +110,7 @@ public addSpentMovesBackToPool(moves: Move[]): void {
         }else if (move.action === Actions.EXIT) {
             return "EXIT " + move.pieceId;
         }else if (move.action === Actions.PLAY) {
-            return "ACTIVE PLAY " + this.dice.getDieValueByUniqueId(move.diceId).join() + " ON " + move.pieceId;
+            return "ACTIVE PLAY " + this.dice.getDieValueArrayByUniqueId(move.diceId).join() + " ON " + move.pieceId;
         }else if (move.action === Actions.ROLL) {
             return "ROLL";
         }else if (move.action === Actions.SKIP) {
@@ -98,7 +126,7 @@ public addSpentMovesBackToPool(moves: Move[]): void {
         }else if (move.action === Actions.EXIT) {
             return "EXIT " + move.pieceId;
         }else if (move.action === Actions.PLAY) {
-            return "HOME PLAY " + this.dice.getDieValueByUniqueId(move.diceId).join() + " ON " + move.pieceId;
+            return "HOME PLAY " + this.dice.getDieValueArrayByUniqueId(move.diceId).join() + " ON " + move.pieceId;
         }else if (move.action === Actions.ROLL) {
             return "ROLL";
         }else if (move.action === Actions.SKIP) {
@@ -114,7 +142,7 @@ public addSpentMovesBackToPool(moves: Move[]): void {
         }else if (move.action === Actions.EXIT) {
             return "EXIT " + move.pieceId;
         }else if (move.action === Actions.PLAY) {
-            return "ONWAYOUT PLAY " + this.dice.getDieValueByUniqueId(move.diceId).join() + " ON " + move.pieceId;
+            return "ONWAYOUT PLAY " + this.dice.getDieValueArrayByUniqueId(move.diceId).join() + " ON " + move.pieceId;
         }else if (move.action === Actions.ROLL) {
             return "ROLL";
         }else if (move.action === Actions.SKIP) {
@@ -124,16 +152,4 @@ public addSpentMovesBackToPool(moves: Move[]): void {
         }
     }
 
-    public generatePieceMovement(dieUniqueIds: string[], piece: Piece): Move {
-        switch (piece.state) {
-            case States.Active:
-            return this.activeMove.generateActivePieceMovement(dieUniqueIds, piece);
-            case States.AtHome:
-            return this.homeMove.generateHomePieceMovement(dieUniqueIds, piece);
-            case States.onWayOut:
-            return this.onWayOutMove.generateOnWayOutPieceMovement(dieUniqueIds, piece);
-            default:
-            return null;
-        }
-    }
 }

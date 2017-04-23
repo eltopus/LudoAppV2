@@ -51,7 +51,7 @@ export abstract class AbstractRules {
      * @param value
      */
     public getDieByValue(value: number): string {
-        return (this.dice.getDieByValue(value));
+        return (this.dice.getDieUniqueIdByValue(value));
     }
 
 
@@ -95,15 +95,14 @@ export abstract class AbstractRules {
         let destinationIndex2 = currentIndex + this.dice.dieTwo.getValue();
         let destinationIndex3 = currentIndex + this.dice.dieOne.getValue() + this.dice.dieTwo.getValue();
 
-        // log.debug("currentIndex " + currentIndex + " dest1: " + destinationIndex1 + " " + destinationIndex2 + " " + destinationIndex3);
-
-        if (piece.getEntryIndex() >= currentIndex && piece.getEntryIndex() < destinationIndex1) {
+        if (!this.dice.isDieOneConsumed() && piece.getEntryIndex() >= currentIndex && piece.getEntryIndex() < destinationIndex1) {
             uniqueIds.push(this.dice.dieOne.uniqueId);
         }
-        if (piece.getEntryIndex() >= currentIndex && piece.getEntryIndex() < destinationIndex2) {
-            uniqueIds.push(this.dice.dieTwo.uniqueId);
+        if (!this.dice.isDieTwoConsumed() && piece.getEntryIndex() >= currentIndex && piece.getEntryIndex() < destinationIndex2) {
+           uniqueIds.push(this.dice.dieTwo.uniqueId);
         }
-        if (piece.getEntryIndex() >= currentIndex && piece.getEntryIndex() < destinationIndex3) {
+        if ((!this.dice.isDieOneConsumed() && !this.dice.isDieTwoConsumed()) &&
+        piece.getEntryIndex() >= currentIndex && piece.getEntryIndex() < destinationIndex3) {
             uniqueIds.push(this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId);
         }
         return uniqueIds;
@@ -121,17 +120,16 @@ export abstract class AbstractRules {
         let diceDistanceToExitPoint = diceValue - (piece.entryIndex - piece.index);
         let dieOneDistanceToExitPoint = this.dice.dieOne.getValue() - (piece.entryIndex - piece.index);
         let dieTwoDistanceToExitPoint = this.dice.dieTwo.getValue() - (piece.entryIndex - piece.index);
-        log.debug("Distance: " + diceDistanceToExitPoint + " " + dieOneDistanceToExitPoint + " " + dieTwoDistanceToExitPoint);
-        if (diceDistanceToExitPoint < 7) {
+        // log.debug("Distance: " + diceDistanceToExitPoint + " " + dieOneDistanceToExitPoint + " " + dieTwoDistanceToExitPoint);
+        if ((!this.dice.isDieOneConsumed() && !this.dice.isDieTwoConsumed()) && diceDistanceToExitPoint < 7) {
             uniqueIds.push(this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId);
         }
-        if (dieOneDistanceToExitPoint < 7) {
+        if (!this.dice.isDieOneConsumed() && dieOneDistanceToExitPoint < 7) {
             uniqueIds.push(this.dice.dieOne.uniqueId);
         }
-        if (dieTwoDistanceToExitPoint < 7) {
+        if (!this.dice.isDieTwoConsumed && dieTwoDistanceToExitPoint < 7) {
             uniqueIds.push(this.dice.dieTwo.uniqueId);
         }
-
         return uniqueIds;
     }
 
@@ -164,7 +162,6 @@ export abstract class AbstractRules {
         for (let i = 0, l = this.activeRulePool.length; i < l; i++) {
             if (this.activeRulePool[i] === move) {
                 this.activeRulePool.splice(i, 1);
-               // log.debug("Deleting from active pieces " + this.activeRules.length);
             }
         }
         move.resetRule();

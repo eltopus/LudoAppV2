@@ -22,14 +22,12 @@ export class ActiveRules extends AbstractRules {
         let moves: Move[] = [];
         let activePieces: Piece[] = player.getActivePieces(this.board);
         for (let piece of activePieces) {
-             // log.debug("Active PiecesId: " + piece.uniqueId + " PlayerID: " + player.name);
             let dieUniqueIds = this.willCrossEntryPoint(piece);
             if (dieUniqueIds.length > 0) {
                 // Established that both dice values cannot be played on piece
                 // ids of die values that could take piece on the way out
                 let ids = this.willCrossExitPoint(piece);
                 if (ids.length > 0) {
-
                     for (let id of ids){
                         let move = this.getNewRule();
                         move.action = Actions.PLAY;
@@ -39,40 +37,35 @@ export class ActiveRules extends AbstractRules {
                         moves.push(move);
                         // log.debug("Exit crossing alert!!! Dice id " + id + " will take piece on way out piece " + piece.uniqueId);
                     }
-                }else {
-                    // check if code makes sense
-                    for (let uniqueId of dieUniqueIds){
-                        let move = this.getNewRule();
-                        move.action = Actions.PLAY;
-                        move.diceId = uniqueId;
-                        move.pieceId = piece.uniqueId;
-                        move.state = this.state;
-                        moves.push(move);
-                        log.debug("Dice id makes sense " + uniqueId + " will take piece on way out piece " + piece.uniqueId);
-                    }
                 }
 
             }else {
-                log.debug("Normal play move generated ");
-                    let move = this.getNewRule();
-                    move.action = Actions.PLAY;
-                    move.diceId = this.dice.dieOne.uniqueId;
-                    move.pieceId = piece.uniqueId;
-                    move.state = this.state;
-                    moves.push(move);
-                    move = this.getNewRule();
-                    move.action = Actions.PLAY;
-                    move.diceId = this.dice.dieTwo.uniqueId;
-                    move.pieceId = piece.uniqueId;
-                    move.state = this.state;
-                    moves.push(move);
-                    move = this.getNewRule();
-                    move.action = Actions.PLAY;
-                    // # indicates that two dice values are needed
-                    move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
-                    move.pieceId = piece.uniqueId;
-                    move.state = this.state;
-                    moves.push(move);
+                    if (!this.dice.dieOne.isConsumed()) {
+                        let move = this.getNewRule();
+                        move.action = Actions.PLAY;
+                        move.diceId = this.dice.dieOne.uniqueId;
+                        move.pieceId = piece.uniqueId;
+                        move.state = this.state;
+                        moves.push(move);
+                    }
+
+                    if (!this.dice.dieTwo.isConsumed()) {
+                        let move = this.getNewRule();
+                        move.action = Actions.PLAY;
+                        move.diceId = this.dice.dieTwo.uniqueId;
+                        move.pieceId = piece.uniqueId;
+                        move.state = this.state;
+                        moves.push(move);
+                    }
+
+                    if (!this.dice.dieOne.isConsumed() && !this.dice.dieOne.isConsumed()) {
+                        let move = this.getNewRule();
+                        move.action = Actions.PLAY;
+                        move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
+                        move.pieceId = piece.uniqueId;
+                        move.state = this.state;
+                        moves.push(move);
+                    }
             }
         }
         return moves;

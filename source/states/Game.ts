@@ -74,17 +74,20 @@ export class Game extends Phaser.State {
         for (let piece of this.playerTwo.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
+        /*
         let p1 = this.playerTwo.pieces[2];
         homeboard.removePieceFromHomeBoard(p1);
-        this.setActivePieceParameters(p1, 37, States.Active, activeboard);
+        this.setOnWayOutPieceParameters(p1, 4, States.onWayOut, onWayOutBoard);
+        // this.setActivePieceParameters(p1, 37, States.Active, activeboard);
         let p2 = this.playerTwo.pieces[3];
         homeboard.removePieceFromHomeBoard(p2);
-        this.setOnWayOutPieceParameters(p2, 2, States.onWayOut, onWayOutBoard);
+        this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
+        */
     }
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 6, 1);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice);
     }
 
     public playDice(): void {
@@ -98,7 +101,9 @@ export class Game extends Phaser.State {
         }
     }
 
-
+    public update(): void {
+        // 
+    }
     private setActivePieceParameters(piece: Piece, index: number, state: States, board: Board): void {
         let path = new Paths.ActivePath();
         let position = path.getPiecePostionByIndex(index);

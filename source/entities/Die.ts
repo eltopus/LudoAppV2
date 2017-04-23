@@ -41,12 +41,15 @@ export class Die extends Phaser.Sprite {
         }
     }
 
+    public unSelectActiveDie(): void {
+        this.alpha = 1;
+    }
+
     public isSelected(): boolean {
-        return (this.alpha === 0.5);
+        return (!this.isConsumed() && this.alpha === 0.5);
     }
 
     public rollComplete(): void {
-        // log.debug("Roll complete");
         let rand = Math.floor(Math.random() * 6);
         this.frame = this.diceArr[rand];
         if (this.extFrame !== null) {
@@ -58,6 +61,7 @@ export class Die extends Phaser.Sprite {
 
     public roll(playerId: string, value?: number): void {
         if (this.playerId === playerId) {
+            this.resetDice();
             this.animation.play(20);
         }else {
             log.debug("Dice PlayerId " + this.playerId + " does not match playerId: " + playerId);
@@ -68,11 +72,16 @@ export class Die extends Phaser.Sprite {
     }
 
     public consume(): void {
-        this.frame = 8;
+        this.frame = 3;
+        this.unSelectActiveDie();
     }
 
-    public isConsume(): boolean {
-        return (this.frame === 1);
+    public resetDice() {
+        this.alpha = 1;
+    }
+
+    public isConsumed(): boolean {
+        return (this.frame === 3);
     }
 
     public setPlayerId(playerId: string) {

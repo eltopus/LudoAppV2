@@ -28,7 +28,7 @@ export class OnWayOutRules extends AbstractRules {
         }
         let onWayOutPieces: Piece[] = player.getOnWayOutPieces(this.board);
         for (let piece of onWayOutPieces) {
-            if ((this.dice.dieOne.getValue() + piece.index) <= 5) {
+            if (!this.dice.dieOne.isConsumed() && (this.dice.dieOne.getValue() + piece.index) <= 5) {
                 let move = this.getNewRule();
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId1;
@@ -36,7 +36,7 @@ export class OnWayOutRules extends AbstractRules {
                 move.state = this.state;
                 moves.push(move);
             }
-            if ((this.dice.dieTwo.getValue() + piece.index) <= 5) {
+            if (!this.dice.dieTwo.isConsumed() && (this.dice.dieTwo.getValue() + piece.index) <= 5) {
                 let move = this.getNewRule();
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId2;
@@ -44,7 +44,8 @@ export class OnWayOutRules extends AbstractRules {
                 move.state = this.state;
                 moves.push(move);
             }
-            if ((this.dice.dieOne.getValue() + this.dice.dieTwo.getValue() + piece.index) <= 5) {
+            if (!this.dice.dieOne.isConsumed() && !this.dice.dieTwo.isConsumed() &&
+            (this.dice.dieOne.getValue() + this.dice.dieTwo.getValue() + piece.index) <= 5) {
                 let move = this.getNewRule();
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId1 + "#" + uniqueId2;

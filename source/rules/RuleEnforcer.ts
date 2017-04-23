@@ -10,6 +10,7 @@ import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
 import {OnWayOutBoard} from "../entities/OnWayOutBoard";
 import {factory} from "../logging/ConfigLog4j";
+import {AllPossibleMoves} from "./AllPossibleMoves";
 
 const log = factory.getLogger("model.RuleEnforcer");
 
@@ -18,11 +19,11 @@ export class RuleEnforcer {
     public scheduler: Scheduler;
     private signal: Phaser.Signal;
     private rollCounter = 0;
-    private currentPossibleMovements: Move[];
+    private currentPossibleMovements: AllPossibleMoves;
     private dice: Dice;
 
     constructor(signal: Phaser.Signal, scheduler: Scheduler, dice: Dice, activeboard: ActiveBoard,
-    homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, currentPossibleMovements?: Move[]) {
+    homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, currentPossibleMovements?: AllPossibleMoves) {
         this.signal = signal;
         this.scheduler = scheduler;
         this.dice = dice;
@@ -31,31 +32,37 @@ export class RuleEnforcer {
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
     }
 
-
-
-
     public endOfDiceRoll(listener: string): void {
         if (listener === "endOfDieRoll") {
             ++this.rollCounter;
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
-                let player: Player = this.scheduler.getCurrentPlayer();
-                this.currentPossibleMovements = this.rule.generateAllPossibleMoves(player);
-                this.analyzeAllPossibleMove(player);
+                this.generateAllPossibleMoves();
             }
         }
     }
 
+    /**
+     * Generates move object using selected piece and selected die or dice
+     * @param dieIds
+     * @param piece
+     */
     public generatePieceMovement(dieIds: string[], piece: Piece): Move {
         let pieceMovement = this.rule.generatePieceMovement(dieIds, piece);
         let canPlay = false;
-        for (let movement of this.currentPossibleMovements) {
+        let movements = this.currentPossibleMovements.getPieceMoves(piece.state);
+        for (let movement of movements) {
             if (movement.compare(pieceMovement)) {
                 canPlay = true;
                 movement = this.filterMovement(movement, piece);
-                let diceValue = this.addDiceValues(this.dice.getDieValueByUniqueId(movement.diceId));
+                let diceValue = this.addDiceValues(this.dice.getDieValueArrayByUniqueId(movement.diceId));
+                this.dice.consumeDieValueById(movement.diceId);
                 piece.movePiece(diceValue);
-                log.debug("Dice values: " + diceValue);
+                this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
+                this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
+                this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
+                this.currentPossibleMovements.resetMoves();
+                this.generateAllPossibleMoves();
                 break;
             }
         }
@@ -65,21 +72,16 @@ export class RuleEnforcer {
         return pieceMovement;
     }
 
-    public analyzeAllPossibleMove(player: Player): void {
-        if (this.currentPossibleMovements.length === 0) {
-            log.debug("Player Before...." + player.name);
-            let p = this.scheduler.getNextPlayer();
-            log.debug("Player After...." + p.name);
-        }else {
-            this.readAllMoves();
-        }
-    }
-
     public readAllMoves(): void {
-        for (let move of this.currentPossibleMovements){
+        for (let move of this.currentPossibleMovements.activeMoves){
             log.debug( this.rule.decodeMove(move));
         }
-        // this.rule.addSpentMovesBackToPool(this.currentPossibleMovements);
+        for (let move of this.currentPossibleMovements.homeMoves){
+            log.debug( this.rule.decodeMove(move));
+        }
+        for (let move of this.currentPossibleMovements.onWayOutMoves){
+            log.debug( this.rule.decodeMove(move));
+        }
     }
 
     public addDiceValues(diceValues: number[]): number {
@@ -96,5 +98,18 @@ export class RuleEnforcer {
             piece.index = piece.startIndex;
         }
         return movement;
+    }
+
+    private generateAllPossibleMoves(): void {
+        let player: Player = this.scheduler.getCurrentPlayer();
+        this.currentPossibleMovements = this.rule.generateAllPossibleMoves(player);
+        this.analyzeAllPossibleMove(player);
+    }
+
+    private analyzeAllPossibleMove(player: Player): void {
+        if (this.currentPossibleMovements.isEmpty()) {
+            let p = this.scheduler.getNextPlayer();
+        }
+        this.readAllMoves();
     }
 }

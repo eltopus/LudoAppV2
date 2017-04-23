@@ -29,43 +29,51 @@ export class HomeRules extends AbstractRules {
             }
             let homePieces: Piece[] = player.getHomePieces(this.board);
             for (let piece of homePieces) {
-                let move = this.getNewRule();
-                move.action = Actions.PLAY;
-                move.diceId = uniqueId1;
-                move.pieceId = piece.uniqueId;
-                move.state = this.state;
-                moves.push(move);
-                move = this.getNewRule();
-                move.action = Actions.PLAY;
-                move.diceId = uniqueId2;
-                move.pieceId = piece.uniqueId;
-                move.state = this.state;
-                moves.push(move);
-                move = this.getNewRule();
-                move.action = Actions.PLAY;
-                move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
-                move.pieceId = piece.uniqueId;
-                move.state = this.state;
-                moves.push(move);
-                // log.debug("HomePiecesId1: " + piece.uniqueId + " PlayerID: " + player.name);
+                if (!this.dice.dieOne.isConsumed()) {
+                    let move = this.getNewRule();
+                    move.action = Actions.PLAY;
+                    move.diceId = uniqueId1;
+                    move.pieceId = piece.uniqueId;
+                    move.state = this.state;
+                    moves.push(move);
+                }
+                if (!this.dice.dieTwo.isConsumed()) {
+                    let move = this.getNewRule();
+                    move.action = Actions.PLAY;
+                    move.diceId = uniqueId2;
+                    move.pieceId = piece.uniqueId;
+                    move.state = this.state;
+                    moves.push(move);
+
+                }
+                if (!this.dice.dieOne.isConsumed() && !this.dice.dieTwo.isConsumed()) {
+                    let move = this.getNewRule();
+                    move.action = Actions.PLAY;
+                    move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
+                    move.pieceId = piece.uniqueId;
+                    move.state = this.state;
+                    moves.push(move);
+                }
             }
         }else if (this.rolledAtLeastOneSix()) {
-            let uniqueId = this.dice.getDieByValue(6);
+            let uniqueId = this.dice.getDieUniqueIdByValue(6);
             if (uniqueId === null) {
                 log.debug("No matching uniqueId for the value supplied!!!");
                 return;
             }
             let homePieces: Piece[] = player.getHomePieces(this.board);
             for (let piece of homePieces) {
-                let move = this.getNewRule();
-                move.action = Actions.PLAY;
-                move.playBothDice = true;
-                move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
-                move.pieceId = piece.uniqueId;
-                move.state = this.state;
-                moves.push(move);
+                if (!this.dice.dieOne.isConsumed() && !this.dice.dieTwo.isConsumed()) {
+                    let move = this.getNewRule();
+                    move.action = Actions.PLAY;
+                    move.playBothDice = true;
+                    move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;
+                    move.pieceId = piece.uniqueId;
+                    move.state = this.state;
+                    moves.push(move);
+                }
                 // Play six on an home piece regardless of the value of the second die
-                move = this.getNewRule();
+                let move = this.getNewRule();
                 move.action = Actions.PLAY;
                 move.diceId = uniqueId;
                 move.pieceId = piece.uniqueId;
