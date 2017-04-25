@@ -41,7 +41,9 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public movement: PieceMovement;
     public speedConstant: number;
     public entryIndex: number;
-    // public tips: Phasertips;
+    public notifyCollision: boolean;
+    public collidingPiece: Piece;
+      // public tips: Phasertips;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, color: ColorType,
     playerId: string, uniqueId: string, startPosition: PiecePosition, signal: Phaser.Signal) {
@@ -65,10 +67,19 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.anchor.x = -0.07;
         this.anchor.y = -0.07;
         this.inputEnabled = true;
-        this.movement = new PieceMovement();
+        this.movement = new PieceMovement(signal);
         this.speedConstant = 6000 * 12;
+        this.collidingPiece = null;
         // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
         this.events.onInputDown.add(this.setActivePiece, this);
+        this.signal.add(this.endOfMovement, this, 0, "eom");
+    }
+
+    public endOfMovement(listener: string, uniqueId: string): void {
+        if (listener === "eom" && this.uniqueId === uniqueId) {
+            this.moveToHome();
+        }
+
     }
 
     public movePiece(newIndex: number): void {
@@ -98,24 +109,23 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         }
     }
 
-    public onCompleteMovementBackToHome(): void {
-        // log.debug("My index is " + this.index + " my state is " + this.getState());
+    public onCompleteMovement(): void {
+        if (this.collidingPiece !== null) {
+            this.collidingPiece.moveToHome();
+            this.collidingPiece = null;
+        }
     }
     /**
      * Moves piece to homePosition
      * Sends backToHome signal to Game and Board child classes
      */
     public moveToHome(): void {
-        let path = this.movement.constructOnWayOutPath(this, this.index, this.index);
-        if (!path.isEmpty) {
-            this.signal.dispatch("backToHome", this);
-            this.index = path.newIndex;
-            this.game.world.bringToTop(this.group);
-            this.game.add.tween(this).to({ x: path.x, y: path.y}, 6000,
-            Phaser.Easing.Linear.None, true);
-        }else {
-            log.debug("Path is empty.");
-        }
+        this.signal.dispatch("backToHome", this);
+        this.index = -1;
+        this.setAtHome();
+        this.game.world.bringToTop(this.group);
+        this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y}, 1000,
+        Phaser.Easing.Linear.None, true);
     }
     public getSpeed(distance: number) {
         return Math.floor(this.speedConstant / distance);
@@ -234,7 +244,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         Phaser.Easing.Linear.None, true).interpolation(function(v: number[], k: number){
             return Phaser.Math.linearInterpolation(v, k);
         });
-        tween.onComplete.add(this.onCompleteMovementBackToHome, this);
+        tween.onComplete.add(this.onCompleteMovement, this);
     }
 
     private getStartIndex(color: ColorType): number {

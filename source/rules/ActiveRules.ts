@@ -58,7 +58,7 @@ export class ActiveRules extends AbstractRules {
                         moves.push(move);
                     }
 
-                    if (!this.dice.dieOne.isConsumed() && !this.dice.dieOne.isConsumed()) {
+                    if (!this.dice.dieOne.isConsumed() && !this.dice.dieTwo.isConsumed()) {
                         let move = this.getNewRule();
                         move.action = Actions.PLAY;
                         move.diceId = this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId;

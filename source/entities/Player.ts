@@ -116,5 +116,16 @@ export class Player extends PieceFactory implements PlayerInterface {
         }
     }
 
+    public pieceBelongsToMe(uniqueId: string): boolean {
+        let belongToMe = false;
+        for (let piece of this.pieces){
+            if (piece.uniqueId === uniqueId) {
+                belongToMe = true;
+                break;
+            }
+        }
+        return belongToMe;
+    }
+
 }
 

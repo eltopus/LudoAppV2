@@ -46,10 +46,10 @@ export class Game extends Phaser.State {
         // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
         // this.playerFour = new Player(this.game, "PlayerFour", UUID.UUID(), false, playerFourcolors, signal);
         this.scheduler = new Scheduler();
-        this.scheduler.schedule.enqueue(this.playerTwo);
-        this.scheduler.schedule.enqueue(this.playerOne);
-        // this.schedule.schedule.enqueue(this.playerThree);
-        // this.schedule.schedule.enqueue(this.playerFour);
+        this.scheduler.enqueue(this.playerTwo);
+        this.scheduler.enqueue(this.playerOne);
+        // this.schedule.enqueue(this.playerThree);
+        // this.schedule.enqueue(this.playerFour);
 
 
         let playBtn = this.make.button(763, 540, "play", this.playDice, this, 2, 1, 0);
@@ -74,20 +74,25 @@ export class Game extends Phaser.State {
         for (let piece of this.playerTwo.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
-        /*
-        let p1 = this.playerTwo.pieces[2];
+
+        let p1 = this.playerOne.pieces[2];
         homeboard.removePieceFromHomeBoard(p1);
-        this.setOnWayOutPieceParameters(p1, 4, States.onWayOut, onWayOutBoard);
-        // this.setActivePieceParameters(p1, 37, States.Active, activeboard);
+        // this.setOnWayOutPieceParameters(p1, 0, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p1, 41, States.Active, activeboard);
         let p2 = this.playerTwo.pieces[3];
         homeboard.removePieceFromHomeBoard(p2);
-        this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
-        */
+        // this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p2, 36, States.Active, activeboard);
+        let p3 = this.playerTwo.pieces[4];
+        homeboard.removePieceFromHomeBoard(p3);
+        // this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p3, 43, States.Active, activeboard);
+
     }
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 3, 5);
     }
 
     public playDice(): void {

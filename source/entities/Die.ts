@@ -84,6 +84,10 @@ export class Die extends Phaser.Sprite {
         return (this.frame === 3);
     }
 
+    public isSpent(): boolean {
+        return (this.getValue() === 0);
+    }
+
     public setPlayerId(playerId: string) {
         this.playerId = playerId;
     }

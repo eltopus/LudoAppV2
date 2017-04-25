@@ -13,9 +13,11 @@ export interface Movement {
 export class PieceMovement implements Movement {
     public activePath: Paths.ActivePath;
     public onWayOutPaths: Paths.OnWayOutPaths;
-    constructor() {
+    private signal: Phaser.Signal;
+    constructor(signal: Phaser.Signal) {
         this.activePath = new Paths.ActivePath();
         this.onWayOutPaths = new Paths.OnWayOutPaths();
+        this.signal = signal;
     }
 
     public constructActivePath(piece: Piece, newIndex: number): Path {
@@ -27,6 +29,8 @@ export class PieceMovement implements Movement {
         // path.remainder has to be greater than zero to make this call
         if (path.moveStatus === MoveStatus.ShouldBeExiting && path.moveRemainder > 0) {
             path = this.constructOnWayOutPath(piece, 0, path.moveRemainder, path);
+            this.signal.dispatch("onwayout", piece);
+
         }
         return path;
     }

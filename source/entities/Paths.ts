@@ -117,23 +117,24 @@ export class OnWayOutPaths {
         // Different workflow depending on the states
         if (piece.isActive()) {
             // This condition should have been taken care of by the Rule.
-            if (to > 6){
+            if (to > 6) {
                 hlog.debug("to " + to + " is greater than six! Something went wrong!!!");
-            }else{
+            }else {
                 for (let i = from; i < to; i++) {
                     path.x.push(x[i]);
                     path.y.push(y[i]);
                 }
                 path.newIndex = to - 1;
+                piece.index = path.newIndex;
                 piece.setOnWayOut();
-                // hlog.debug("Active Path x " + path.x.join() + " newIndex " + to);
-                // hlog.debug("Active Path y " + path.y.join() + " newIndex " + to);
+                // hlog.debug("Active Path x " + path.x.join() + " newIndex " + path.newIndex);
+                // hlog.debug("Active Path y " + path.y.join() + " newIndex " + path.newIndex);
 
             }
         }else if (piece.isOnWayOut()) {
-            if (to > 5){
+            if (to > 5) {
                 hlog.debug("to " + to + " is greater than five! Something went wrong!!!");
-            }else{
+            }else {
                 for (let i = from; i < to + 1; i++) {
                     path.x.push(x[i]);
                     path.y.push(y[i]);

@@ -45,10 +45,16 @@ export class ActiveBoard extends Board {
             // log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
              // + "> to active board " + this.board.size());
             this.signal.dispatch("rom", piece);
-        }else if (listener === "backToHome") {
+        }
+        if (listener === "backToHome") {
             this.board.remove(piece.uniqueId);
-             // log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
-             // piece.index + "> from activeBoard " + this.board.size());
+             log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
+             piece.index + "> from activeBoard " + this.board.size());
+        }
+        if (listener === "onwayout") {
+            this.board.remove(piece.uniqueId);
+             log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
+             piece.index + "> from activeBoard because ONWAYOUT " + this.board.size());
         }
     }
     public containsInActiveBoard(piece: Piece): boolean {

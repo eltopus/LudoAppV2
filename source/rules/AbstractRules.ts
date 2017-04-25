@@ -140,6 +140,18 @@ export abstract class AbstractRules {
         return this.dice.getHigherDieValue();
     }
 
+    public getUniqueIdCollision(uniqueId: string, index: number): string {
+        let keys = this.board.board.keys();
+        let id = "NOUNCE";
+        for (let key of keys){
+            if (this.board.board.getValue(key) === index && key !== uniqueId) {
+                id = key.toString();
+                break;
+            }
+        }
+        return id;
+    }
+
     protected generatePieceMovement(dieUniqueIds: string[], piece: Piece, state: States): Move {
         let move: Move = this.getNewRule();
         if (dieUniqueIds.length === 2) {

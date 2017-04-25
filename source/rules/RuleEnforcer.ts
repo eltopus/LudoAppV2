@@ -58,6 +58,17 @@ export class RuleEnforcer {
                 let diceValue = this.addDiceValues(this.dice.getDieValueArrayByUniqueId(movement.diceId));
                 this.dice.consumeDieValueById(movement.diceId);
                 piece.movePiece(diceValue);
+                // Check collision must always come after movePiece is called
+                if (piece.isActive()) {
+                    let id = this.checkCollision(piece.uniqueId, piece.index);
+                    if (!this.scheduler.getCurrentPlayer().pieceBelongsToMe(id)) {
+                        // log.debug(id + " does NOT belong to me");
+                        let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
+                        if (typeof outGoingPiece !== null && typeof outGoingPiece !== "undefined") {
+                            piece.collidingPiece = outGoingPiece;
+                        }
+                    }
+                }
                 this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
                 this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
                 this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
@@ -111,5 +122,10 @@ export class RuleEnforcer {
             let p = this.scheduler.getNextPlayer();
         }
         this.readAllMoves();
+    }
+
+    private checkCollision(uniqueId: string, index: number): string {
+        let id = this.rule.getUniqueIdCollision(uniqueId, index);
+        return id;
     }
 }

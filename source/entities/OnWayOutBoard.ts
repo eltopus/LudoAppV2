@@ -46,6 +46,12 @@ export class OnWayOutBoard extends Board {
              // + "> to active board " + this.board.size());
            //  this.signal.dispatch("rom", piece);
         }
+
+        if (listener === "onwayout") {
+            this.addPieceToOnWayOutBoard(piece);
+            log.debug("From Listener: " + listener + " I am adding ONWAYOUT <" + piece.uniqueId + ", " + piece.index
+            + "> to active board " + this.board.size());
+        }
     }
     public containsInActiveBoard(piece: Piece): boolean {
         return this.board.containsKey(piece.uniqueId);

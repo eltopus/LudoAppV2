@@ -39,10 +39,11 @@ export class HomeBoard extends Board {
             // log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId +
             // " " + piece.index + "> from homeboard: New size: " + this.board.size());
             }
-        }else if (listener === "backToHome") {
+        }
+        if (listener === "backToHome") {
             this.board.setValue(piece.uniqueId, piece.index);
-             // log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId
-             // + " " + piece.index + "> to homeboard: New Size " + this.board.size());
+             log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId
+             + " " + piece.index + "> to homeboard: New Size " + this.board.size());
         }
     }
     /**
