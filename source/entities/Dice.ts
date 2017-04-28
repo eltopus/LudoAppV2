@@ -10,13 +10,12 @@ export class Dice {
     public dieOne: Die;
     public dieTwo: Die;
     private signal: Phaser.Signal;
-    private rolledDoubleSix: boolean;
+ 
 
     constructor(game: Phaser.Game, imageId: string, signal: Phaser.Signal, dieOneUUID: string, dieTwoUUID: string) {
         this.dieOne = new Die(game, 330, 390, imageId, dieOneUUID, signal);
         this.dieTwo = new Die(game, 390, 330, imageId, dieTwoUUID, signal);
         this.signal = signal;
-        this.rolledDoubleSix = false;
     }
 
     public roll(playerId: string, value1?: number, value2?: number): void {
@@ -118,5 +117,19 @@ export class Dice {
     }
     public isDieTwoConsumed(): boolean {
         return this.dieTwo.isConsumed();
+    }
+
+    /**
+     * Returns true if one of the dice value is 6
+     */
+    public rolledAtLeastOneSix(): boolean {
+        return (this.dieOne.getValue() === 6 || this.dieTwo.getValue() === 6);
+    }
+
+    /**
+     * Returns true if both dice values are 6 and 6
+     */
+    public rolledDoubleSix(): boolean {
+        return (this.dieOne.getValue() === 6 && this.dieTwo.getValue() === 6);
     }
 }

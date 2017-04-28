@@ -80,6 +80,61 @@ export class Player extends PieceFactory implements PlayerInterface {
         }
         return onWayOutPieces;
     }
+    // Necessarily.. although it looks like a duplicate
+    public getPlayerOnWayOutPieces(): Piece[] {
+        let onWayOutPieces: Piece[] = [];
+        for (let piece of this.pieces) {
+            if (piece.isOnWayOut()) {
+                onWayOutPieces.push(piece);
+            }
+        }
+        return onWayOutPieces;
+    }
+    // Necessarily.. although it looks like a duplicate
+    public getPlayerActivePieces(): Piece[] {
+        let activePieces: Piece[] = [];
+        for (let piece of this.pieces) {
+            if (piece.isActive()) {
+                activePieces.push(piece);
+            }
+        }
+        return activePieces;
+    }
+
+    public hasOnWayOutPieces(): boolean {
+        let onWayOut = false;
+        for (let piece of this.pieces) {
+            if (piece.isOnWayOut()) {
+                onWayOut = true;
+                break;
+            }
+        }
+        return onWayOut;
+    }
+
+    public hasHomePieces(): boolean {
+        let home = false;
+        for (let piece of this.pieces) {
+            if (piece.isAtHome()) {
+                home = true;
+                break;
+            }
+        }
+        return home;
+    }
+
+    public hasExactlyOneActivePiece(): boolean {
+        let activePieceCount = 0;
+        for (let piece of this.pieces) {
+            if (piece.isActive()) {
+                ++activePieceCount;
+                if (activePieceCount > 1) {
+                    break;
+                }
+            }
+        }
+        return (activePieceCount === 1);
+    }
 
     public selectAllPiece(): void {
         for (let piece of this.pieces) {

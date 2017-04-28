@@ -51,6 +51,7 @@ export class RuleEnforcer {
         let pieceMovement = this.rule.generatePieceMovement(dieIds, piece);
         let canPlay = false;
         let movements = this.currentPossibleMovements.getPieceMoves(piece.state);
+        let currentPlayer = this.scheduler.getCurrentPlayer();
         for (let movement of movements) {
             if (movement.compare(pieceMovement)) {
                 canPlay = true;
@@ -61,7 +62,7 @@ export class RuleEnforcer {
                 // Check collision must always come after movePiece is called
                 if (piece.isActive()) {
                     let id = this.checkCollision(piece.uniqueId, piece.index);
-                    if (!this.scheduler.getCurrentPlayer().pieceBelongsToMe(id)) {
+                    if (!currentPlayer.pieceBelongsToMe(id)) {
                         // log.debug(id + " does NOT belong to me");
                         let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
                         if (typeof outGoingPiece !== null && typeof outGoingPiece !== "undefined") {
@@ -120,8 +121,82 @@ export class RuleEnforcer {
     private analyzeAllPossibleMove(player: Player): void {
         if (this.currentPossibleMovements.isEmpty()) {
             let p = this.scheduler.getNextPlayer();
+        }else if (player.hasExactlyOneActivePiece()) {
+            this.currentPossibleMovements = this.checkCornerCaseRules(this.currentPossibleMovements, player);
         }
         this.readAllMoves();
+    }
+
+    private checkCornerCaseRules(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
+        /**
+         * This block of code validates corner cases where a player has only one active piece
+         * and has one or more onwayout pieces. This check is necessarily to prevent player
+         * from playing an invalid die value on the active piece.
+         */
+        if (player.hasOnWayOutPieces()) {
+            let onWayOutPieces = player.getPlayerOnWayOutPieces();
+            let onWayOutPieceMovements: Move[] = [];
+            for (let onWayOutPiece of onWayOutPieces){
+                onWayOutPieceMovements = onWayOutPieceMovements.concat(this.getDieMovementsOnPiece(onWayOutPiece.uniqueId,
+                 currentPossibleMovements.onWayOutMoves));
+            }
+            log.debug("Size: " + onWayOutPieceMovements.length);
+            /** This checks corner case for when a player has one onwayout piece and one active piece
+                Rule must ensure that player is not allowed to play die value on active piece leaving
+                the other value that onwayout piece cannot play
+            */
+            if (onWayOutPieceMovements.length === 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+                for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
+                    if (onWayOutPieceMovements[0].diceId === currentPossibleMovements.activeMoves[x].diceId) {
+                        let illegalMove = currentPossibleMovements.activeMoves[x];
+                        log.debug("Successfully Removing illegal move: " + this.rule.decodeMove(illegalMove));
+                        currentPossibleMovements.activeMoves.splice(x, 1);
+                        break;
+                    }
+                }
+            }else if (onWayOutPieceMovements.length > 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+                for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
+                    for (let onWayMovement of onWayOutPieceMovements){
+                        if (onWayMovement.diceId === currentPossibleMovements.activeMoves[x].diceId) {
+                            if (this.onWayOutCanUseBothDice(onWayMovement.diceId, onWayOutPieceMovements)) {
+                                let illegalMove = currentPossibleMovements.activeMoves[x];
+                                log.debug("Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                                currentPossibleMovements.activeMoves.splice(x, 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return currentPossibleMovements;
+    }
+
+    private onWayOutCanUseBothDice(dieId: string, movements: Move[]): boolean {
+        let isLegalMove = true;
+        let dieUniqueId = this.dice.dieOne.uniqueId;
+        if (dieId !== this.dice.dieOne.uniqueId) {
+            dieId = this.dice.dieOne.uniqueId;
+        }else if (dieId !== this.dice.dieTwo.uniqueId) {
+            dieId = this.dice.dieTwo.uniqueId;
+        }
+        for (let movement of movements){
+            if (movement.diceId === dieId) {
+                isLegalMove = false;
+                break;
+            }
+        }
+        return (isLegalMove);
+    }
+
+    private getDieMovementsOnPiece(pieceId: string, movements: Move[]): Move[] {
+        let onWayOutPieceMovements: Move[] = [];
+        for (let movement of movements){
+            if (movement.pieceId === pieceId) {
+                onWayOutPieceMovements.push(movement);
+            }
+        }
+        return onWayOutPieceMovements;
     }
 
     private checkCollision(uniqueId: string, index: number): string {

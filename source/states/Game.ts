@@ -78,21 +78,31 @@ export class Game extends Phaser.State {
         let p1 = this.playerOne.pieces[2];
         homeboard.removePieceFromHomeBoard(p1);
         // this.setOnWayOutPieceParameters(p1, 0, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p1, 41, States.Active, activeboard);
+        this.setActivePieceParameters(p1, 44, States.Active, activeboard);
         let p2 = this.playerTwo.pieces[3];
         homeboard.removePieceFromHomeBoard(p2);
-        // this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p2, 36, States.Active, activeboard);
+        this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
+        // this.setActivePieceParameters(p2, 38, States.Active, activeboard);
         let p3 = this.playerTwo.pieces[4];
         homeboard.removePieceFromHomeBoard(p3);
-        // this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
+        // this.setOnWayOutPieceParameters(p3, 4, States.onWayOut, onWayOutBoard);
         this.setActivePieceParameters(p3, 43, States.Active, activeboard);
+
+        let p4 = this.playerTwo.pieces[1];
+        homeboard.removePieceFromHomeBoard(p4);
+        this.setOnWayOutPieceParameters(p4, 3, States.onWayOut, onWayOutBoard);
+        // this.setActivePieceParameters(p4, 43, States.Active, activeboard);
+
+        let p5 = this.playerTwo.pieces[7];
+        homeboard.removePieceFromHomeBoard(p5);
+        this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
+        // this.setActivePieceParameters(p5, 43, States.Active, activeboard);
 
     }
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 3, 5);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 6, 1);
     }
 
     public playDice(): void {

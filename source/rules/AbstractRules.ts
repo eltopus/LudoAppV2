@@ -32,18 +32,22 @@ export abstract class AbstractRules {
         }
     }
 
+    public getBoard(): Board {
+        return this.board;
+    }
+
     /**
      * Returns true if one of the dice value is 6
      */
     public rolledAtLeastOneSix(): boolean {
-        return (this.dice.dieOne.getValue() === 6 || this.dice.dieTwo.getValue() === 6);
+        return this.dice.rolledAtLeastOneSix();
     }
 
     /**
      * Returns true if both dice values are 6 and 6
      */
     public rolledDoubleSix(): boolean {
-        return (this.dice.dieOne.getValue() === 6 && this.dice.dieTwo.getValue() === 6);
+        return this.dice.rolledDoubleSix();
     }
 
     /**

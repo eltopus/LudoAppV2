@@ -16,14 +16,15 @@ import {ActiveRules} from "./ActiveRules";
 import {OnWayOutRules} from "./OnWayOutRules";
 import {States} from "../enums/States";
 import {AllPossibleMoves} from "./AllPossibleMoves";
+import {Board} from "../entities/Board";
 
 
     const log = factory.getLogger("model.Rules");
 
     export class Rules {
-    protected homeMove: HomeRules;
-    protected activeMove: ActiveRules;
-    protected onWayOutMove: OnWayOutRules;
+    private homeMove: HomeRules;
+    private activeMove: ActiveRules;
+    private onWayOutMove: OnWayOutRules;
     private signal: Phaser.Signal;
     private rollCounter = 0;
     private schedule: Scheduler;
@@ -41,7 +42,17 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
         this.allPossibleMoves = new AllPossibleMoves();
     }
 
+    public getOnWayOutBoard(): Board {
+        return this.onWayOutMove.getBoard();
+    }
 
+    public getActiveBoard(): Board {
+        return this.activeMove.getBoard();
+    }
+
+    public getHomeBoard(): Board {
+        return this.homeMove.getBoard();
+    }
 
     public generateAllPossibleMoves(player: Player): AllPossibleMoves {
         this.allPossibleMoves.activeMoves = this.activeMove.generateMoves(player);
@@ -90,6 +101,10 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
         }
     }
 
+    public getUniqueIdCollision(uniqueId: string, index: number): string {
+        return this.activeMove.getUniqueIdCollision(uniqueId, index);
+    }
+
     public decodeMove(move: Move): string {
         switch (move.state) {
             case States.Active:
@@ -104,7 +119,7 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
         }
     }
 
-    public decodeActiveMove(move: Move): string {
+    private decodeActiveMove(move: Move): string {
         if (move.action === Actions.DO_NOTHING) {
             return "DO NOTHING";
         }else if (move.action === Actions.EXIT) {
@@ -120,7 +135,7 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
         }
     }
 
-    public decodeHomeMove(move: Move): string {
+    private decodeHomeMove(move: Move): string {
         if (move.action === Actions.DO_NOTHING) {
             return "DO NOTHING";
         }else if (move.action === Actions.EXIT) {
@@ -136,7 +151,7 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
         }
     }
 
-    public decodeOnWayOutMove(move: Move): string {
+    private decodeOnWayOutMove(move: Move): string {
         if (move.action === Actions.DO_NOTHING) {
             return "DO NOTHING";
         }else if (move.action === Actions.EXIT) {
@@ -150,9 +165,6 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
         }else {
             return "DO NOTHING";
         }
-    }
-    public getUniqueIdCollision(uniqueId: string, index: number): string {
-        return this.activeMove.getUniqueIdCollision(uniqueId, index);
     }
 
 }

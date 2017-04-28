@@ -126,7 +126,11 @@ export class OnWayOutPaths {
                 }
                 path.newIndex = to - 1;
                 piece.index = path.newIndex;
-                piece.setOnWayOut();
+                if (piece.index === 5) {
+                    piece.setExited();
+                }else {
+                    piece.setOnWayOut();
+                }
                 // hlog.debug("Active Path x " + path.x.join() + " newIndex " + path.newIndex);
                 // hlog.debug("Active Path y " + path.y.join() + " newIndex " + path.newIndex);
 
