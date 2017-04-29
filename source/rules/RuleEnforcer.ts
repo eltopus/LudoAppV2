@@ -9,6 +9,7 @@ import {Dice} from "../entities/Dice";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
 import {OnWayOutBoard} from "../entities/OnWayOutBoard";
+import {ExitedBoard} from "../entities/ExitedBoard";
 import {factory} from "../logging/ConfigLog4j";
 import {AllPossibleMoves} from "./AllPossibleMoves";
 
@@ -23,12 +24,12 @@ export class RuleEnforcer {
     private dice: Dice;
 
     constructor(signal: Phaser.Signal, scheduler: Scheduler, dice: Dice, activeboard: ActiveBoard,
-    homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, currentPossibleMovements?: AllPossibleMoves) {
+    homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, exitedBoard: ExitedBoard, currentPossibleMovements?: AllPossibleMoves) {
         this.signal = signal;
         this.scheduler = scheduler;
         this.dice = dice;
         this.currentPossibleMovements = currentPossibleMovements;
-        this.rule = new Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard);
+        this.rule = new Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
     }
 
@@ -38,6 +39,9 @@ export class RuleEnforcer {
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
                 this.generateAllPossibleMoves();
+                if (this.dice.rolledDoubleSix()) {
+                    this.scheduler.getCurrentPlayer().previousDoubleSix = true;
+                }
             }
         }
     }
@@ -67,6 +71,7 @@ export class RuleEnforcer {
                         let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
                         if (typeof outGoingPiece !== null && typeof outGoingPiece !== "undefined") {
                             piece.collidingPiece = outGoingPiece;
+                            piece.setExited();
                         }
                     }
                 }
@@ -124,7 +129,7 @@ export class RuleEnforcer {
         }else if (player.hasExactlyOneActivePiece()) {
             this.currentPossibleMovements = this.checkCornerCaseRules(this.currentPossibleMovements, player);
         }
-        this.readAllMoves();
+        // this.readAllMoves();
     }
 
     private checkCornerCaseRules(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -140,7 +145,7 @@ export class RuleEnforcer {
                 onWayOutPieceMovements = onWayOutPieceMovements.concat(this.getDieMovementsOnPiece(onWayOutPiece.uniqueId,
                  currentPossibleMovements.onWayOutMoves));
             }
-            log.debug("Size: " + onWayOutPieceMovements.length);
+            // log.debug("Size: " + onWayOutPieceMovements.length);
             /** This checks corner case for when a player has one onwayout piece and one active piece
                 Rule must ensure that player is not allowed to play die value on active piece leaving
                 the other value that onwayout piece cannot play

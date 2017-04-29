@@ -146,6 +146,9 @@ export class OnWayOutPaths {
                 path.newIndex = to;
                 // hlog.debug("On Way Out Path x " + path.x.join() + " newIndex " + to);
                 // hlog.debug("On Way Out Path y " + path.y.join() + " newIndex " + to);
+                if (to === 5) {
+                    piece.setExited();
+                }
             }
         }
         return path;

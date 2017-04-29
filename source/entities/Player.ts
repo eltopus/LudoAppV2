@@ -15,6 +15,7 @@ export interface PlayerInterface {
     pieces: Piece[];
     signal: Phaser.Signal;
     currentPiece: Piece;
+    previousDoubleSix: boolean;
     selectCurrentPiece(listener: string, uniqueId: string, playerId: string): void;
 }
 
@@ -25,7 +26,9 @@ export class Player extends PieceFactory implements PlayerInterface {
     public pieces: Piece[] = [];
     public signal: Phaser.Signal;
     public currentPiece: Piece;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal) {
+    public previousDoubleSix = false;
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
+     previousDoubleSix?: boolean) {
         super(game);
         this.name = name;
         this.playerId = playerId;
@@ -34,7 +37,9 @@ export class Player extends PieceFactory implements PlayerInterface {
         this.signal = signal;
         this.signal.add(this.selectCurrentPiece, this, 0, "select");
         this.currentPiece = null;
-
+        if (typeof previousDoubleSix !== "undefined") {
+            this.previousDoubleSix = previousDoubleSix;
+        }
         for (let x = 0; x < colorTypes.length; x++) {
             let playerPieces = this.createNewPieces(colorTypes[x], playerId, this.signal);
             for (let piece of playerPieces){
@@ -140,12 +145,14 @@ export class Player extends PieceFactory implements PlayerInterface {
         for (let piece of this.pieces) {
             piece.alpha = 1;
         }
+        this.turn = true;
     }
 
     public unselectAllPiece(): void {
         for (let piece of this.pieces) {
             piece.alpha = 0.5;
         }
+        this.turn = false;
     }
 
     /**
@@ -155,7 +162,7 @@ export class Player extends PieceFactory implements PlayerInterface {
      */
     public selectCurrentPiece(listener: string, uniqueId: string, playerId: string): void {
         // check if you are the right owner of the piece
-        if (this.playerId === playerId) {
+        if (this.turn && this.playerId === playerId) {
             if (listener === "select") {
                 for (let piece of this.pieces) {
                     if (piece.uniqueId === uniqueId) {

@@ -114,7 +114,11 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
             this.collidingPiece.moveToHome();
             this.collidingPiece = null;
         }
-        // log.debug("My index is " + this.index + " and my state is " + this.getState());
+        if (this.isExited()) {
+            // log.debug("I am exiting " + this.index + " and my state is " + this.getState());
+            this.signal.dispatch("exit", this);
+            this.visible = false;
+        }
     }
     /**
      * Moves piece to homePosition

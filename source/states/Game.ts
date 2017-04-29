@@ -7,6 +7,8 @@ import {ColorType} from "../enums/ColorType";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
 import {OnWayOutBoard} from "../entities/OnWayOutBoard";
+import {ExitedBoard} from "../entities/ExitedBoard";
+import {AllPossibleMoves} from "../rules/AllPossibleMoves";
 import {Dice} from "../entities/Dice";
 import {Rules} from "../rules/Rules";
 import {factory} from "../logging/ConfigLog4j";
@@ -41,6 +43,8 @@ export class Game extends Phaser.State {
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
         let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
+        let exitedBoard: ExitedBoard = new ExitedBoard(this.signal);
+        let currentPossibleMovements: AllPossibleMoves = new AllPossibleMoves();
         this.playerOne = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, this.signal);
         this.playerTwo = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal);
         // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
@@ -64,7 +68,8 @@ export class Game extends Phaser.State {
         let dieOneUUID = UUID.UUID();
         let dieTwoUUID = UUID.UUID();
         this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID);
-        this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard, onWayOutBoard);
+        this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
+        onWayOutBoard, exitedBoard, currentPossibleMovements);
         this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
 
         // All Player pieces must be added to homeboard
@@ -102,7 +107,7 @@ export class Game extends Phaser.State {
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 6, 1);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 6, 6);
     }
 
     public playDice(): void {

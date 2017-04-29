@@ -13,6 +13,7 @@ export class Die extends Phaser.Sprite {
     private playerId: string;
     private diceArr: number[] = [5, 1, 6, 2, 0, 4];
     private extFrame: number = null;
+    private removeLater = true;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, uniqueId: string, signal: Phaser.Signal) {
         super(game, x, y, imageId);
@@ -66,8 +67,9 @@ export class Die extends Phaser.Sprite {
         }else {
             log.debug("Dice PlayerId " + this.playerId + " does not match playerId: " + playerId);
         }
-        if (typeof value !== "undefined") {
+        if (this.removeLater && typeof value !== "undefined") {
             this.extFrame = this.getFrame(value);
+            this.removeLater = false;
         }
     }
 

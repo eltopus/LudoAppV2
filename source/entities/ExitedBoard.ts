@@ -5,12 +5,12 @@ import {factory} from "../logging/ConfigLog4j";
 import {Board} from "./Board";
 import {Piece} from "../entities/Piece";
 
-const log = factory.getLogger("model.OnWayOutBoard");
+const log = factory.getLogger("model.ActiveBoard");
 
 /**
  * Stores the <piece.uniqueId, piece.index> of all active pieces
  */
-export class OnWayOutBoard extends Board {
+export class ExitedBoard extends Board {
     // Using MutiDictionary for both ActiveBoard and HomeBoard led to unexpected behavior
     // remove function worked for activeBoard but not for homeBoard
     constructor(signal: Phaser.Signal) {
@@ -23,7 +23,7 @@ export class OnWayOutBoard extends Board {
      * @param piece
      * @return void
      */
-    public addPieceToOnWayOutBoard(piece: Piece): void {
+    public addPieceToActiveBoard(piece: Piece): void {
         this.board.setValue(piece.uniqueId, piece.index);
     }
     /**
@@ -31,7 +31,7 @@ export class OnWayOutBoard extends Board {
      * @param piece
      * @return void
      */
-    public removePieceFromOnWayOutBoard(piece: Piece): void {
+    public removePieceFromActiveBoard(piece: Piece): void {
         this.board.remove(piece.uniqueId);
     }
     /**
@@ -41,14 +41,9 @@ export class OnWayOutBoard extends Board {
      */
     public movement(listener: string, piece: Piece): void {
         if (listener === "exit") {
-            this.board.remove(piece.uniqueId);
-            // log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " + piece.index
-            // + "> from onwayout board " + this.board.size());
-        }
-        if (listener === "onwayout") {
-            this.addPieceToOnWayOutBoard(piece);
-            log.debug("From Listener: " + listener + " I am adding ONWAYOUT <" + piece.uniqueId + ", " + piece.index
-            + "> to active board " + this.board.size());
+            this.board.setValue(piece.uniqueId, piece.index);
+            log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
+            + "> to exited board " + this.board.size());
         }
     }
     public containsInActiveBoard(piece: Piece): boolean {

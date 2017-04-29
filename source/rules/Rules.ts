@@ -11,9 +11,11 @@ import {Dice} from "../entities/Dice";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
 import {OnWayOutBoard} from "../entities/OnWayOutBoard";
+import {ExitedBoard} from "../entities/ExitedBoard";
 import {HomeRules} from "./HomeRules";
 import {ActiveRules} from "./ActiveRules";
 import {OnWayOutRules} from "./OnWayOutRules";
+import {ExitedRules} from "./ExitedRules";
 import {States} from "../enums/States";
 import {AllPossibleMoves} from "./AllPossibleMoves";
 import {Board} from "../entities/Board";
@@ -25,6 +27,7 @@ import {Board} from "../entities/Board";
     private homeMove: HomeRules;
     private activeMove: ActiveRules;
     private onWayOutMove: OnWayOutRules;
+    private exitedMove: ExitedRules;
     private signal: Phaser.Signal;
     private rollCounter = 0;
     private schedule: Scheduler;
@@ -32,10 +35,11 @@ import {Board} from "../entities/Board";
     private allPossibleMoves: AllPossibleMoves;
 
     constructor(signal: Phaser.Signal, schedule: Scheduler, dice: Dice, activeBoard: ActiveBoard,
-    homeBoard: HomeBoard, onWayOutBoard: OnWayOutBoard) {
+    homeBoard: HomeBoard, onWayOutBoard: OnWayOutBoard, exitedBoard: ExitedBoard) {
         this.activeMove = new ActiveRules(dice, schedule, activeBoard);
         this.homeMove = new HomeRules(dice, schedule, homeBoard);
         this.onWayOutMove = new OnWayOutRules(dice, schedule, onWayOutBoard);
+        this.exitedMove = new ExitedRules(dice, schedule, exitedBoard);
         this.schedule = schedule;
         this.signal = signal;
         this.dice = dice;

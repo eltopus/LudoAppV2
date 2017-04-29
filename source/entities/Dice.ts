@@ -10,7 +10,7 @@ export class Dice {
     public dieOne: Die;
     public dieTwo: Die;
     private signal: Phaser.Signal;
- 
+    private previousDoubleSix = false;
 
     constructor(game: Phaser.Game, imageId: string, signal: Phaser.Signal, dieOneUUID: string, dieTwoUUID: string) {
         this.dieOne = new Die(game, 330, 390, imageId, dieOneUUID, signal);

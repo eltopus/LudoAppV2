@@ -15,16 +15,28 @@ export class Scheduler {
     }
 
     public getNextPlayer(): Player {
-        let player: Player = this.schedule.dequeue();
-        player.unselectAllPiece();
-        this.schedule.enqueue(player);
-        player = this.schedule.peek();
-        player.selectAllPiece();
+        let player = this.schedule.peek();
+        if (player.previousDoubleSix === false) {
+            player = this.schedule.dequeue();
+            player.unselectAllPiece();
+            this.schedule.enqueue(player);
+            player = this.schedule.peek();
+            player.selectAllPiece();
+        }else {
+            // Returning same player. Set value back to false
+            player.previousDoubleSix =  false;
+        }
         return player;
     }
 
     public enqueue(player: Player): void {
-        this.schedule.enqueue(player);
+        if (this.schedule.isEmpty()) {
+            player.selectAllPiece();
+            this.schedule.enqueue(player);
+        }else {
+            player.unselectAllPiece();
+            this.schedule.enqueue(player);
+        }
         for (let piece of player.pieces){
             this.allPieces.setValue(piece.uniqueId, piece);
         }
