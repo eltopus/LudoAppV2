@@ -3,20 +3,24 @@ import * as Collections from "typescript-collections";
 import {Player} from "../entities/Player";
 import {factory} from "../logging/ConfigLog4j";
 import {Piece} from "../entities/Piece";
+import {Dice} from "../entities/Dice";
 
 const log = factory.getLogger("model.Scheduler");
 
 export class Scheduler {
     public schedule: Collections.Queue<Player>;
     public allPieces: Collections.Dictionary<String, Piece>;
-    constructor() {
+    private dice: Dice;
+    constructor(dice: Dice) {
         this.schedule = new Collections.Queue<Player>();
         this.allPieces = new Collections.Dictionary<String, Piece>();
+        this.dice = dice;
     }
 
     public getNextPlayer(): Player {
         let player = this.schedule.peek();
         if (player.previousDoubleSix === false) {
+            this.dice.consumeDice();
             player = this.schedule.dequeue();
             player.unselectAllPiece();
             this.schedule.enqueue(player);

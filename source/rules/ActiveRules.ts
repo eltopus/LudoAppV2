@@ -47,6 +47,7 @@ export class ActiveRules extends AbstractRules {
                         move.pieceId = piece.uniqueId;
                         move.state = this.state;
                         moves.push(move);
+                        log.debug("Playing " + this.dice.dieOne.uniqueId + " on " + piece.uniqueId + " is fine");
                     }
 
                     if (!this.dice.dieTwo.isConsumed()) {
@@ -56,6 +57,7 @@ export class ActiveRules extends AbstractRules {
                         move.pieceId = piece.uniqueId;
                         move.state = this.state;
                         moves.push(move);
+                        log.debug("Playing " + this.dice.dieTwo.uniqueId + " on " + piece.uniqueId + " is fine");
                     }
 
                     if (!this.dice.dieOne.isConsumed() && !this.dice.dieTwo.isConsumed()) {
@@ -65,6 +67,7 @@ export class ActiveRules extends AbstractRules {
                         move.pieceId = piece.uniqueId;
                         move.state = this.state;
                         moves.push(move);
+                        log.debug("Playing both dice " + piece.uniqueId + " is fine");
                     }
             }
         }

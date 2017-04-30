@@ -122,16 +122,13 @@ export abstract class AbstractRules {
         let uniqueIds: string[] = [];
         let diceValue = this.dice.dieOne.getValue() + this.dice.dieTwo.getValue();
         let diceDistanceToExitPoint = diceValue - (piece.entryIndex - piece.index);
-        let dieOneDistanceToExitPoint = this.dice.dieOne.getValue() - (piece.entryIndex - piece.index);
-        let dieTwoDistanceToExitPoint = this.dice.dieTwo.getValue() - (piece.entryIndex - piece.index);
-        // log.debug("Distance: " + diceDistanceToExitPoint + " " + dieOneDistanceToExitPoint + " " + dieTwoDistanceToExitPoint);
         if ((!this.dice.isDieOneConsumed() && !this.dice.isDieTwoConsumed()) && diceDistanceToExitPoint < 7) {
             uniqueIds.push(this.dice.dieOne.uniqueId + "#" + this.dice.dieTwo.uniqueId);
         }
-        if (!this.dice.isDieOneConsumed() && dieOneDistanceToExitPoint < 7) {
+        if (!this.dice.isDieOneConsumed()) {
             uniqueIds.push(this.dice.dieOne.uniqueId);
         }
-        if (!this.dice.isDieTwoConsumed && dieTwoDistanceToExitPoint < 7) {
+        if (!this.dice.isDieTwoConsumed()) {
             uniqueIds.push(this.dice.dieTwo.uniqueId);
         }
         return uniqueIds;

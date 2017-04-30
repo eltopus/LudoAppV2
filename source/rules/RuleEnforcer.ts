@@ -129,7 +129,7 @@ export class RuleEnforcer {
         }else if (player.hasExactlyOneActivePiece()) {
             this.currentPossibleMovements = this.checkCornerCaseRules(this.currentPossibleMovements, player);
         }
-        // this.readAllMoves();
+        this.readAllMoves();
     }
 
     private checkCornerCaseRules(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -165,7 +165,7 @@ export class RuleEnforcer {
                         if (onWayMovement.diceId === currentPossibleMovements.activeMoves[x].diceId) {
                             if (this.onWayOutCanUseBothDice(onWayMovement.diceId, onWayOutPieceMovements)) {
                                 let illegalMove = currentPossibleMovements.activeMoves[x];
-                                log.debug("Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                                log.debug("Successfully 2 Removed illegal move: " + this.rule.decodeMove(illegalMove));
                                 currentPossibleMovements.activeMoves.splice(x, 1);
                                 break;
                             }

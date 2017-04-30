@@ -112,6 +112,11 @@ export class Dice {
         }
     }
 
+    public consumeDice(): void {
+        this.dieOne.consume();
+        this.dieTwo.consume();
+    }
+
     public isDieOneConsumed(): boolean {
         return this.dieOne.isConsumed();
     }
