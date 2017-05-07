@@ -2,7 +2,8 @@
 /// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 import { UUID } from "angular2-uuid";
 import {Piece} from "../entities/Piece";
-import {Player} from "../entities/Player";
+import {AIPlayer} from "../entities/AIPlayer";
+import {RegularPlayer} from "../entities/RegularPlayer";
 import {ColorType} from "../enums/ColorType";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
@@ -24,10 +25,10 @@ import {Move} from "../rules/Move";
 const log = factory.getLogger("model.Game");
 
 export class Game extends Phaser.State {
-    public playerOne: Player;
-    public playerTwo: Player;
-    public playerThree: Player;
-    public playerFour: Player;
+    public playerOne: AIPlayer;
+    public playerTwo: AIPlayer;
+    public playerThree: RegularPlayer;
+    public playerFour: RegularPlayer;
     public dice: Dice;
     public signal: Phaser.Signal;
     public enforcer: RuleEnforcer;
@@ -45,12 +46,6 @@ export class Game extends Phaser.State {
         let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
         let exitedBoard: ExitedBoard = new ExitedBoard(this.signal);
         let currentPossibleMovements: AllPossibleMoves = new AllPossibleMoves();
-        this.playerOne = new Player(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, this.signal);
-        this.playerTwo = new Player(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal);
-        // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
-        // this.playerFour = new Player(this.game, "PlayerFour", UUID.UUID(), false, playerFourcolors, signal);
-        // this.schedule.enqueue(this.playerThree);
-        // this.schedule.enqueue(this.playerFour);
 
 
         let playBtn = this.make.button(763, 540, "play", this.playDice, this, 2, 1, 0);
@@ -66,10 +61,16 @@ export class Game extends Phaser.State {
         let dieTwoUUID = UUID.UUID();
         this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID);
         this.scheduler = new Scheduler(this.dice);
-        this.scheduler.enqueue(this.playerTwo);
-        this.scheduler.enqueue(this.playerOne);
         this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
         onWayOutBoard, exitedBoard, currentPossibleMovements);
+        this.playerOne = new AIPlayer(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, this.signal, this.enforcer);
+        this.playerTwo = new AIPlayer(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal, this.enforcer);
+        // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
+        // this.playerFour = new Player(this.game, "PlayerFour", UUID.UUID(), false, playerFourcolors, signal);
+        this.scheduler.enqueue(this.playerOne);
+        this.scheduler.enqueue(this.playerTwo);
+        // this.schedule.enqueue(this.playerThree);
+        // this.schedule.enqueue(this.playerFour);
         this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
 
         // All Player pieces must be added to homeboard
@@ -80,18 +81,18 @@ export class Game extends Phaser.State {
             homeboard.addPieceToHomeBoard(piece);
         }
 
-        let p1 = this.playerOne.pieces[2];
-        homeboard.removePieceFromHomeBoard(p1);
-        // this.setOnWayOutPieceParameters(p1, 0, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p1, 49, States.Active, activeboard);
-        let p2 = this.playerTwo.pieces[3];
+        // let p1 = this.playerOne.pieces[2];
+        // homeboard.removePieceFromHomeBoard(p1);
+        // this.setOnWayOutPieceParameters(p1, 4, States.onWayOut, onWayOutBoard);
+        // this.setActivePieceParameters(p1, 49, States.Active, activeboard);
+        let p2 = this.playerOne.pieces[3];
         homeboard.removePieceFromHomeBoard(p2);
-        this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
+        this.setOnWayOutPieceParameters(p2, 1, States.onWayOut, onWayOutBoard);
         // this.setActivePieceParameters(p2, 38, States.Active, activeboard);
         let p3 = this.playerTwo.pieces[4];
         homeboard.removePieceFromHomeBoard(p3);
         // this.setOnWayOutPieceParameters(p3, 4, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p3, 24, States.Active, activeboard);
+        this.setActivePieceParameters(p3, 28, States.Active, activeboard);
 
         let p4 = this.playerTwo.pieces[1];
         homeboard.removePieceFromHomeBoard(p4);
@@ -100,22 +101,26 @@ export class Game extends Phaser.State {
 
         let p5 = this.playerTwo.pieces[7];
         homeboard.removePieceFromHomeBoard(p5);
-        this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
-        // this.setActivePieceParameters(p5, 43, States.Active, activeboard);
+        // this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p5, 43, States.Active, activeboard);
+        if (this.scheduler.getCurrentPlayer().isAI) {
+            this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
+        }
+
 
     }
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 5, 1);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 5, 5);
     }
 
     public playDice(): void {
         let dieIds = this.dice.getSelectedDiceUniqueIds();
         let player = this.scheduler.getCurrentPlayer();
 
-        if (player.currentPiece !== null && (this.dice.dieOne.isSelected() || this.dice.dieTwo.isSelected())) {
-            this.enforcer.generatePieceMovement(dieIds, player.currentPiece);
+        if (player.currentSelectedPiece !== null && (this.dice.dieOne.isSelected() || this.dice.dieTwo.isSelected())) {
+            this.enforcer.generatePieceMovement(dieIds, player.currentSelectedPiece);
         }else {
             log.debug("No die selected or no piece selected");
         }

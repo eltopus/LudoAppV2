@@ -124,6 +124,10 @@ export class Dice {
         return this.dieTwo.isConsumed();
     }
 
+    public bothDiceConsumed(): boolean {
+        return (this.dieOne.isConsumed() && this.dieTwo.isConsumed());
+    }
+
     /**
      * Returns true if one of the dice value is 6
      */
@@ -136,5 +140,12 @@ export class Dice {
      */
     public rolledDoubleSix(): boolean {
         return (this.dieOne.getValue() === 6 && this.dieTwo.getValue() === 6);
+    }
+
+    /**
+     * Returns true if both dice values are greater than 0
+     */
+    public bothDiceHasLegitValues(): boolean {
+        return (this.dieOne.getValue() > 0 && this.dieTwo.getValue() > 0);
     }
 }

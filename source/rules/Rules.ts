@@ -123,6 +123,21 @@ import {Board} from "../entities/Board";
         }
     }
 
+    public checkBoardConsistencies(): void {
+        let activePieces = this.activeMove.getBoard().board.size();
+        let homePieces = this.homeMove.getBoard().board.size();
+        let onWayOutPieces = this.onWayOutMove.getBoard().board.size() ;
+        let exitedPieces = this.exitedMove.getBoard().board.size();
+        let totalPieces = activePieces + homePieces + onWayOutPieces + exitedPieces;
+
+           if (totalPieces !== 16) {
+            log.debug("Total Pieces mismatch!!! active: " + activePieces + " home: "
+             + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+           }else {
+               // log.debug("Total Pieces: " + totalPieces);
+           }
+    }
+
     private decodeActiveMove(move: Move): string {
         if (move.action === Actions.DO_NOTHING) {
             return "DO NOTHING";

@@ -23,9 +23,11 @@ export class Scheduler {
             this.dice.consumeDice();
             player = this.schedule.dequeue();
             player.unselectAllPiece();
+            player.turn = false;
             this.schedule.enqueue(player);
             player = this.schedule.peek();
             player.selectAllPiece();
+            player.turn = true;
         }else {
             // Returning same player. Set value back to false
             player.previousDoubleSix =  false;

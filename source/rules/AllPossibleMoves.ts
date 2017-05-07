@@ -38,4 +38,23 @@ export class AllPossibleMoves {
         return (this.activeMoves.length === 0 && this.homeMoves.length === 0 && this.onWayOutMoves.length === 0);
     }
 
+    public activeMoveContainsDieId(diceId: string): boolean {
+        let match = false;
+        for (let movement of this.activeMoves){
+            if (movement.diceId === diceId) {
+                match = true;
+                break;
+            }
+        }
+        return match;
+    }
+
+    public getConcatenatedPossibleMoves(): Move[] {
+        let concatMoves: Move[] = [];
+        concatMoves = concatMoves.concat(this.activeMoves);
+        concatMoves = concatMoves.concat(this.homeMoves);
+        concatMoves = concatMoves.concat(this.onWayOutMoves);
+        return concatMoves;
+    }
+
 }

@@ -143,7 +143,7 @@ export abstract class AbstractRules {
 
     public getUniqueIdCollision(uniqueId: string, index: number): string {
         let keys = this.board.board.keys();
-        let id = "NOUNCE";
+        let id = "NOTFOUND";
         for (let key of keys){
             if (this.board.board.getValue(key) === index && key !== uniqueId) {
                 id = key.toString();

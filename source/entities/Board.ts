@@ -14,7 +14,7 @@ export abstract class Board {
     constructor(signal: Phaser.Signal) {
         this.signal = signal;
         this.board = new Collections.Dictionary<String, Number>();
-        this.signal.add(this.movement, this, 0, "eom");
+        this.signal.add(this.movement, this, 0, "startmovement");
     }
     public abstract movement(listener: string, piece: Piece): void;
 

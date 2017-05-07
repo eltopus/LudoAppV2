@@ -8,25 +8,15 @@ import {Dice} from "./Dice";
 
 const log = factory.getLogger("model.Player");
 
-export interface PlayerInterface {
-    name: string;
-    playerId: string;
-    turn: boolean;
-    pieces: Piece[];
-    signal: Phaser.Signal;
-    currentPiece: Piece;
-    previousDoubleSix: boolean;
-    selectCurrentPiece(listener: string, uniqueId: string, playerId: string): void;
-}
-
-export class Player extends PieceFactory implements PlayerInterface {
+export abstract class Player extends PieceFactory {
     public name: string;
     public playerId: string;
     public turn: boolean;
     public pieces: Piece[] = [];
     public signal: Phaser.Signal;
-    public currentPiece: Piece;
+    public currentSelectedPiece: Piece;
     public previousDoubleSix = false;
+    public isAI = false;
     constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
      previousDoubleSix?: boolean) {
         super(game);
@@ -36,7 +26,7 @@ export class Player extends PieceFactory implements PlayerInterface {
         this.pieces = new Array<Piece>();
         this.signal = signal;
         this.signal.add(this.selectCurrentPiece, this, 0, "select");
-        this.currentPiece = null;
+        this.currentSelectedPiece = null;
         if (typeof previousDoubleSix !== "undefined") {
             this.previousDoubleSix = previousDoubleSix;
         }
@@ -62,6 +52,17 @@ export class Player extends PieceFactory implements PlayerInterface {
             }
         }
         return activePieces;
+    }
+
+    public getFirstOccuringActivePiece(): Piece {
+        let firstOccuringActivePiece: Piece = null;
+        for (let piece of this.pieces) {
+            if (piece.isActive()) {
+                firstOccuringActivePiece = piece;
+                break;
+            }
+        }
+        return firstOccuringActivePiece;
     }
 
     public getHomePieces(board: Board): Piece[] {
@@ -106,6 +107,98 @@ export class Player extends PieceFactory implements PlayerInterface {
         return activePieces;
     }
 
+    public selectAllPiece(): void {
+        for (let piece of this.pieces) {
+            piece.alpha = 1;
+        }
+        this.turn = true;
+    }
+
+    public unselectAllPiece(): void {
+        for (let piece of this.pieces) {
+            piece.alpha = 0.5;
+        }
+        this.turn = false;
+    }
+
+    public allPiecesAreAtHome(): boolean {
+        let allPiecesAtHome = true;
+        for (let piece of this.pieces) {
+            if (!piece.isAtHome()) {
+                allPiecesAtHome = false;
+                break;
+            }
+        }
+        return allPiecesAtHome;
+    }
+
+    public allPiecesAreOnWayOut(): boolean {
+        let allPiecesOnWayOut = false;
+        for (let piece of this.pieces) {
+            if (!piece.isOnWayOut()) {
+                allPiecesOnWayOut = true;
+                break;
+            }
+        }
+        return allPiecesOnWayOut;
+    }
+
+    /**
+     * Receives select signal from piece and set select or unselect on piece
+     * using piece uniqueId
+     * @param uniqueId
+     */
+    public selectCurrentPiece(listener: string, uniqueId: string, playerId: string): void {
+        // check if you are the right owner of the piece
+        if (this.turn && this.playerId === playerId) {
+            if (listener === "select") {
+                for (let piece of this.pieces) {
+                    if (piece.uniqueId === uniqueId) {
+                        piece.select();
+                        this.currentSelectedPiece = piece;
+                        // log.debug("I am being selected..." + this.currentSelectedPiece.uniqueId);
+                    }else {
+                        piece.unselect();
+                    }
+                }
+            }
+
+        }
+    }
+
+    public pieceBelongsToMe(uniqueId: string): boolean {
+        let belongToMe = false;
+        for (let piece of this.pieces){
+            if (piece.uniqueId === uniqueId) {
+                belongToMe = true;
+                break;
+            }
+        }
+        return belongToMe;
+    }
+
+    public getPieceByUniqueId(uniqueId: string): Piece {
+        let matchingPiece = null;
+        for (let piece of this.pieces){
+            if (piece.uniqueId === uniqueId) {
+                matchingPiece = piece;
+                break;
+            }
+        }
+        return matchingPiece;
+    }
+
+    public hasActivePieces(): boolean {
+        let active = false;
+        for (let piece of this.pieces) {
+            if (piece.isActive()) {
+                active = true;
+                break;
+            }
+        }
+        return active;
+    }
+
     public hasOnWayOutPieces(): boolean {
         let onWayOut = false;
         for (let piece of this.pieces) {
@@ -140,54 +233,5 @@ export class Player extends PieceFactory implements PlayerInterface {
         }
         return (activePieceCount === 1);
     }
-
-    public selectAllPiece(): void {
-        for (let piece of this.pieces) {
-            piece.alpha = 1;
-        }
-        this.turn = true;
-    }
-
-    public unselectAllPiece(): void {
-        for (let piece of this.pieces) {
-            piece.alpha = 0.5;
-        }
-        this.turn = false;
-    }
-
-    /**
-     * Receives select signal from piece and set select or unselect on piece
-     * using piece uniqueId
-     * @param uniqueId
-     */
-    public selectCurrentPiece(listener: string, uniqueId: string, playerId: string): void {
-        // check if you are the right owner of the piece
-        if (this.turn && this.playerId === playerId) {
-            if (listener === "select") {
-                for (let piece of this.pieces) {
-                    if (piece.uniqueId === uniqueId) {
-                        piece.select();
-                        this.currentPiece = piece;
-                        // log.debug("I am being selected..." + this.currentPiece.uniqueId);
-                    }else {
-                        piece.unselect();
-                    }
-                }
-            }
-
-        }
-    }
-
-    public pieceBelongsToMe(uniqueId: string): boolean {
-        let belongToMe = false;
-        for (let piece of this.pieces){
-            if (piece.uniqueId === uniqueId) {
-                belongToMe = true;
-                break;
-            }
-        }
-        return belongToMe;
-    }
-
 }
 

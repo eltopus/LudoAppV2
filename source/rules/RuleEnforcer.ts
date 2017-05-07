@@ -2,6 +2,7 @@
 import {Scheduler} from "../rules/Scheduler";
 import {Rules} from "../rules/Rules";
 import {Player} from "../entities/Player";
+import {AIPlayer} from "../entities/AIPlayer";
 import {Piece} from "../entities/Piece";
 import {Move} from "./Move";
 import {Board} from "../entities/Board";
@@ -12,6 +13,7 @@ import {OnWayOutBoard} from "../entities/OnWayOutBoard";
 import {ExitedBoard} from "../entities/ExitedBoard";
 import {factory} from "../logging/ConfigLog4j";
 import {AllPossibleMoves} from "./AllPossibleMoves";
+import {Path} from "../entities/Path";
 
 const log = factory.getLogger("model.RuleEnforcer");
 
@@ -31,6 +33,8 @@ export class RuleEnforcer {
         this.currentPossibleMovements = currentPossibleMovements;
         this.rule = new Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
+        this.signal.add(this.onCompletePieceMovement, this, 0, "completeMovement");
+
     }
 
     public endOfDiceRoll(listener: string): void {
@@ -38,10 +42,17 @@ export class RuleEnforcer {
             ++this.rollCounter;
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
+                this.currentPossibleMovements.resetMoves();
                 this.generateAllPossibleMoves();
+                let currentPlayer = this.scheduler.getCurrentPlayer();
                 if (this.dice.rolledDoubleSix()) {
-                    this.scheduler.getCurrentPlayer().previousDoubleSix = true;
+                    currentPlayer.previousDoubleSix = true;
                 }
+                if (currentPlayer.isAI) {
+                    // let AICurrentPlayer: AIPlayer = (AIPlayer) this.scheduler.getCurrentPlayer();
+                    this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                }
+                this.rule.checkBoardConsistencies();
             }
         }
     }
@@ -54,39 +65,75 @@ export class RuleEnforcer {
     public generatePieceMovement(dieIds: string[], piece: Piece): Move {
         let pieceMovement = this.rule.generatePieceMovement(dieIds, piece);
         let canPlay = false;
-        let movements = this.currentPossibleMovements.getPieceMoves(piece.state);
+        let possibleMovements = this.currentPossibleMovements.getPieceMoves(piece.state);
         let currentPlayer = this.scheduler.getCurrentPlayer();
-        for (let movement of movements) {
+        for (let movement of possibleMovements) {
             if (movement.compare(pieceMovement)) {
                 canPlay = true;
-                movement = this.filterMovement(movement, piece);
+                movement = this.filterConsumeDieValueSixMovement(movement, piece);
                 let diceValue = this.addDiceValues(this.dice.getDieValueArrayByUniqueId(movement.diceId));
                 this.dice.consumeDieValueById(movement.diceId);
-                piece.movePiece(diceValue);
-                // Check collision must always come after movePiece is called
-                if (piece.isActive()) {
-                    let id = this.checkCollision(piece.uniqueId, piece.index);
-                    if (!currentPlayer.pieceBelongsToMe(id)) {
-                        // log.debug(id + " does NOT belong to me");
-                        let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
-                        if (typeof outGoingPiece !== null && typeof outGoingPiece !== "undefined") {
-                            piece.collidingPiece = outGoingPiece;
-                            piece.setExited();
+                let path: Path = piece.constructPath(diceValue);
+                if (!path.isEmpty()) {
+                    piece.index = path.newIndex;
+                    // Condition for collision or peck
+                    if (piece.isActive()) {
+                        let id = this.checkCollision(piece.uniqueId, piece.index);
+                        if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
+                            let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
+                            if (outGoingPiece !== null) {
+                                piece.collidingPiece = outGoingPiece;
+                                piece.setExited();
+                            }
                         }
                     }
+                    piece.movePiece(path);
+                    break;
+                }else {
+                    break;
                 }
-                this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
-                this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
-                this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
-                this.currentPossibleMovements.resetMoves();
-                this.generateAllPossibleMoves();
-                break;
             }
         }
-        if (!canPlay) {
+        if (canPlay) {
+            this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
+            this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
+            this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
+            this.currentPossibleMovements.resetMoves();
+            this.generateAllPossibleMoves();
+        }else {
             log.debug("Move not found!!!: " + this.rule.decodeMove(pieceMovement));
         }
         return pieceMovement;
+    }
+
+
+    public generateAIPieceMovement(piece: Piece, aiPieceMovement: Move): Move {
+        aiPieceMovement = this.filterConsumeDieValueSixMovement(aiPieceMovement, piece);
+        let currentPlayer = this.scheduler.getCurrentPlayer();
+        let diceValue = this.addDiceValues(this.dice.getDieValueArrayByUniqueId(aiPieceMovement.diceId));
+        this.dice.consumeDieValueById(aiPieceMovement.diceId);
+        let path: Path = piece.constructPath(diceValue);
+        if (!path.isEmpty()) {
+            piece.index = path.newIndex;
+            // Condition for collision or peck
+            if (piece.isActive()) {
+                let id = this.checkCollision(piece.uniqueId, piece.index);
+                if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
+                    let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
+                    if (outGoingPiece !== null) {
+                        piece.collidingPiece = outGoingPiece;
+                        piece.setExited();
+                    }
+                }
+            }
+            piece.movePiece(path);
+        }
+        this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
+        this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
+        this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
+        this.currentPossibleMovements.resetMoves();
+        this.generateAllPossibleMoves();
+        return aiPieceMovement;
     }
 
     public readAllMoves(): void {
@@ -99,6 +146,7 @@ export class RuleEnforcer {
         for (let move of this.currentPossibleMovements.onWayOutMoves){
             log.debug( this.rule.decodeMove(move));
         }
+        log.debug("------------------------------------------------------------------------- " );
     }
 
     public addDiceValues(diceValues: number[]): number {
@@ -109,7 +157,7 @@ export class RuleEnforcer {
         return value;
     }
 
-    private filterMovement(movement: Move, piece: Piece): Move {
+    private filterConsumeDieValueSixMovement(movement: Move, piece: Piece): Move {
         if (piece.isAtHome()) {
             this.dice.consumeDieValueSix(movement.diceId);
             piece.index = piece.startIndex;
@@ -118,21 +166,35 @@ export class RuleEnforcer {
     }
 
     private generateAllPossibleMoves(): void {
-        let player: Player = this.scheduler.getCurrentPlayer();
-        this.currentPossibleMovements = this.rule.generateAllPossibleMoves(player);
-        this.analyzeAllPossibleMove(player);
+        let currentPlayer: Player = this.scheduler.getCurrentPlayer();
+        this.currentPossibleMovements.resetMoves();
+        this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
+        this.analyzeAllPossibleMove(currentPlayer);
     }
 
-    private analyzeAllPossibleMove(player: Player): void {
+    private analyzeAllPossibleMove(currentPlayer: Player): void {
+        /**
+         * Corner case for when player can only play one active or home or onwayout piece.
+         * This does not necessarily mean that the player has a total of one piece.
+        */
         if (this.currentPossibleMovements.isEmpty()) {
-            let p = this.scheduler.getNextPlayer();
-        }else if (player.hasExactlyOneActivePiece()) {
-            this.currentPossibleMovements = this.checkCornerCaseRules(this.currentPossibleMovements, player);
+            setTimeout(() => {
+                this.handleEmptyPossibleMovements();
+            }, 1000);
+        }else {
+            if (currentPlayer.allPiecesAreAtHome()) {
+                this.currentPossibleMovements = this.filterOnAllPiecesAreAtHome(this.currentPossibleMovements, currentPlayer);
+            }else if (currentPlayer.hasExactlyOneActivePiece()) {
+                this.currentPossibleMovements = this.filterOnHasExactlyOneActivePiece(this.currentPossibleMovements, currentPlayer);
+            }else if (!currentPlayer.hasActivePieces() && currentPlayer.hasHomePieces() &&
+             this.dice.rolledAtLeastOneSix() && currentPlayer.hasOnWayOutPieces()) {
+                this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
+            }
         }
-        this.readAllMoves();
+        // this.readAllMoves();
     }
 
-    private checkCornerCaseRules(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
+    private filterOnHasExactlyOneActivePiece(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
         /**
          * This block of code validates corner cases where a player has only one active piece
          * and has one or more onwayout pieces. This check is necessarily to prevent player
@@ -154,44 +216,83 @@ export class RuleEnforcer {
                 for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
                     if (onWayOutPieceMovements[0].diceId === currentPossibleMovements.activeMoves[x].diceId) {
                         let illegalMove = currentPossibleMovements.activeMoves[x];
-                        log.debug("Successfully Removing illegal move: " + this.rule.decodeMove(illegalMove));
+                        log.debug("1 Successfully Removing illegal move: " + this.rule.decodeMove(illegalMove));
                         currentPossibleMovements.activeMoves.splice(x, 1);
                         break;
                     }
                 }
-            }else if (onWayOutPieceMovements.length > 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
-                for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
-                    for (let onWayMovement of onWayOutPieceMovements){
-                        if (onWayMovement.diceId === currentPossibleMovements.activeMoves[x].diceId) {
-                            if (this.onWayOutCanUseBothDice(onWayMovement.diceId, onWayOutPieceMovements)) {
-                                let illegalMove = currentPossibleMovements.activeMoves[x];
-                                log.debug("Successfully 2 Removed illegal move: " + this.rule.decodeMove(illegalMove));
-                                currentPossibleMovements.activeMoves.splice(x, 1);
-                                break;
-                            }
+                // Both dice must have legit values for this condition to be necessary
+            }else if (onWayOutPieceMovements.length > 1 && this.dice.bothDiceHasLegitValues() &&
+            (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+                // check if dice ids are distinct
+                if (this.diceIdsAreDistinct(onWayOutPieceMovements)) {
+                    let distinctId = onWayOutPieceMovements[0].diceId;
+                    for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
+                        if (distinctId === currentPossibleMovements.activeMoves[x].diceId) {
+                            let illegalMove = currentPossibleMovements.activeMoves[x];
+                            log.debug("2 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                            currentPossibleMovements.activeMoves.splice(x, 1);
+                            break;
                         }
+                    }
+
+                }
+                // piece must play both dice because no onwayout pieces can play either die value;
+            }else if (onWayOutPieceMovements.length === 0 && this.dice.bothDiceHasLegitValues() &&
+            (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+                for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
+                    if (this.dice.dieOne.uniqueId === currentPossibleMovements.activeMoves[x].diceId) {
+                        let illegalMove = currentPossibleMovements.activeMoves[x];
+                        currentPossibleMovements.activeMoves.splice(x, 1);
+                        log.debug("3 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                    }
+                    if (this.dice.dieTwo.uniqueId === currentPossibleMovements.activeMoves[x].diceId) {
+                        let illegalMove = currentPossibleMovements.activeMoves[x];
+                        currentPossibleMovements.activeMoves.splice(x, 1);
+                        log.debug("4 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                     }
                 }
             }
+        }else {
+            // Indicates player has only one active piece to play
+            currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
         }
         return currentPossibleMovements;
     }
 
-    private onWayOutCanUseBothDice(dieId: string, movements: Move[]): boolean {
-        let isLegalMove = true;
-        let dieUniqueId = this.dice.dieOne.uniqueId;
-        if (dieId !== this.dice.dieOne.uniqueId) {
-            dieId = this.dice.dieOne.uniqueId;
-        }else if (dieId !== this.dice.dieTwo.uniqueId) {
-            dieId = this.dice.dieTwo.uniqueId;
+    private filterOnAllPiecesAreAtHome(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
+        if (!player.hasActivePieces()) {
+            currentPossibleMovements.homeMoves = this.removeMoveWithBothDiveValues(currentPossibleMovements.homeMoves);
         }
-        for (let movement of movements){
-            if (movement.diceId === dieId) {
-                isLegalMove = false;
+        return currentPossibleMovements;
+    }
+
+    private filterOnNoActiveButHomeAndOnWayOutPieces(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
+        let onWayOutPieces = player.getPlayerOnWayOutPieces();
+        let onWayOutPieceMovements: Move[] = [];
+        for (let onWayOutPiece of onWayOutPieces){
+            onWayOutPieceMovements = onWayOutPieceMovements.concat(this.getDieMovementsOnPiece(onWayOutPiece.uniqueId,
+                currentPossibleMovements.onWayOutMoves));
+        }
+        if (onWayOutPieceMovements.length === 0) {
+            currentPossibleMovements.homeMoves = this.removeMoveWithBothDiveValues(currentPossibleMovements.homeMoves);
+        }
+        return currentPossibleMovements;
+
+    }
+
+    // Establish that onwayout movements has the same unique ids
+    private diceIdsAreDistinct(onWayOutMovements: Move[]): boolean {
+        let movement = onWayOutMovements[0];
+        let distinctIds = true;
+        for (let m of onWayOutMovements){
+            if (m.diceId !== movement.diceId) {
+                distinctIds = false;
                 break;
             }
         }
-        return (isLegalMove);
+        return distinctIds;
+
     }
 
     private getDieMovementsOnPiece(pieceId: string, movements: Move[]): Move[] {
@@ -207,5 +308,51 @@ export class RuleEnforcer {
     private checkCollision(uniqueId: string, index: number): string {
         let id = this.rule.getUniqueIdCollision(uniqueId, index);
         return id;
+    }
+
+     private removeMoveWithBothDiveValues(movements: Move[]): Move[] {
+        for (let x = 0; x < movements.length; x++) {
+            let diceIds = movements[x].diceId.split("#");
+                if (diceIds.length < 2) {
+                    let illegalMove = movements[x];
+                    movements.splice(x, 1);
+                    log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                }
+            }
+            return movements;
+    }
+
+     private removeMoveWithDieValueSix(movements: Move[]): Move[] {
+         let diceId = this.dice.getDieUniqueIdByValue(6);
+         if (diceId !== null) {
+             for (let x = 0; x < movements.length; x++) {
+                if (movements[x].diceId === diceId) {
+                    let illegalMove = movements[x];
+                    movements.splice(x, 1);
+                    log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                }
+             }
+
+         }
+         return movements;
+    }
+
+     private onCompletePieceMovement(listener: string, piece: Piece): void {
+         if (listener === "completeMovement") {
+            if (!this.currentPossibleMovements.isEmpty()) {
+                let currentPlayer = this.scheduler.getCurrentPlayer();
+                if (currentPlayer.isAI) {
+                    this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                }
+            }
+        }
+    }
+
+    private handleEmptyPossibleMovements(): void {
+        let nextPlayer = this.scheduler.getNextPlayer();
+        if (nextPlayer.isAI) {
+            this.dice.setDicePlayerId(nextPlayer.playerId);
+            this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+        }
     }
 }
