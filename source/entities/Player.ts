@@ -233,5 +233,18 @@ export abstract class Player extends PieceFactory {
         }
         return (activePieceCount === 1);
     }
+
+    public hasExactlyOnePieceLeft(): boolean {
+        let pieceCount = 0;
+        for (let piece of this.pieces) {
+            if (piece.isActive() || piece.isAtHome() || piece.isOnWayOut()) {
+                ++pieceCount;
+                if (pieceCount > 1) {
+                    break;
+                }
+            }
+        }
+        return (pieceCount === 1);
+    }
 }
 

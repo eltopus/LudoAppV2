@@ -3,6 +3,7 @@
 import { UUID } from "angular2-uuid";
 import {Piece} from "../entities/Piece";
 import {AIPlayer} from "../entities/AIPlayer";
+import {Player} from "../entities/Player";
 import {RegularPlayer} from "../entities/RegularPlayer";
 import {ColorType} from "../enums/ColorType";
 import {ActiveBoard} from "../entities/ActiveBoard";
@@ -25,8 +26,8 @@ import {Move} from "../rules/Move";
 const log = factory.getLogger("model.Game");
 
 export class Game extends Phaser.State {
-    public playerOne: AIPlayer;
-    public playerTwo: AIPlayer;
+    public playerOne: Player;
+    public playerTwo: Player;
     public playerThree: RegularPlayer;
     public playerFour: RegularPlayer;
     public dice: Dice;
@@ -36,10 +37,10 @@ export class Game extends Phaser.State {
 
     public create() {
         this.add.sprite(0, 0, "board");
-        let playerOnecolors = [ColorType.Red, ColorType.Blue];
-        let playerTwocolors = [ColorType.Green, ColorType.Yellow];
-        // let playerThreecolors = [ColorType.Blue];
-        // let playerFourcolors = [ColorType.Green];
+        let playerOnecolors = [ColorType.Red];
+        let playerTwocolors = [ColorType.Blue];
+        let playerThreecolors = [ColorType.Yellow];
+        let playerFourcolors = [ColorType.Green];
         this.signal = new Phaser.Signal();
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
@@ -65,12 +66,12 @@ export class Game extends Phaser.State {
         onWayOutBoard, exitedBoard, currentPossibleMovements);
         this.playerOne = new AIPlayer(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, this.signal, this.enforcer);
         this.playerTwo = new AIPlayer(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal, this.enforcer);
-        // this.playerThree = new Player(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, signal);
-        // this.playerFour = new Player(this.game, "PlayerFour", UUID.UUID(), false, playerFourcolors, signal);
+        this.playerThree = new AIPlayer(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, this.signal, this.enforcer);
+        this.playerFour = new AIPlayer(this.game, "PlayerFour", UUID.UUID(), true, playerFourcolors, this.signal, this.enforcer);
         this.scheduler.enqueue(this.playerOne);
         this.scheduler.enqueue(this.playerTwo);
-        // this.schedule.enqueue(this.playerThree);
-        // this.schedule.enqueue(this.playerFour);
+        this.scheduler.enqueue(this.playerThree);
+        this.scheduler.enqueue(this.playerFour);
         this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
 
         // All Player pieces must be added to homeboard
@@ -80,15 +81,30 @@ export class Game extends Phaser.State {
         for (let piece of this.playerTwo.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
+        for (let piece of this.playerThree.pieces){
+            homeboard.addPieceToHomeBoard(piece);
+        }
+        for (let piece of this.playerFour.pieces){
+            homeboard.addPieceToHomeBoard(piece);
+        }
 
-        // let p1 = this.playerOne.pieces[2];
-        // homeboard.removePieceFromHomeBoard(p1);
+        /*
+        for (let x = 2; x < this.playerOne.pieces.length; x++) {
+            homeboard.removePieceFromHomeBoard(this.playerOne.pieces[x]);
+            exitedBoard.addPieceToActiveBoard(this.playerOne.pieces[x]);
+            this.playerOne.pieces[x].setExited();
+            this.playerOne.pieces[x].visible = false;
+        }
+
+        let p1 = this.playerOne.pieces[0];
+        homeboard.removePieceFromHomeBoard(p1);
         // this.setOnWayOutPieceParameters(p1, 4, States.onWayOut, onWayOutBoard);
-        // this.setActivePieceParameters(p1, 49, States.Active, activeboard);
+        this.setActivePieceParameters(p1, 5, States.Active, activeboard);
         let p2 = this.playerOne.pieces[3];
         homeboard.removePieceFromHomeBoard(p2);
         this.setOnWayOutPieceParameters(p2, 1, States.onWayOut, onWayOutBoard);
         // this.setActivePieceParameters(p2, 38, States.Active, activeboard);
+
         let p3 = this.playerTwo.pieces[4];
         homeboard.removePieceFromHomeBoard(p3);
         // this.setOnWayOutPieceParameters(p3, 4, States.onWayOut, onWayOutBoard);
@@ -102,17 +118,21 @@ export class Game extends Phaser.State {
         let p5 = this.playerTwo.pieces[7];
         homeboard.removePieceFromHomeBoard(p5);
         // this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p5, 43, States.Active, activeboard);
+        this.setActivePieceParameters(p5, 1, States.Active, activeboard);
+        */
+
         if (this.scheduler.getCurrentPlayer().isAI) {
             this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
         }
+
+        this.enforcer.rule.checkBoardConsistencies();
 
 
     }
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 5, 5);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 6, 5);
     }
 
     public playDice(): void {

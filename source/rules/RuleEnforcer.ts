@@ -146,7 +146,7 @@ export class RuleEnforcer {
         for (let move of this.currentPossibleMovements.onWayOutMoves){
             log.debug( this.rule.decodeMove(move));
         }
-        log.debug("------------------------------------------------------------------------- " );
+        log.debug("+++++++++++++++++++++++++++++++++++++++++++++++++++++" );
     }
 
     public addDiceValues(diceValues: number[]): number {
@@ -191,7 +191,7 @@ export class RuleEnforcer {
                 this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
             }
         }
-        // this.readAllMoves();
+        this.readAllMoves();
     }
 
     private filterOnHasExactlyOneActivePiece(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -255,14 +255,20 @@ export class RuleEnforcer {
             }
         }else {
             // Indicates player has only one active piece to play
-            currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
+            if (this.dice.rolledAtLeastOneSix()) {
+                if (!player.hasExactlyOnePieceLeft()) {
+                    currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
+                }
+            }else {
+                currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+            }
         }
         return currentPossibleMovements;
     }
 
     private filterOnAllPiecesAreAtHome(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
         if (!player.hasActivePieces()) {
-            currentPossibleMovements.homeMoves = this.removeMoveWithBothDiveValues(currentPossibleMovements.homeMoves);
+            currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.homeMoves);
         }
         return currentPossibleMovements;
     }
@@ -275,7 +281,7 @@ export class RuleEnforcer {
                 currentPossibleMovements.onWayOutMoves));
         }
         if (onWayOutPieceMovements.length === 0) {
-            currentPossibleMovements.homeMoves = this.removeMoveWithBothDiveValues(currentPossibleMovements.homeMoves);
+            currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.homeMoves);
         }
         return currentPossibleMovements;
 
@@ -310,31 +316,33 @@ export class RuleEnforcer {
         return id;
     }
 
-     private removeMoveWithBothDiveValues(movements: Move[]): Move[] {
-        for (let x = 0; x < movements.length; x++) {
-            let diceIds = movements[x].diceId.split("#");
-                if (diceIds.length < 2) {
-                    let illegalMove = movements[x];
-                    movements.splice(x, 1);
-                    log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
-                }
+    private removeMoveWithSingleDieValues(movements: Move[]): Move[] {
+        let legalMoves: Move[] = [];
+        for (let x = 0; x < movements.length; ++x) {
+            let illegalMove = movements[x];
+            if ((movements[x].diceId.split("#")).length > 1) {
+                legalMoves.push(movements[x]);
+            }else {
+                log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
             }
-            return movements;
+        }
+        return legalMoves;
     }
 
      private removeMoveWithDieValueSix(movements: Move[]): Move[] {
          let diceId = this.dice.getDieUniqueIdByValue(6);
+         let legalMoves: Move[] = [];
          if (diceId !== null) {
              for (let x = 0; x < movements.length; x++) {
-                if (movements[x].diceId === diceId) {
+                if (movements[x].diceId !== diceId) {
+                    legalMoves.push(movements[x]);
+                }else {
                     let illegalMove = movements[x];
-                    movements.splice(x, 1);
                     log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                 }
              }
-
          }
-         return movements;
+         return legalMoves;
     }
 
      private onCompletePieceMovement(listener: string, piece: Piece): void {

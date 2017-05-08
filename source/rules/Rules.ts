@@ -134,7 +134,7 @@ import {Board} from "../entities/Board";
             log.debug("Total Pieces mismatch!!! active: " + activePieces + " home: "
              + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
            }else {
-               // log.debug("Total Pieces: " + totalPieces);
+               log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
            }
     }
 

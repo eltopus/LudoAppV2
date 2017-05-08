@@ -56,6 +56,11 @@ export class ActiveBoard extends Board {
              // log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
              // piece.index + "> from activeBoard because ONWAYOUT " + this.board.size());
         }
+        if (listener === "exit") {
+            this.board.remove(piece.uniqueId);
+             log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " +
+             piece.index + "> from activeBoard because EXIT " + this.board.size());
+        }
     }
     public containsInActiveBoard(piece: Piece): boolean {
         return this.board.containsKey(piece.uniqueId);

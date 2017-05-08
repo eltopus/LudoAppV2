@@ -99,7 +99,6 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
             this.collidingPiece = null;
         }
         if (this.isExited()) {
-            // log.debug("I am exiting " + this.index + " and my state is " + this.getState());
             this.visible = false;
         }
         this.signal.dispatch("completeMovement", this);
@@ -136,9 +135,11 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     }
     public setActive(): void {
         this.state = States.Active;
+        this.signal.dispatch("rom", this);
     }
     public setExited(): void {
         this.state = States.Exited;
+        this.signal.dispatch("exit", this);
     }
     public setOnWayOut(): void {
         this.state = States.onWayOut;

@@ -26,16 +26,18 @@ export class AIPlayer extends Player {
         if (listener === "aiPlayerMovement" && this.playerId === playerId) {
             let movements = currentPossibleMovements.getConcatenatedPossibleMoves();
             let possibleMovesTotal = movements.length;
-            let movementIndex = 0;
             if (possibleMovesTotal > 0) {
-                movementIndex = (Math.floor(Math.random() * possibleMovesTotal + 1)) - 1;
+                let movementIndex = 0;
+                if (possibleMovesTotal > 0) {
+                    movementIndex = (Math.floor(Math.random() * possibleMovesTotal + 1)) - 1;
+                }
+                // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
+                let pieceMovement = movements[movementIndex];
+                let piece = this.getPieceByUniqueId(pieceMovement.pieceId);
+                setTimeout(() => {
+                    this.ruleEnforcer.generateAIPieceMovement(piece, pieceMovement);
+                }, 1000);
             }
-            // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
-            let pieceMovement = movements[movementIndex];
-            let piece = this.getPieceByUniqueId(pieceMovement.pieceId);
-             setTimeout(() => {
-                this.ruleEnforcer.generateAIPieceMovement(piece, pieceMovement);
-            }, 1000);
         }
     }
     private aiRollDice(listener: string, dice: Dice, playerId: string) {
