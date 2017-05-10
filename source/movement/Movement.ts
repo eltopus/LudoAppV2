@@ -29,8 +29,6 @@ export class PieceMovement implements Movement {
         // path.remainder has to be greater than zero to make this call
         if (path.moveStatus === MoveStatus.ShouldBeExiting && path.moveRemainder > 0) {
             path = this.constructOnWayOutPath(piece, 0, path.moveRemainder, path);
-            this.signal.dispatch("onwayout", piece);
-
         }
         return path;
     }

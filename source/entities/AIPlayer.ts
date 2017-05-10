@@ -37,6 +37,8 @@ export class AIPlayer extends Player {
                 setTimeout(() => {
                     this.ruleEnforcer.generateAIPieceMovement(piece, pieceMovement);
                 }, 1000);
+            }else{
+                log.debug("AI HANDLE EMPTY MOVEMENT!!!!!!!!!!!!!!!!!!");
             }
         }
     }

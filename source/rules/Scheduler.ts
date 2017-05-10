@@ -10,6 +10,7 @@ const log = factory.getLogger("model.Scheduler");
 export class Scheduler {
     public schedule: Collections.Queue<Player>;
     public allPieces: Collections.Dictionary<String, Piece>;
+    public players: Player[] = [];
     private dice: Dice;
     constructor(dice: Dice) {
         this.schedule = new Collections.Queue<Player>();
@@ -46,6 +47,7 @@ export class Scheduler {
         for (let piece of player.pieces){
             this.allPieces.setValue(piece.uniqueId, piece);
         }
+        this.players.push(player);
     }
 
     public getPieceByUniqueId(uniqueId: string): Piece {

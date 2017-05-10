@@ -130,11 +130,32 @@ import {Board} from "../entities/Board";
         let exitedPieces = this.exitedMove.getBoard().board.size();
         let totalPieces = activePieces + homePieces + onWayOutPieces + exitedPieces;
 
+        let playerActivePieces = 0;
+        let playerHomePieces = 0;
+        let playerOnwayoutPieces = 0;
+        let playerExitPieces = 0;
+
+        for (let player of this.schedule.players) {
+            playerActivePieces += player.activePieceCount();
+            playerHomePieces += player.homePieceCount();
+            playerOnwayoutPieces += player.onwayoutCount();
+            playerExitPieces += player.exitPieceCount();
+        }
+
            if (totalPieces !== 16) {
-            log.debug("Total Pieces mismatch!!! active: " + activePieces + " home: "
-             + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+            log.debug("Total Pieces mismatch!!! active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
            }else {
-               log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+               // log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+           }
+
+           if (playerActivePieces === activePieces && playerHomePieces === homePieces && playerOnwayoutPieces === onWayOutPieces && playerExitPieces === exitedPieces) {
+            log.debug("MATCH: " + this.schedule.players.length);
+            log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+            log.debug("active: " + playerActivePieces + " home: " + playerHomePieces + " onwayOut: " + playerOnwayoutPieces + " exited: " + playerExitPieces);
+           }else {
+            log.debug("MISMATCH!!!!!!!!!: " + + this.schedule.players.length);
+            log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+            log.debug("active: " + playerActivePieces + " home: " + playerHomePieces + " onwayOut: " + playerOnwayoutPieces + " exited: " + playerExitPieces);
            }
     }
 

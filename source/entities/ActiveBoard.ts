@@ -44,7 +44,6 @@ export class ActiveBoard extends Board {
             this.board.setValue(piece.uniqueId, piece.index);
             // log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
             // + "> to active board " + this.board.size());
-            this.signal.dispatch("rom", piece);
         }
         if (listener === "backToHome") {
             this.board.remove(piece.uniqueId);

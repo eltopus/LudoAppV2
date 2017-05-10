@@ -246,5 +246,53 @@ export abstract class Player extends PieceFactory {
         }
         return (pieceCount === 1);
     }
+    public printPieceCounts(): void {
+        let active = this.activePieceCount();
+        let home = this.homePieceCount();
+        let onw = this.onwayoutCount();
+        let exit = this.exitPieceCount();
+        log.debug("active: " + active + " home: " + home + " onwayout: " + onw + " exit: " + exit + " length: " + this.pieces.length);
+    }
+
+    public homePieceCount(): number {
+        let homePieceCounts = 0;
+        for (let piece of this.pieces) {
+            if (piece.isAtHome()) {
+                ++homePieceCounts;
+            }
+        }
+        return homePieceCounts;
+    }
+
+    public activePieceCount(): number {
+        let activePieceCounts = 0;
+        for (let piece of this.pieces) {
+            if (piece.isActive()) {
+                ++activePieceCounts;
+            }
+        }
+        return activePieceCounts;
+    }
+
+    public onwayoutCount(): number {
+        let onwayoutPieceCounts = 0;
+        for (let piece of this.pieces) {
+            if (piece.isOnWayOut()) {
+                ++onwayoutPieceCounts;
+            }
+        }
+        return onwayoutPieceCounts;
+    }
+
+    public exitPieceCount(): number {
+        let exitPieceCounts = 0;
+        for (let piece of this.pieces) {
+            if (piece.isExited()) {
+                ++exitPieceCounts;
+            }
+        }
+        return exitPieceCounts;
+    }
+
 }
 

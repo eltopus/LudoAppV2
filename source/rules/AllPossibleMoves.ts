@@ -24,7 +24,7 @@ export class AllPossibleMoves {
             case States.onWayOut:
             return this.onWayOutMoves;
             default:
-            return null;
+            return [];
         }
     }
 

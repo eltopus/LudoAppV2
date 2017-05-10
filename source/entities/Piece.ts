@@ -108,9 +108,6 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      * Sends backToHome signal to Game and Board child classes
      */
     public moveToHome(): void {
-        this.setAtHome();
-        this.signal.dispatch("backToHome", this);
-        this.index = -1;
         this.game.world.bringToTop(this.group);
         this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y}, 1000,
         Phaser.Easing.Linear.None, true);
@@ -132,6 +129,8 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     }
     public setAtHome(): void {
         this.state = States.AtHome;
+        this.index = -1;
+        this.signal.dispatch("backToHome", this);
     }
     public setActive(): void {
         this.state = States.Active;
@@ -143,6 +142,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     }
     public setOnWayOut(): void {
         this.state = States.onWayOut;
+        this.signal.dispatch("onwayout", this);
     }
     public isAtEntryPoint(): boolean {
         return (this.index === this.entryIndex);

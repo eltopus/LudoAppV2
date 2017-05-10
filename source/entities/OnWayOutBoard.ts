@@ -42,8 +42,8 @@ export class OnWayOutBoard extends Board {
     public movement(listener: string, piece: Piece): void {
         if (listener === "exit") {
             this.board.remove(piece.uniqueId);
-            log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " + piece.index
-            + "> from onwayout board because EXIT " + this.board.size());
+            // log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId + ", " + piece.index
+            // + "> from onwayout board because EXIT " + this.board.size());
         }
         if (listener === "onwayout") {
             this.addPieceToOnWayOutBoard(piece);

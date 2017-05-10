@@ -31,7 +31,7 @@ export class ActivePath {
             path.y.push(piece.startPosition.y);
             piece.setActive();
             path.newIndex = piece.startIndex;
-            // alog.debug("Setting piece to active: " + piece.isActive());
+            // alog.debug("Setting piece to active: " + piece.index);
         }
 
         let entryPoint = piece.entryIndex;

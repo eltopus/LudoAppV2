@@ -80,9 +80,10 @@ export class RuleEnforcer {
                     if (piece.isActive()) {
                         let id = this.checkCollision(piece.uniqueId, piece.index);
                         if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
-                            let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
-                            if (outGoingPiece !== null) {
-                                piece.collidingPiece = outGoingPiece;
+                            let backToHomePiece = this.scheduler.getPieceByUniqueId(id);
+                            if (backToHomePiece !== null) {
+                                backToHomePiece.setAtHome();
+                                piece.collidingPiece = backToHomePiece;
                                 piece.setExited();
                             }
                         }
@@ -90,6 +91,7 @@ export class RuleEnforcer {
                     piece.movePiece(path);
                     break;
                 }else {
+                    log.debug("I don't know what to do...............");
                     break;
                 }
             }
@@ -119,9 +121,10 @@ export class RuleEnforcer {
             if (piece.isActive()) {
                 let id = this.checkCollision(piece.uniqueId, piece.index);
                 if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
-                    let outGoingPiece = this.scheduler.getPieceByUniqueId(id);
-                    if (outGoingPiece !== null) {
-                        piece.collidingPiece = outGoingPiece;
+                    let backToHomePiece = this.scheduler.getPieceByUniqueId(id);
+                    if (backToHomePiece !== null) {
+                        backToHomePiece.setAtHome();
+                        piece.collidingPiece = backToHomePiece;
                         piece.setExited();
                     }
                 }
@@ -189,6 +192,10 @@ export class RuleEnforcer {
             }else if (!currentPlayer.hasActivePieces() && currentPlayer.hasHomePieces() &&
              this.dice.rolledAtLeastOneSix() && currentPlayer.hasOnWayOutPieces()) {
                 this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
+            }else if (currentPlayer.hasExactlyOnePieceLeft()) {
+                this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
+                this.currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.homeMoves);
+                this.currentPossibleMovements.onWayOutMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.onWayOutMoves);
             }
         }
         this.readAllMoves();
@@ -253,15 +260,14 @@ export class RuleEnforcer {
                     }
                 }
             }
-        }else {
-            // Indicates player has only one active piece to play
-            if (this.dice.rolledAtLeastOneSix()) {
-                if (!player.hasExactlyOnePieceLeft()) {
-                    currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
-                }
+        }else if (player.hasHomePieces()) {
+            if (this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) {
+                currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
             }else {
-                currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+               currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
             }
+        }else {
+            currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
         }
         return currentPossibleMovements;
     }
@@ -346,12 +352,12 @@ export class RuleEnforcer {
     }
 
      private onCompletePieceMovement(listener: string, piece: Piece): void {
-         if (listener === "completeMovement") {
+         let currentPlayer = this.scheduler.getCurrentPlayer();
+         if (listener === "completeMovement" && currentPlayer.isAI) {
+             this.currentPossibleMovements.resetMoves();
+             this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
             if (!this.currentPossibleMovements.isEmpty()) {
-                let currentPlayer = this.scheduler.getCurrentPlayer();
-                if (currentPlayer.isAI) {
-                    this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
-                }
+              this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
             }
         }
     }
