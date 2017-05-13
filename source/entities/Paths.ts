@@ -6,6 +6,8 @@ const alog = factory.getLogger("model.Paths.ActivePath");
 const hlog = factory.getLogger("model.Paths.OnWayOutPaths");
 import {Piece} from "../entities/Piece";
 import {PiecePosition} from "./PiecePosition";
+import {PieceInterface} from "../entities/Piece";
+
 export class ActivePath {
     public x: number[] = [
         0, 48, 96, 144, 192, 240, 288, 288, 288, 288,
@@ -24,7 +26,7 @@ export class ActivePath {
         384, 336, 285,
     ];
 
-    public getPath(piece: Piece, to: number, path: Path): Path {
+    public getPath(piece: PieceInterface, to: number, path: Path): Path {
         // check if piece is at home
         if (piece.isAtHome()) {
             path.x.push(piece.startPosition.x);
@@ -107,7 +109,7 @@ export class OnWayOutPaths {
     public green_x: number[] = [336, 336, 336, 336, 336, 336];
     public green_y: number[] = [624, 572, 528, 480, 432, 384];
 
-    public getPath(piece: Piece, from: number, to: number, path: Path): Path {
+    public getPath(piece: PieceInterface, from: number, to: number, path: Path): Path {
         let pieceOnWayoutPath: [number[], number[]];
         pieceOnWayoutPath = this.getPiecePath(piece);
         let x: number[] = pieceOnWayoutPath[0];
@@ -154,7 +156,7 @@ export class OnWayOutPaths {
         return path;
     }
 
-    public getPiecePostionByIndex(piece: Piece, newIndex: number): PiecePosition {
+    public getPiecePostionByIndex(piece: PieceInterface, newIndex: number): PiecePosition {
         let pieceOnWayoutPath: [number[], number[]];
         pieceOnWayoutPath = this.getPiecePath(piece);
         let x: number[] = pieceOnWayoutPath[0];
@@ -167,7 +169,7 @@ export class OnWayOutPaths {
         }
     }
 
-    private getPiecePath(piece: Piece):[number[], number[]]{
+    private getPiecePath(piece: PieceInterface): [number[], number[]] {
         let pieceOnWayoutPath: [number[], number[]];
         switch (piece.color) {
             case ColorType.Red:

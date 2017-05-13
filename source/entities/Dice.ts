@@ -98,6 +98,22 @@ export class Dice {
         }
     }
 
+    public consumeDieMockValueSix(uniqueId: string): string {
+        let ids = uniqueId.split("#");
+        for (let id of ids){
+            if (id === this.dieOne.uniqueId && this.dieOne.equalsValueSix()) {
+                uniqueId = this.dieTwo.uniqueId;
+                break;
+            }
+            if (id === this.dieTwo.uniqueId && this.dieTwo.equalsValueSix()) {
+                uniqueId = this.dieOne.uniqueId;
+                break;
+            }
+        }
+
+        return uniqueId;
+    }
+
     public consumeDieValueById(uniqueId: string): void {
         let ids = uniqueId.split("#");
         for (let id of ids){

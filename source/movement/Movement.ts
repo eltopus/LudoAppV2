@@ -5,9 +5,11 @@ import {Path} from "../entities/Path";
 import {factory} from "../logging/ConfigLog4j";
 import {MoveStatus} from "../enums/MoveStatus";
 const log = factory.getLogger("model.Movement");
+import {PieceInterface} from "../entities/Piece";
+
 
 export interface Movement {
-    constructActivePath(piece: Piece, newIndex: number): Path;
+    constructActivePath(piece: PieceInterface, newIndex: number): Path;
 }
 
 export class PieceMovement implements Movement {
@@ -20,7 +22,7 @@ export class PieceMovement implements Movement {
         this.signal = signal;
     }
 
-    public constructActivePath(piece: Piece, newIndex: number): Path {
+    public constructActivePath(piece: PieceInterface, newIndex: number): Path {
         let currentIndex = piece.index;
         let path: Path = new Path();
         let finalIndex = currentIndex + newIndex;
@@ -33,7 +35,7 @@ export class PieceMovement implements Movement {
         return path;
     }
 
-    public constructOnWayOutPath(piece: Piece, from: number, newIndex: number, path?: Path): Path {
+    public constructOnWayOutPath(piece: PieceInterface, from: number, newIndex: number, path?: Path): Path {
         if (typeof path === "undefined") {
             path = new Path();
             let finalIndex = piece.index + newIndex;

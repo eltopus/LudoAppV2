@@ -124,7 +124,7 @@ export abstract class Player extends PieceFactory {
     public allPiecesAreAtHome(): boolean {
         let allPiecesAtHome = true;
         for (let piece of this.pieces) {
-            if (!piece.isAtHome()) {
+            if (!piece.isExited() && (piece.isActive() || piece.isOnWayOut())) {
                 allPiecesAtHome = false;
                 break;
             }
@@ -135,7 +135,7 @@ export abstract class Player extends PieceFactory {
     public allPiecesAreOnWayOut(): boolean {
         let allPiecesOnWayOut = false;
         for (let piece of this.pieces) {
-            if (!piece.isOnWayOut()) {
+            if (!piece.isExited() && (piece.isAtHome() || piece.isActive())) {
                 allPiecesOnWayOut = true;
                 break;
             }

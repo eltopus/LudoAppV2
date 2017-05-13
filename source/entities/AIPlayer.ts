@@ -9,10 +9,14 @@ import {Player} from "./Player";
 import {RuleEnforcer} from "../rules/RuleEnforcer";
 import {AllPossibleMoves} from "../rules/AllPossibleMoves";
 import {Move} from "../rules/Move";
+import {AIBrainBox} from "../ai/AIBrainBox";
+import {MockPiece} from "../ai/MockPiece";
+import {PieceInterface} from "../entities/Piece";
 
 const log = factory.getLogger("model.PlayerAI");
 export class AIPlayer extends Player {
     private ruleEnforcer: RuleEnforcer = null;
+    private logic: AIBrainBox;
     constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
      ruleEnforcer?: RuleEnforcer, previousDoubleSix?: boolean) {
         super(game, name, playerId, turn, colorTypes, signal, previousDoubleSix);
@@ -20,6 +24,7 @@ export class AIPlayer extends Player {
         this.ruleEnforcer = ruleEnforcer;
         this.signal.add(this.aiRollDice, this, 0, "aiRollDice");
         this.signal.add(this.playAIPlayerMovement, this, 0, "aiPlayerMovement");
+        this.logic = new AIBrainBox(this.ruleEnforcer, this.signal);
     }
 
     public playAIPlayerMovement(listener: string, playerId: string, currentPossibleMovements: AllPossibleMoves): void {
@@ -27,27 +32,67 @@ export class AIPlayer extends Player {
             let movements = currentPossibleMovements.getConcatenatedPossibleMoves();
             let possibleMovesTotal = movements.length;
             if (possibleMovesTotal > 0) {
-                let movementIndex = 0;
-                if (possibleMovesTotal > 0) {
-                    movementIndex = (Math.floor(Math.random() * possibleMovesTotal + 1)) - 1;
+                let peckMove = this.bestMove(movements);
+                if (peckMove === null) {
+                    let movementIndex = 0;
+                    if (possibleMovesTotal > 0) {
+                        movementIndex = (Math.floor(Math.random() * possibleMovesTotal + 1)) - 1;
+                    }
+                    // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
+                    let pieceMovement = movements[movementIndex];
+                    let piece = this.getPieceByUniqueId(pieceMovement.pieceId);
+                    setTimeout(() => {
+                        this.ruleEnforcer.generateAIPieceMovement(piece, pieceMovement);
+                    }, 1000);
+                }else {
+                    log.debug("USING PECK MOVE!!!!!!!!!!!!!!!!");
+                    // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
+                    let piece = this.getPieceByUniqueId(peckMove.pieceId);
+                    setTimeout(() => {
+                        this.ruleEnforcer.generateAIPieceMovement(piece, peckMove);
+                    }, 1000);
                 }
-                // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
-                let pieceMovement = movements[movementIndex];
-                let piece = this.getPieceByUniqueId(pieceMovement.pieceId);
-                setTimeout(() => {
-                    this.ruleEnforcer.generateAIPieceMovement(piece, pieceMovement);
-                }, 1000);
-            }else{
-                log.debug("AI HANDLE EMPTY MOVEMENT!!!!!!!!!!!!!!!!!!");
+            }else {
+                log.debug("AI HANDLE EMPTY MOVEMENT!!!!!!!!!!!!!!!!!! SIGN OF BAD RULE FILTER");
+                // this.ruleEnforcer.handleEmptyPossibleMovements();
             }
         }
     }
     private aiRollDice(listener: string, dice: Dice, playerId: string) {
         if (listener === "aiRollDice" && this.playerId === playerId) {
              setTimeout(() => {
-                this.roll(dice, 6, 5);
+                this.roll(dice, 2, 1);
             }, 1000);
         }
+    }
+
+    private bestMove(movements: Move[]): Move {
+        let peckMove: Move = null;
+        for (let movement of movements){
+            let piece = this.ruleEnforcer.scheduler.getPieceByUniqueId(movement.pieceId);
+            if (typeof piece !== "undefined" && piece !== null) {
+                let mockPiece: PieceInterface = new MockPiece(piece);
+                let mockDiceId = movement.diceId;
+                if (mockPiece.isAtHome()) {
+                    mockDiceId = this.ruleEnforcer.dice.consumeDieMockValueSix(movement.diceId);
+                    mockPiece.index = mockPiece.startIndex;
+                }
+                let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(mockDiceId);
+                if (diceValueArr.length > 0) {
+                    let diceValue = this.ruleEnforcer.addDiceValues(diceValueArr);
+                    let path = this.logic.constructMockpath(mockPiece, diceValue);
+                    if (this.ruleEnforcer.mockPieceCollision(mockPiece.uniqueId, path.newIndex)) {
+                        log.debug("END >>>>>>>>>>>>>>>>MOVE CAN PECK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + path.newIndex);
+                        peckMove = movement;
+                        break;
+                    }
+                }
+            }else {
+                log.debug("PIECE IS NULL.....................");
+            }
+        }
+
+        return peckMove;
     }
 
 }

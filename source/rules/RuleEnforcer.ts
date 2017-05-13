@@ -20,10 +20,10 @@ const log = factory.getLogger("model.RuleEnforcer");
 export class RuleEnforcer {
     public rule: Rules;
     public scheduler: Scheduler;
+    public dice: Dice;
     private signal: Phaser.Signal;
     private rollCounter = 0;
     private currentPossibleMovements: AllPossibleMoves;
-    private dice: Dice;
 
     constructor(signal: Phaser.Signal, scheduler: Scheduler, dice: Dice, activeboard: ActiveBoard,
     homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, exitedBoard: ExitedBoard, currentPossibleMovements?: AllPossibleMoves) {
@@ -52,7 +52,7 @@ export class RuleEnforcer {
                     // let AICurrentPlayer: AIPlayer = (AIPlayer) this.scheduler.getCurrentPlayer();
                     this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
                 }
-                this.rule.checkBoardConsistencies();
+                // this.rule.checkBoardConsistencies();
             }
         }
     }
@@ -108,6 +108,10 @@ export class RuleEnforcer {
         return pieceMovement;
     }
 
+    public getPieceByUniqueId(uniqueId: string): Piece {
+        return this.scheduler.getPieceByUniqueId(uniqueId);
+    }
+
 
     public generateAIPieceMovement(piece: Piece, aiPieceMovement: Move): Move {
         aiPieceMovement = this.filterConsumeDieValueSixMovement(aiPieceMovement, piece);
@@ -139,6 +143,16 @@ export class RuleEnforcer {
         return aiPieceMovement;
     }
 
+    public mockPieceCollision(uniqueId: string, index: number): boolean {
+        let id = this.rule.getUniqueIdCollision(uniqueId, index);
+        let currentPlayer = this.scheduler.getCurrentPlayer();
+        if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
+            return true;
+        }else {
+            return false;
+        }
+    }
+
     public readAllMoves(): void {
         for (let move of this.currentPossibleMovements.activeMoves){
             log.debug( this.rule.decodeMove(move));
@@ -160,7 +174,15 @@ export class RuleEnforcer {
         return value;
     }
 
-    private filterConsumeDieValueSixMovement(movement: Move, piece: Piece): Move {
+    public handleEmptyPossibleMovements(): void {
+        let nextPlayer = this.scheduler.getNextPlayer();
+        if (nextPlayer.isAI) {
+            this.dice.setDicePlayerId(nextPlayer.playerId);
+            this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+        }
+    }
+
+     public filterConsumeDieValueSixMovement(movement: Move, piece: Piece): Move {
         if (piece.isAtHome()) {
             this.dice.consumeDieValueSix(movement.diceId);
             piece.index = piece.startIndex;
@@ -193,9 +215,13 @@ export class RuleEnforcer {
              this.dice.rolledAtLeastOneSix() && currentPlayer.hasOnWayOutPieces()) {
                 this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
             }else if (currentPlayer.hasExactlyOnePieceLeft()) {
-                this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
+                if (this.moveContainTwoDice(this.currentPossibleMovements.activeMoves)) {
+                    this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
+                }
                 this.currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.homeMoves);
-                this.currentPossibleMovements.onWayOutMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.onWayOutMoves);
+                // this.currentPossibleMovements.onWayOutMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.onWayOutMoves);
+            }else {
+                log.debug("NO FILTER LOGIC APPLIED...................................");
             }
         }
         this.readAllMoves();
@@ -259,6 +285,10 @@ export class RuleEnforcer {
                         log.debug("4 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                     }
                 }
+            }else {
+                if (!this.onwayoutShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves)) { // cond-001
+                    currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+                }
             }
         }else if (player.hasHomePieces()) {
             if (this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) {
@@ -267,9 +297,23 @@ export class RuleEnforcer {
                currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
             }
         }else {
-            currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+            // tough call to make. Needs serious thought process
+            if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
+                currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+            }
         }
         return currentPossibleMovements;
+    }
+
+    private moveContainTwoDice(movements: Move[]): boolean {
+        let containsTwoDice = false;
+        for (let movement of movements) {
+            if ((movement.diceId.split("#")).length > 1) {
+                containsTwoDice = true;
+                break;
+            }
+        }
+        return containsTwoDice;
     }
 
     private filterOnAllPiecesAreAtHome(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -307,6 +351,23 @@ export class RuleEnforcer {
 
     }
 
+    private onwayoutShareDiceWithActivePiece(onWayOutMovements: Move[], activeMovements: Move[]): boolean {
+        let sharedIds = false;
+        for (let onwayoutMovement of onWayOutMovements) {
+            for (let x = 0; x < activeMovements.length; x++) {
+                if (onwayoutMovement.diceId === activeMovements[x].diceId) {
+                    sharedIds = true;
+                    activeMovements.splice(x, 1);
+                    break;
+                }
+            }
+            if (sharedIds) {
+                break;
+            }
+        }
+        return sharedIds;
+    }
+
     private getDieMovementsOnPiece(pieceId: string, movements: Move[]): Move[] {
         let onWayOutPieceMovements: Move[] = [];
         for (let movement of movements){
@@ -329,7 +390,7 @@ export class RuleEnforcer {
             if ((movements[x].diceId.split("#")).length > 1) {
                 legalMoves.push(movements[x]);
             }else {
-                log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
+                // log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
             }
         }
         return legalMoves;
@@ -344,7 +405,7 @@ export class RuleEnforcer {
                     legalMoves.push(movements[x]);
                 }else {
                     let illegalMove = movements[x];
-                    log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                    // log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                 }
              }
          }
@@ -359,14 +420,6 @@ export class RuleEnforcer {
             if (!this.currentPossibleMovements.isEmpty()) {
               this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
             }
-        }
-    }
-
-    private handleEmptyPossibleMovements(): void {
-        let nextPlayer = this.scheduler.getNextPlayer();
-        if (nextPlayer.isAI) {
-            this.dice.setDicePlayerId(nextPlayer.playerId);
-            this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
         }
     }
 }

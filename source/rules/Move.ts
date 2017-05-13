@@ -8,7 +8,6 @@ export class Move {
     public playBothDice: boolean;
 
     constructor() {
-        this.pieceId = " ";
         this.action = Actions.DO_NOTHING;
         this.pieceId = " ";
         this.playBothDice = false;

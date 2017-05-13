@@ -42,8 +42,8 @@ export class HomeBoard extends Board {
         }
         if (listener === "backToHome") {
             this.board.setValue(piece.uniqueId, piece.index);
-             log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId
-             + " " + piece.index + "> to homeboard: New Size " + this.board.size());
+             // log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId
+             // + " " + piece.index + "> to homeboard: New Size " + this.board.size());
         }
     }
     /**

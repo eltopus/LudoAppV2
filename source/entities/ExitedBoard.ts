@@ -42,8 +42,8 @@ export class ExitedBoard extends Board {
     public movement(listener: string, piece: Piece): void {
         if (listener === "exit") {
             this.board.setValue(piece.uniqueId, piece.index);
-            log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
-            + "> to exited board " + this.board.size());
+            // log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId + ", " + piece.index
+            // + "> to exited board " + this.board.size());
         }
     }
     public containsInActiveBoard(piece: Piece): boolean {

@@ -11,6 +11,7 @@ const log = factory.getLogger("model.Piece");
 
 export interface PieceInterface {
     group: Phaser.Group;
+    color: ColorType;
     playerId: string;
     uniqueId: string;
     index: number;
@@ -22,8 +23,13 @@ export interface PieceInterface {
     speedConstant: number;
     signal: Phaser.Signal;
     entryIndex: number;
-    movePiece(path: Path): void;
-    setActivePiece(uniqueId: string): void;
+    isAtHome(): boolean;
+    isAtEntryPoint(): boolean;
+    isActive(): boolean;
+    isOnWayOut(): boolean;
+    setExited(): void;
+    setOnWayOut(): void;
+    setActive(): void;
 }
 
 export class Piece extends Phaser.Sprite implements PieceInterface {
