@@ -37,10 +37,10 @@ export class Game extends Phaser.State {
 
     public create() {
         this.add.sprite(0, 0, "board");
-        let playerOnecolors = [ColorType.Red];
-        let playerTwocolors = [ColorType.Blue];
-        let playerThreecolors = [ColorType.Yellow];
-        let playerFourcolors = [ColorType.Green];
+        let playerOnecolors = [ColorType.Red, ColorType.Blue];
+        let playerTwocolors = [ColorType.Yellow, ColorType.Green];
+        // let playerThreecolors = [ColorType.Yellow];
+        // let playerFourcolors = [ColorType.Green];
         this.signal = new Phaser.Signal();
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
@@ -64,14 +64,14 @@ export class Game extends Phaser.State {
         this.scheduler = new Scheduler(this.dice);
         this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
         onWayOutBoard, exitedBoard, currentPossibleMovements);
-        this.playerOne = new RegularPlayer(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, this.signal, this.enforcer);
-        this.playerTwo = new RegularPlayer(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal, this.enforcer);
-        this.playerThree = new RegularPlayer(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, this.signal, this.enforcer);
-        this.playerFour = new RegularPlayer(this.game, "PlayerFour", UUID.UUID(), true, playerFourcolors, this.signal, this.enforcer);
+        this.playerOne = new AIPlayer(this.game, "PlayerOne", UUID.UUID(), true, playerOnecolors, this.signal, this.enforcer);
+        this.playerTwo = new AIPlayer(this.game, "PlayerTwo", UUID.UUID(), false, playerTwocolors, this.signal, this.enforcer);
+        // this.playerThree = new AIPlayer(this.game, "PlayerThree", UUID.UUID(), true, playerThreecolors, this.signal, this.enforcer);
+        // this.playerFour = new AIPlayer(this.game, "PlayerFour", UUID.UUID(), true, playerFourcolors, this.signal, this.enforcer);
         this.scheduler.enqueue(this.playerOne);
         this.scheduler.enqueue(this.playerTwo);
-        this.scheduler.enqueue(this.playerThree);
-        this.scheduler.enqueue(this.playerFour);
+        // this.scheduler.enqueue(this.playerThree);
+        // this.scheduler.enqueue(this.playerFour);
         this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
 
         // All Player pieces must be added to homeboard
@@ -81,6 +81,8 @@ export class Game extends Phaser.State {
         for (let piece of this.playerTwo.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
+
+         /*
         for (let piece of this.playerThree.pieces){
             homeboard.addPieceToHomeBoard(piece);
         }
@@ -104,7 +106,7 @@ export class Game extends Phaser.State {
         homeboard.removePieceFromHomeBoard(p2);
         this.setOnWayOutPieceParameters(p2, 3, States.onWayOut, onWayOutBoard);
         // this.setActivePieceParameters(p2, 38, States.Active, activeboard);
-        /*
+        
         let p3 = this.playerTwo.pieces[0];
         homeboard.removePieceFromHomeBoard(p3);
         // this.setOnWayOutPieceParameters(p3, 4, States.onWayOut, onWayOutBoard);

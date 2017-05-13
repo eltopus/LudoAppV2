@@ -287,7 +287,9 @@ export class RuleEnforcer {
                 }
             }else {
                 if (!this.onwayoutShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves)) { // cond-001
-                    currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+                    if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
+                        currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+                    }
                 }
             }
         }else if (player.hasHomePieces()) {
