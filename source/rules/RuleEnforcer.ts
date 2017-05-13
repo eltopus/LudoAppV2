@@ -218,8 +218,6 @@ export class RuleEnforcer {
                 if (this.moveContainTwoDice(this.currentPossibleMovements.activeMoves)) {
                     this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
                 }
-                this.currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.homeMoves);
-                // this.currentPossibleMovements.onWayOutMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.onWayOutMoves);
             }else {
                 log.debug("NO FILTER LOGIC APPLIED...................................");
             }
@@ -245,7 +243,7 @@ export class RuleEnforcer {
                 Rule must ensure that player is not allowed to play die value on active piece leaving
                 the other value that onwayout piece cannot play
             */
-            if (onWayOutPieceMovements.length === 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+            if (onWayOutPieceMovements.length === 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) { // cond-004
                 for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
                     if (onWayOutPieceMovements[0].diceId === currentPossibleMovements.activeMoves[x].diceId) {
                         let illegalMove = currentPossibleMovements.activeMoves[x];
@@ -295,8 +293,10 @@ export class RuleEnforcer {
         }else if (player.hasHomePieces()) {
             if (this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) {
                 currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
-            }else {
-               currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+            }else { // cond-002
+               if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
+                        currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+                    }
             }
         }else {
             // tough call to make. Needs serious thought process
