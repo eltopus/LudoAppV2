@@ -258,7 +258,11 @@ export class RuleEnforcer {
             }else {
                 // cond-007
                 if (this.dice.bothDiceHasLegitValues() && this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) { // cond-008
-                    currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
+                    if (player.hasHomePieces()){ // cond-010
+                        currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
+                    }else if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) { // cond-011
+                        currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+                    }
                 }
             }
         }else if (player.hasHomePieces()) {
