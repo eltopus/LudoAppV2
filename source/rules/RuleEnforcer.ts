@@ -190,6 +190,21 @@ export class RuleEnforcer {
         return movement;
     }
 
+    public consumeDieMockValueSix(movement: Move): Move {
+        let ids = movement.diceId.split("#");
+        if (ids.length === 2) {
+            if (ids[0] === this.dice.dieOne.uniqueId && this.dice.dieOne.equalsValueSix()) {
+                movement.diceId = this.dice.dieTwo.uniqueId;
+            }
+            if (ids[1] === this.dice.dieTwo.uniqueId && this.dice.dieTwo.equalsValueSix()) {
+                movement.diceId = this.dice.dieOne.uniqueId;
+            }
+        }else if (ids.length === 1) {
+            movement.mockConsumeDieValueSix = true;
+        }
+        return movement;
+    }
+
     private generateAllPossibleMoves(): void {
         let currentPlayer: Player = this.scheduler.getCurrentPlayer();
         this.currentPossibleMovements.resetMoves();
@@ -222,7 +237,7 @@ export class RuleEnforcer {
                 log.debug("NO FILTER LOGIC APPLIED...................................");
             }
         }
-        this.readAllMoves();
+        // this.readAllMoves();
     }
 
     private filterOnHasExactlyOneActivePiece(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -258,7 +273,7 @@ export class RuleEnforcer {
             }else {
                 // cond-007
                 if (this.dice.bothDiceHasLegitValues() && this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) { // cond-008
-                    if (player.hasHomePieces()){ // cond-010
+                    if (player.hasHomePieces()) { // cond-010
                         currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
                     }else if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) { // cond-011
                         currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);

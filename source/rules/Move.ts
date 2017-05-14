@@ -6,6 +6,7 @@ export class Move {
     public diceId: string;
     public state: States;
     public playBothDice: boolean;
+    public mockConsumeDieValueSix = false;
 
     constructor() {
         this.action = Actions.DO_NOTHING;
@@ -20,6 +21,7 @@ export class Move {
         this.pieceId = "";
         this.playBothDice = false;
         this.state = null;
+        this.mockConsumeDieValueSix = false;
     }
 
     public compare(move: Move): boolean {

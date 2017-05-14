@@ -61,7 +61,7 @@ export class AIPlayer extends Player {
     private aiRollDice(listener: string, dice: Dice, playerId: string) {
         if (listener === "aiRollDice" && this.playerId === playerId) {
              setTimeout(() => {
-                this.roll(dice, 2, 1);
+                this.roll(dice, 6, 5);
             }, 1000);
         }
     }
@@ -72,19 +72,22 @@ export class AIPlayer extends Player {
             let piece = this.ruleEnforcer.scheduler.getPieceByUniqueId(movement.pieceId);
             if (typeof piece !== "undefined" && piece !== null) {
                 let mockPiece: PieceInterface = new MockPiece(piece);
-                let mockDiceId = movement.diceId;
                 if (mockPiece.isAtHome()) {
-                    mockDiceId = this.ruleEnforcer.dice.consumeDieMockValueSix(movement.diceId);
+                    movement = this.ruleEnforcer.consumeDieMockValueSix(movement);
                     mockPiece.index = mockPiece.startIndex;
                 }
-                let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(mockDiceId);
+                let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(movement.diceId);
                 if (diceValueArr.length > 0) {
                     let diceValue = this.ruleEnforcer.addDiceValues(diceValueArr);
+                    if (movement.mockConsumeDieValueSix) {
+                        diceValue = 0;
+                        movement.mockConsumeDieValueSix = false;
+                    }
                     let path = this.logic.constructMockpath(mockPiece, diceValue);
                     if (this.ruleEnforcer.mockPieceCollision(mockPiece.uniqueId, path.newIndex)) {
                         log.debug("END >>>>>>>>>>>>>>>>MOVE CAN PECK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + path.newIndex);
                         peckMove = movement;
-                        break;
+                        // break;
                     }
                 }
             }else {
