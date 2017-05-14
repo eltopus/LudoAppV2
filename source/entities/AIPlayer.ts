@@ -61,7 +61,7 @@ export class AIPlayer extends Player {
     private aiRollDice(listener: string, dice: Dice, playerId: string) {
         if (listener === "aiRollDice" && this.playerId === playerId) {
              setTimeout(() => {
-                this.roll(dice, 6, 5);
+                this.roll(dice, 3, 5);
             }, 1000);
         }
     }
@@ -75,6 +75,8 @@ export class AIPlayer extends Player {
                 if (mockPiece.isAtHome()) {
                     movement = this.ruleEnforcer.consumeDieMockValueSix(movement);
                     mockPiece.index = mockPiece.startIndex;
+                }else {
+                    movement.mockDiceId = movement.diceId;
                 }
                 let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(movement.mockDiceId);
                 if (diceValueArr.length > 0) {
@@ -88,7 +90,7 @@ export class AIPlayer extends Player {
                     if (this.ruleEnforcer.mockPieceCollision(mockPiece.uniqueId, path.newIndex)) {
                         log.debug("END >>>>>>>>>>>>>>>>MOVE CAN PECK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + path.newIndex);
                         peckMove = movement;
-                        // break;
+                        break;
                     }
                 }
             }else {
