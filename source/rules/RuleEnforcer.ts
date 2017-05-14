@@ -243,51 +243,19 @@ export class RuleEnforcer {
                 Rule must ensure that player is not allowed to play die value on active piece leaving
                 the other value that onwayout piece cannot play
             */
-            if (onWayOutPieceMovements.length === 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) { // cond-004
-                for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
-                    if (onWayOutPieceMovements[0].diceId === currentPossibleMovements.activeMoves[x].diceId) {
-                        let illegalMove = currentPossibleMovements.activeMoves[x];
-                        log.debug("1 Successfully Removing illegal move: " + this.rule.decodeMove(illegalMove));
-                        currentPossibleMovements.activeMoves.splice(x, 1);
-                        break;
+            if (onWayOutPieceMovements.length >= 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) { // cond-004
+                if (this.dice.bothDiceHasLegitValues()) {
+                    if ((this.homeManyShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves)) === 1) {
+                        this.onwayoutShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves, true);
                     }
                 }
-                // Both dice must have legit values for this condition to be necessary
-            }else if (onWayOutPieceMovements.length > 1 && this.dice.bothDiceHasLegitValues() &&
-            (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
-                // check if dice ids are distinct
-                if (this.diceIdsAreDistinct(onWayOutPieceMovements)) {
-                    let distinctId = onWayOutPieceMovements[0].diceId;
-                    for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
-                        if (distinctId === currentPossibleMovements.activeMoves[x].diceId) {
-                            let illegalMove = currentPossibleMovements.activeMoves[x];
-                            log.debug("2 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
-                            currentPossibleMovements.activeMoves.splice(x, 1);
-                            break;
-                        }
-                    }
-
-                }
-                // piece must play both dice because no onwayout pieces can play either die value;
-            }else if (onWayOutPieceMovements.length === 0 && this.dice.bothDiceHasLegitValues() &&
-            (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
-                for (let x = 0; x < currentPossibleMovements.activeMoves.length; x++) {
-                    if (this.dice.dieOne.uniqueId === currentPossibleMovements.activeMoves[x].diceId) {
-                        let illegalMove = currentPossibleMovements.activeMoves[x];
-                        currentPossibleMovements.activeMoves.splice(x, 1);
-                        log.debug("3 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
-                    }
-                    if (this.dice.dieTwo.uniqueId === currentPossibleMovements.activeMoves[x].diceId) {
-                        let illegalMove = currentPossibleMovements.activeMoves[x];
-                        currentPossibleMovements.activeMoves.splice(x, 1);
-                        log.debug("4 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
-                    }
-                }
+                // cond-005
+            }else if (onWayOutPieceMovements.length === 0 && this.dice.bothDiceHasLegitValues() && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+                currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
             }else {
-                if (!this.onwayoutShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves)) { // cond-001
-                    if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
-                        currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
-                    }
+                // cond-007
+                if (this.dice.bothDiceHasLegitValues() && this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) { // cond-008
+                    currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
                 }
             }
         }else if (player.hasHomePieces()) {
@@ -353,18 +321,32 @@ export class RuleEnforcer {
 
     }
 
-    private onwayoutShareDiceWithActivePiece(onWayOutMovements: Move[], activeMovements: Move[]): boolean {
+    private onwayoutShareDiceWithActivePiece(onWayOutMovements: Move[], activeMovements: Move[], splice: boolean): boolean {
         let sharedIds = false;
         for (let onwayoutMovement of onWayOutMovements) {
             for (let x = 0; x < activeMovements.length; x++) {
                 if (onwayoutMovement.diceId === activeMovements[x].diceId) {
                     sharedIds = true;
-                    activeMovements.splice(x, 1);
-                    break;
+                    if (splice) {
+                        let illegalMove = activeMovements[x];
+                        log.debug("7 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                        activeMovements.splice(x, 1);
+                    }
                 }
             }
-            if (sharedIds) {
-                break;
+        }
+        return sharedIds;
+    }
+
+    private homeManyShareDiceWithActivePiece(onWayOutMovements: Move[], activeMovements: Move[]): number {
+        let sharedIds = 0;
+        let matchinfDieId = "";
+        for (let onwayoutMovement of onWayOutMovements) {
+            for (let x = 0; x < activeMovements.length; x++) {
+                if ((onwayoutMovement.diceId === activeMovements[x].diceId) && (onwayoutMovement.diceId !== matchinfDieId)) {
+                    matchinfDieId = onwayoutMovement.diceId;
+                    ++sharedIds;
+                }
             }
         }
         return sharedIds;
@@ -392,7 +374,7 @@ export class RuleEnforcer {
             if ((movements[x].diceId.split("#")).length > 1) {
                 legalMoves.push(movements[x]);
             }else {
-                // log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
+                log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
             }
         }
         return legalMoves;
@@ -407,7 +389,7 @@ export class RuleEnforcer {
                     legalMoves.push(movements[x]);
                 }else {
                     let illegalMove = movements[x];
-                    // log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                    log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                 }
              }
          }

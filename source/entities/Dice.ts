@@ -164,4 +164,8 @@ export class Dice {
     public bothDiceHasLegitValues(): boolean {
         return (this.dieOne.getValue() > 0 && this.dieTwo.getValue() > 0);
     }
+
+    public hasSameDiceValues(): boolean {
+        return (this.dieOne.getValue() === this.dieTwo.getValue());
+    }
 }
