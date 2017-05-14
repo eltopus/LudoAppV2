@@ -76,12 +76,13 @@ export class AIPlayer extends Player {
                     movement = this.ruleEnforcer.consumeDieMockValueSix(movement);
                     mockPiece.index = mockPiece.startIndex;
                 }
-                let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(movement.diceId);
+                let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(movement.mockDiceId);
                 if (diceValueArr.length > 0) {
                     let diceValue = this.ruleEnforcer.addDiceValues(diceValueArr);
                     if (movement.mockConsumeDieValueSix) {
                         diceValue = 0;
                         movement.mockConsumeDieValueSix = false;
+                        movement.mockDiceId = "";
                     }
                     let path = this.logic.constructMockpath(mockPiece, diceValue);
                     if (this.ruleEnforcer.mockPieceCollision(mockPiece.uniqueId, path.newIndex)) {

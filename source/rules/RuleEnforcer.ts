@@ -194,13 +194,14 @@ export class RuleEnforcer {
         let ids = movement.diceId.split("#");
         if (ids.length === 2) {
             if (ids[0] === this.dice.dieOne.uniqueId && this.dice.dieOne.equalsValueSix()) {
-                movement.diceId = this.dice.dieTwo.uniqueId;
+                movement.mockDiceId = this.dice.dieTwo.uniqueId;
             }
             if (ids[1] === this.dice.dieTwo.uniqueId && this.dice.dieTwo.equalsValueSix()) {
-                movement.diceId = this.dice.dieOne.uniqueId;
+                movement.mockDiceId = this.dice.dieOne.uniqueId;
             }
         }else if (ids.length === 1) {
             movement.mockConsumeDieValueSix = true;
+            movement.mockDiceId = movement.diceId;
         }
         return movement;
     }

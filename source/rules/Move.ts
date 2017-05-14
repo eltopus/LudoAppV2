@@ -6,22 +6,27 @@ export class Move {
     public diceId: string;
     public state: States;
     public playBothDice: boolean;
-    public mockConsumeDieValueSix = false;
+    public mockConsumeDieValueSix: boolean;
+    public mockDiceId: string;
 
     constructor() {
         this.action = Actions.DO_NOTHING;
         this.pieceId = " ";
         this.playBothDice = false;
         this.state = null;
+        this.diceId = "";
+        this.mockConsumeDieValueSix = false;
+        this.mockDiceId = "";
     }
 
     public resetRule(): void {
         this.pieceId = "";
         this.action = Actions.DO_NOTHING;
-        this.pieceId = "";
+        this.diceId = "";
         this.playBothDice = false;
         this.state = null;
         this.mockConsumeDieValueSix = false;
+        this.mockDiceId = "";
     }
 
     public compare(move: Move): boolean {
