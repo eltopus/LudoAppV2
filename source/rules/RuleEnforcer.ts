@@ -235,10 +235,10 @@ export class RuleEnforcer {
                     this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
                 }
             }else {
-                log.debug("NO FILTER LOGIC APPLIED...................................");
+                // log.debug("NO FILTER LOGIC APPLIED...................................");
             }
         }
-        // this.readAllMoves();
+        this.readAllMoves();
     }
 
     private filterOnHasExactlyOneActivePiece(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -279,13 +279,17 @@ export class RuleEnforcer {
                     }else if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) { // cond-011
                         currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
                     }
+                }else { // cond-012
+                    if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
+                        currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
+                    }
                 }
             }
         }else if (player.hasHomePieces()) {
             if (this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) {
                 currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
             }else { // cond-002
-               if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
+                if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
                         currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
                     }
             }
