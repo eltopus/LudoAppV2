@@ -4,6 +4,7 @@ import {Piece} from "../entities/Piece";
 import {ColorType} from "../enums/ColorType";
 import {PiecePosition} from "../entities/PiecePosition";
 import { UUID } from "angular2-uuid";
+import {LudoPiece} from "../game/LudoPiece";
 
 export abstract class PieceFactory {
 
@@ -57,9 +58,101 @@ export abstract class PieceFactory {
         }
 
     }
+/*
+    this.color = piece.color;
+        this.playerId = piece.playerId;
+        this.uniqueId = piece.uniqueId;
+        this.index = piece.index;
+        this.startIndex = piece.startIndex;
+        this.state = piece.state;
+        this.startPosition = piece.startPosition;
+        this.homePosition = piece.homePosition;
+        this.currentPosition = new PiecePosition(piece.x, piece.y);
+        this.entryIndex = piece.entryIndex;
+        this.imageId = piece.imageId;
+        if (piece.collidingPiece !== null) {
+            this.collidingPiece = new LudoPiece(piece.collidingPiece);
+        }
+    }
+    */
 
-    public createExistingPiece() {
+    public createExistingPieces(ludoPieces: LudoPiece[], signal: Phaser.Signal): Piece[] {
+        let pieces: Piece[] = [];
+        let collidingPieces: LudoPiece[] = [];
+        for (let ludoPiece of ludoPieces) {
+            switch (ludoPiece.color) {
+                case ColorType.Red: {
+                    let redPiece = new Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId,
+                    ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    redPiece = this.updateRemainingPieceParameters(ludoPiece, redPiece);
+                    if (ludoPiece.collidingPiece !== null) {
+                        collidingPieces.push(ludoPiece);
+                    }
+                    pieces.push(redPiece);
+                    break;
+                }
+                case ColorType.Blue: {
+                    let bluePiece = new Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId,
+                    ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    bluePiece = this.updateRemainingPieceParameters(ludoPiece, bluePiece);
+                    if (ludoPiece.collidingPiece !== null) {
+                        collidingPieces.push(ludoPiece);
+                    }
+                    pieces.push(bluePiece);
+                    break;
+                }
+                case ColorType.Yellow: {
+                    let yellowPiece = new Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId,
+                    ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    yellowPiece = this.updateRemainingPieceParameters(ludoPiece, yellowPiece);
+                    if (ludoPiece.collidingPiece !== null) {
+                        collidingPieces.push(ludoPiece);
+                    }
+                    pieces.push(yellowPiece);
+                    break;
+                }
+                case ColorType.Green: {
+                    let greenPiece = new Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId,
+                    ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    greenPiece = this.updateRemainingPieceParameters(ludoPiece, greenPiece);
+                    if (ludoPiece.collidingPiece !== null) {
+                        collidingPieces.push(ludoPiece);
+                    }
+                    pieces.push(greenPiece);
+                    break;
+                }
+            }
+        }
+        for (let ludoPiece of collidingPieces) {
+            let piece = this.getMatchingPiece(ludoPiece.uniqueId, pieces);
+            if (piece !== null) {
+                let collidingPiece  = this.getMatchingPiece(ludoPiece.collidingPiece, pieces);
+                if (collidingPiece !== null) {
+                    collidingPiece.setCollisionExited();
+                }
+            }
+        }
+        return pieces;
+    }
 
+    private getMatchingPiece(uniqueId: string, pieces: Piece[]): Piece {
+        let matchingPiece: Piece = null;
+        for (let piece of pieces){
+            if (piece.uniqueId === uniqueId) {
+                matchingPiece = piece;
+                break;
+            }
+        }
+        return matchingPiece;
+    }
+
+    private updateRemainingPieceParameters(ludoPiece: LudoPiece, piece: Piece): Piece {
+        piece.startIndex = ludoPiece.startIndex;
+        piece.entryIndex = ludoPiece.entryIndex;
+        piece.state = ludoPiece.state;
+        piece.index = ludoPiece.index;
+        piece.homePosition = ludoPiece.homePosition;
+        return piece;
     }
 
     private getImageKey(colorType: ColorType): string {

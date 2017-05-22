@@ -5,6 +5,9 @@ import {ColorType} from "../enums/ColorType";
 import {factory} from "../logging/ConfigLog4j";
 import {Board} from "./Board";
 import {Dice} from "./Dice";
+import {Perimeters} from "./Perimeters";
+import {Perimeter} from "./Perimeters";
+import {LudoPiece} from "../game/LudoPiece";
 
 const log = factory.getLogger("model.Player");
 
@@ -16,8 +19,11 @@ export abstract class Player extends PieceFactory {
     public signal: Phaser.Signal;
     public currentSelectedPiece: Piece;
     public previousDoubleSix = false;
+    public colorTypes: ColorType[];
     public isAI = false;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
+    public sequenceNumber = 0;
+    private perimeters: Perimeters;
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, ludoPieces: LudoPiece[],
      previousDoubleSix?: boolean) {
         super(game);
         this.name = name;
@@ -27,13 +33,29 @@ export abstract class Player extends PieceFactory {
         this.signal = signal;
         this.signal.add(this.selectCurrentPiece, this, 0, "select");
         this.currentSelectedPiece = null;
+        this.perimeters = new Perimeters();
+        this.colorTypes = colorTypes;
         if (typeof previousDoubleSix !== "undefined") {
             this.previousDoubleSix = previousDoubleSix;
         }
-        for (let x = 0; x < colorTypes.length; x++) {
+        if (typeof ludoPieces !== "undefined" && ludoPieces !== null) {
+            this.pieces = this.createExistingPieces(ludoPieces, this.signal);
+        }else {
+            for (let x = 0; x < colorTypes.length; x++) {
             let playerPieces = this.createNewPieces(colorTypes[x], playerId, this.signal);
             for (let piece of playerPieces){
                 this.pieces.push(piece);
+            }
+        }
+        }
+    }
+
+    public setSelectedPieceByUniqueId(uniqueId: string): void {
+        for (let piece of this.pieces){
+            if (piece.uniqueId === uniqueId) {
+                this.currentSelectedPiece = piece;
+                this.currentSelectedPiece.select();
+                break;
             }
         }
     }
@@ -48,6 +70,16 @@ export abstract class Player extends PieceFactory {
         for (let piece of this.pieces) {
             let index = board.board.getValue(piece.uniqueId);
             if (typeof index !== "undefined" && piece.isActive()) {
+                activePieces.push(piece);
+            }
+        }
+        return activePieces;
+    }
+
+    public getSampleActivePieces(): Piece[] {
+        let activePieces: Piece[] = [];
+        for (let piece of this.pieces) {
+            if (piece.isActive()) {
                 activePieces.push(piece);
             }
         }
@@ -71,6 +103,18 @@ export abstract class Player extends PieceFactory {
             let index = board.board.getValue(piece.uniqueId);
             if (typeof index !== "undefined" && piece.isAtHome()) {
                 homePieces.push(piece);
+            }
+        }
+        return homePieces;
+    }
+
+    public getSampleHomePieces(): Piece[] {
+        let homePieces: Piece[] = [];
+        let color: ColorType = null;
+        for (let piece of this.pieces) {
+            if (piece.isAtHome() && piece.color !== color) {
+                homePieces.push(piece);
+                color = piece.color;
             }
         }
         return homePieces;
@@ -292,6 +336,40 @@ export abstract class Player extends PieceFactory {
             }
         }
         return exitPieceCounts;
+    }
+
+    public piecesWithinHomePerimeters(homePieces: Piece[]): Perimeter[] {
+        let piecePerimeter: Perimeter[] = [];
+        for (let piece of this.pieces) {
+            for (let homePiece of homePieces){
+                if (piece.isWithinHomePerimeters(homePiece)) {
+                    let perimeter = this.perimeters.getNewPerimeter();
+                    perimeter.setPerimeters(piece.index, piece.color, this.playerId);
+                    piecePerimeter.push(perimeter);
+                }
+            }
+        }
+        return piecePerimeter;
+    }
+
+    public piecesWithinActivePerimeterss(activePieces: Piece[]): number[] {
+        let piecePerimeter: number[] = [];
+        for (let piece of this.pieces) {
+            for (let activePiece of activePieces){
+                if (piece.isWithinHomePerimeters(activePiece)) {
+                    piecePerimeter.push(piece.index);
+                }
+            }
+        }
+        return piecePerimeter;
+    }
+
+    public addPerimetersToPool(perimeters: Perimeter[]): void {
+        for (let perimeter of perimeters){
+            if (perimeter.playerId === this.playerId) {
+                this.perimeters.addPerimetersToPool(perimeter, this.playerId);
+            }
+        }
     }
 
 }

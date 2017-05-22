@@ -5,29 +5,33 @@ var Path_1 = require("../entities/Path");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var MoveStatus_1 = require("../enums/MoveStatus");
 var log = ConfigLog4j_1.factory.getLogger("model.Movement");
-var Move = (function () {
-    function Move() {
+var PieceMovement = (function () {
+    function PieceMovement(signal) {
         this.activePath = new Paths.ActivePath();
-        this.homePaths = new Paths.HomePaths();
+        this.onWayOutPaths = new Paths.OnWayOutPaths();
+        this.signal = signal;
     }
-    Move.prototype.constructActivePath = function (piece, newIndex) {
+    PieceMovement.prototype.constructActivePath = function (piece, newIndex) {
         var currentIndex = piece.index;
         var path = new Path_1.Path();
         var finalIndex = currentIndex + newIndex;
         path = this.activePath.getPath(piece, finalIndex, path);
         if (path.moveStatus === MoveStatus_1.MoveStatus.ShouldBeExiting && path.moveRemainder > 0) {
-            path = this.constructHomePath(piece, 0, path.moveRemainder, path);
+            path = this.constructOnWayOutPath(piece, 0, path.moveRemainder, path);
         }
         return path;
     };
-    Move.prototype.constructHomePath = function (piece, from, newIndex, path) {
+    PieceMovement.prototype.constructOnWayOutPath = function (piece, from, newIndex, path) {
         if (typeof path === "undefined") {
             path = new Path_1.Path();
-            log.debug("Path is not defined");
+            var finalIndex = piece.index + newIndex;
+            path = this.onWayOutPaths.getPath(piece, from, finalIndex, path);
         }
-        path = this.homePaths.getPath(piece, from, newIndex, path);
+        else {
+            path = this.onWayOutPaths.getPath(piece, from, newIndex, path);
+        }
         return path;
     };
-    return Move;
+    return PieceMovement;
 }());
-exports.Move = Move;
+exports.PieceMovement = PieceMovement;

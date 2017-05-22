@@ -28,12 +28,22 @@ export class Move {
         this.mockConsumeDieValueSix = false;
         this.mockDiceId = "";
     }
-
+    // Unit Test this function
     public compare(move: Move): boolean {
         let match = false;
         if (move.action === this.action && move.diceId === this.diceId && move.pieceId === this.pieceId) {
             match = true;
         }
         return match;
+    }
+
+    public isHomeMovement(): boolean {
+        return (this.state === States.AtHome);
+    }
+    public isActiveMovement(): boolean {
+        return (this.state === States.Active);
+    }
+    public isOnWayOutMovement(): boolean {
+        return (this.state === States.onWayOut);
     }
 }

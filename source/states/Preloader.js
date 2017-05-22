@@ -24,12 +24,16 @@ var Preloader = (function (_super) {
         this.load.image("diceBtn", "images/dicebtn.png");
         this.load.image("play", "images/playbutton.png");
         this.load.image("board", "images/board.jpg");
+        this.load.image("report", "images/ireport.png");
+        this.load.image("updateBtn", "images/update.png");
+        this.load.json("ludoGame", "dist/ludoGame.json");
     };
     Preloader.prototype.create = function () {
         this.startGame();
     };
     Preloader.prototype.startGame = function () {
-        this.game.state.start("Game", true, false);
+        var packageObj = this.game.cache.getJSON("ludoGame");
+        this.game.state.start("Game", true, false, packageObj);
     };
     return Preloader;
 }(Phaser.State));

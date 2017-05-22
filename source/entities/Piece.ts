@@ -5,6 +5,7 @@ import {PieceMovement} from "../movement/Movement";
 import {PiecePosition} from "../entities/PiecePosition";
 import {factory} from "../logging/ConfigLog4j";
 import {Path} from "../entities/Path";
+import {Perimeter} from "./Perimeters";
 // import * as Phasertips from "../Phasertips";
 
 const log = factory.getLogger("model.Piece");
@@ -47,8 +48,8 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public movement: PieceMovement;
     public speedConstant: number;
     public entryIndex: number;
-    public notifyCollision: boolean;
     public collidingPiece: Piece;
+    public imageId: string;
       // public tips: Phasertips;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, color: ColorType,
@@ -76,6 +77,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.movement = new PieceMovement(signal);
         this.speedConstant = 6000 * 12;
         this.collidingPiece = null;
+        this.imageId = imageId;
         // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
         this.events.onInputDown.add(this.setActivePiece, this);
 
@@ -145,6 +147,14 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public setExited(): void {
         this.state = States.Exited;
         this.signal.dispatch("exit", this);
+    }
+    public setExitedWithoutDispatch(): void {
+        this.state = States.Exited;
+        this.visible = false;
+    }
+
+    public setCollisionExited(): void {
+        this.state = States.Exited;
     }
     public setOnWayOut(): void {
         this.state = States.onWayOut;
@@ -233,6 +243,84 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.y = y;
         this.state = state;
         this.index = index;
+    }
+
+    public getPerimeter(): number {
+        switch (this.color) {
+            case ColorType.Red:
+            return 47;
+            case ColorType.Blue:
+            return 8;
+            case ColorType.Yellow:
+            return 21;
+            case ColorType.Green:
+            return 34;
+            default:
+            return 0;
+        }
+    }
+
+    public isRed(): boolean {
+        return this.color === ColorType.Red;
+    }
+
+    public isBlue(): boolean {
+        return this.color === ColorType.Blue;
+    }
+
+    public isYellow(): boolean {
+        return this.color === ColorType.Yellow;
+    }
+
+    public isGreen(): boolean {
+        return this.color === ColorType.Green;
+    }
+
+    public isWithinHomePerimeters(piece: Piece): boolean {
+        let withinPerimeter = false;
+        if (this.isActive() && (this.index >= piece.getPerimeter()) && (this.index <= (piece.entryIndex + 1))) {
+                withinPerimeter = true;
+        }
+        if (this.isActive() && (piece.isRed()) && this.index === 0) {
+            withinPerimeter = true;
+        }
+        return withinPerimeter;
+    }
+
+    public isWithinPerimeters(piece: Piece): boolean {
+        let withinPerimeter = false;
+        if (this.isActive() && (this.index >= piece.getPerimeter()) && (this.index <= (piece.entryIndex + 1))) {
+                withinPerimeter = true;
+        }
+        if (this.isActive() && (piece.isRed()) && this.index === 0) {
+            withinPerimeter = true;
+        }
+        return withinPerimeter;
+    }
+
+    public numberOfEnemiesWithinPerimeter(perimeters: Perimeter[]): number {
+        let withinPerimeter = 0;
+        for (let perimeter of perimeters){
+            if (perimeter.pieceIndex >= this.getPerimeter() && perimeter.pieceIndex <= (this.entryIndex + 1)) {
+                ++withinPerimeter;
+            }
+            if (this.isRed() && perimeter.pieceIndex === 0) {
+                ++withinPerimeter;
+            }
+        }
+        return withinPerimeter;
+    }
+
+    public getCurrentPiecePostionByIndex(): PiecePosition {
+        let piecePosition: PiecePosition = null;
+        if (this.isActive()) {
+            piecePosition = this.movement.activePath.getPiecePostionByIndex(this.index);
+        }else if (this.isOnWayOut()) {
+            piecePosition = this.movement.onWayOutPaths.getPiecePostionByIndex(this, this.index);
+        }else {
+            piecePosition = this.homePosition;
+        }
+        return piecePosition;
     }
 
     private movePieceTo(path: Path, speed: number): void {

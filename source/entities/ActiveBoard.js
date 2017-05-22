@@ -25,11 +25,16 @@ var ActiveBoard = (function (_super) {
         this.board.remove(piece.uniqueId);
     };
     ActiveBoard.prototype.movement = function (listener, piece) {
-        if (listener === "eom") {
+        if (listener === "startmovement" && piece.isActive()) {
             this.board.setValue(piece.uniqueId, piece.index);
-            this.signal.dispatch("rom", piece);
         }
-        else if (listener === "backToHome") {
+        if (listener === "backToHome") {
+            this.board.remove(piece.uniqueId);
+        }
+        if (listener === "onwayout") {
+            this.board.remove(piece.uniqueId);
+        }
+        if (listener === "exit") {
             this.board.remove(piece.uniqueId);
         }
     };

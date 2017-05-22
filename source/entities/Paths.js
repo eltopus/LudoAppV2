@@ -4,7 +4,8 @@ var ColorType_1 = require("../enums/ColorType");
 var MoveStatus_1 = require("../enums/MoveStatus");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var alog = ConfigLog4j_1.factory.getLogger("model.Paths.ActivePath");
-var hlog = ConfigLog4j_1.factory.getLogger("model.Paths.HomePath");
+var hlog = ConfigLog4j_1.factory.getLogger("model.Paths.OnWayOutPaths");
+var PiecePosition_1 = require("./PiecePosition");
 var ActivePath = (function () {
     function ActivePath() {
         this.x = [
@@ -29,6 +30,7 @@ var ActivePath = (function () {
             path.x.push(piece.startPosition.x);
             path.y.push(piece.startPosition.y);
             piece.setActive();
+            path.newIndex = piece.startIndex;
         }
         var entryPoint = piece.entryIndex;
         var from = piece.index + 1;
@@ -44,7 +46,6 @@ var ActivePath = (function () {
                     path.moveRemainder = remainder;
                     path.newIndex = entryPoint;
                     path.moveStatus = MoveStatus_1.MoveStatus.ShouldBeExiting;
-                    alog.debug("i === entryPoint " + entryPoint + " time to enter entry with " + path.moveRemainder);
                     break;
                 }
                 else {
@@ -65,11 +66,20 @@ var ActivePath = (function () {
         }
         return path;
     };
+    ActivePath.prototype.getPiecePostionByIndex = function (index) {
+        if (index > 51) {
+            var newIndex = index % 51;
+            return new PiecePosition_1.PiecePosition(this.x[newIndex], this.y[newIndex]);
+        }
+        else {
+            return new PiecePosition_1.PiecePosition(this.x[index], this.y[index]);
+        }
+    };
     return ActivePath;
 }());
 exports.ActivePath = ActivePath;
-var HomePaths = (function () {
-    function HomePaths() {
+var OnWayOutPaths = (function () {
+    function OnWayOutPaths() {
         this.red_x = [48, 96, 144, 192, 240, 288];
         this.red_y = [336, 336, 336, 336, 336, 336];
         this.blue_x = [336, 336, 336, 336, 336, 336];
@@ -79,42 +89,80 @@ var HomePaths = (function () {
         this.green_x = [336, 336, 336, 336, 336, 336];
         this.green_y = [624, 572, 528, 480, 432, 384];
     }
-    HomePaths.prototype.getPath = function (piece, from, to, path) {
-        var x = [];
-        var y = [];
-        hlog.debug("Piece " + piece.uniqueId + " is on the way out ");
+    OnWayOutPaths.prototype.getPath = function (piece, from, to, path) {
+        var pieceOnWayoutPath;
+        pieceOnWayoutPath = this.getPiecePath(piece);
+        var x = pieceOnWayoutPath[0];
+        var y = pieceOnWayoutPath[1];
+        if (piece.isActive()) {
+            if (to > 6) {
+                hlog.debug("to " + to + " is greater than six! Something went wrong!!!");
+            }
+            else {
+                for (var i = from; i < to; i++) {
+                    path.x.push(x[i]);
+                    path.y.push(y[i]);
+                }
+                path.newIndex = to - 1;
+                piece.index = path.newIndex;
+                if (piece.index === 5) {
+                    piece.setExited();
+                }
+                else {
+                    piece.setOnWayOut();
+                }
+            }
+        }
+        else if (piece.isOnWayOut()) {
+            if (to > 5) {
+                hlog.debug("to " + to + " is greater than five! Something went wrong!!!");
+            }
+            else {
+                for (var i = from; i < to + 1; i++) {
+                    path.x.push(x[i]);
+                    path.y.push(y[i]);
+                }
+                path.newIndex = to;
+                if (to === 5) {
+                    piece.setExited();
+                }
+            }
+        }
+        return path;
+    };
+    OnWayOutPaths.prototype.getPiecePostionByIndex = function (piece, newIndex) {
+        var pieceOnWayoutPath;
+        pieceOnWayoutPath = this.getPiecePath(piece);
+        var x = pieceOnWayoutPath[0];
+        var y = pieceOnWayoutPath[1];
+        if (newIndex > 6) {
+            hlog.debug("Error!!! Index cannot be greater than six");
+            return;
+        }
+        else {
+            return new PiecePosition_1.PiecePosition(x[newIndex], y[newIndex]);
+        }
+    };
+    OnWayOutPaths.prototype.getPiecePath = function (piece) {
+        var pieceOnWayoutPath;
         switch (piece.color) {
             case ColorType_1.ColorType.Red:
-                x = this.red_x;
-                y = this.red_y;
+                pieceOnWayoutPath = [this.red_x, this.red_y];
                 break;
             case ColorType_1.ColorType.Blue:
-                x = this.blue_x;
-                y = this.blue_y;
+                pieceOnWayoutPath = [this.blue_x, this.blue_y];
                 break;
             case ColorType_1.ColorType.Yellow:
-                x = this.yellow_x;
-                y = this.yellow_y;
+                pieceOnWayoutPath = [this.yellow_x, this.yellow_y];
                 break;
             case ColorType_1.ColorType.Green:
-                x = this.green_x;
-                y = this.green_y;
+                pieceOnWayoutPath = [this.green_x, this.green_y];
                 break;
             default:
                 break;
         }
-        if (to > 6) {
-            hlog.debug("to " + to + " is greater than six! Something went wrong!!!");
-            to = 6;
-        }
-        for (var i = from; i < to; i++) {
-            path.x.push(x[i]);
-            path.y.push(y[i]);
-        }
-        path.newIndex = to - 1;
-        piece.setOnWayOut();
-        return path;
+        return pieceOnWayoutPath;
     };
-    return HomePaths;
+    return OnWayOutPaths;
 }());
-exports.HomePaths = HomePaths;
+exports.OnWayOutPaths = OnWayOutPaths;

@@ -14,6 +14,7 @@ import {ExitedBoard} from "../entities/ExitedBoard";
 import {factory} from "../logging/ConfigLog4j";
 import {AllPossibleMoves} from "./AllPossibleMoves";
 import {Path} from "../entities/Path";
+import {Perimeter} from "../entities/Perimeters";
 
 const log = factory.getLogger("model.RuleEnforcer");
 
@@ -37,6 +38,10 @@ export class RuleEnforcer {
 
     }
 
+    public setRollCounter(rollCounter: number): void {
+        this.rollCounter = rollCounter;
+    }
+
     public endOfDiceRoll(listener: string): void {
         if (listener === "endOfDieRoll") {
             ++this.rollCounter;
@@ -49,7 +54,6 @@ export class RuleEnforcer {
                     currentPlayer.previousDoubleSix = true;
                 }
                 if (currentPlayer.isAI) {
-                    // let AICurrentPlayer: AIPlayer = (AIPlayer) this.scheduler.getCurrentPlayer();
                     this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
                 }
                 // this.rule.checkBoardConsistencies();
@@ -129,7 +133,7 @@ export class RuleEnforcer {
                     if (backToHomePiece !== null) {
                         backToHomePiece.setAtHome();
                         piece.collidingPiece = backToHomePiece;
-                        piece.setExited();
+                        // piece.setExited();
                     }
                 }
             }
@@ -210,6 +214,8 @@ export class RuleEnforcer {
         let currentPlayer: Player = this.scheduler.getCurrentPlayer();
         this.currentPossibleMovements.resetMoves();
         this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
+        // log.debug("Possible Moves Generated: " + this.currentPossibleMovements.totalNumberOfRules());
+        // this.rule.showRulePools();
         this.analyzeAllPossibleMove(currentPlayer);
     }
 
@@ -238,7 +244,7 @@ export class RuleEnforcer {
                 // log.debug("NO FILTER LOGIC APPLIED...................................");
             }
         }
-        this.readAllMoves();
+        // this.readAllMoves();
     }
 
     private filterOnHasExactlyOneActivePiece(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -356,8 +362,9 @@ export class RuleEnforcer {
                     sharedIds = true;
                     if (splice) {
                         let illegalMove = activeMovements[x];
-                        log.debug("7 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                        // log.debug("7 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                         activeMovements.splice(x, 1);
+                        this.rule.addSpentMoveBackToPool(illegalMove);
                     }
                 }
             }
@@ -401,7 +408,8 @@ export class RuleEnforcer {
             if ((movements[x].diceId.split("#")).length > 1) {
                 legalMoves.push(movements[x]);
             }else {
-                log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
+                // log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
+                this.rule.addSpentMoveBackToPool(illegalMove);
             }
         }
         return legalMoves;
@@ -416,7 +424,8 @@ export class RuleEnforcer {
                     legalMoves.push(movements[x]);
                 }else {
                     let illegalMove = movements[x];
-                    log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                    // log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
+                    this.rule.addSpentMoveBackToPool(illegalMove);
                 }
              }
          }

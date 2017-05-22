@@ -96,12 +96,25 @@ import {Board} from "../entities/Board";
 
         if (activeMoves.length > 0) {
             this.activeMove.addSpentRulesBackToPool(activeMoves);
+            // this.activeMove.showFinalResults();
         }
         if (homeMoves.length > 0) {
             this.homeMove.addSpentRulesBackToPool(homeMoves);
+            // this.homeMove.showFinalResults();
         }
         if (onWayOutMoves.length > 0) {
             this.onWayOutMove.addSpentRulesBackToPool(moves);
+            // this.onWayOutMove.showFinalResults();
+        }
+    }
+
+    public addSpentMoveBackToPool(move: Move): void {
+        if (move.state === States.Active) {
+            this.activeMove.addToRulePool(move);
+        }else if (move.state === States.AtHome) {
+            this.homeMove.addToRulePool(move);
+        }else if (move.state === States.onWayOut) {
+             this.onWayOutMove.addToRulePool(move);
         }
     }
 
@@ -145,7 +158,7 @@ import {Board} from "../entities/Board";
            if (totalPieces !== 16) {
             log.debug("Total Pieces mismatch!!! active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
            }else {
-               // log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+               log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
            }
 
            if (playerActivePieces === activePieces && playerHomePieces === homePieces && playerOnwayoutPieces === onWayOutPieces && playerExitPieces === exitedPieces) {
@@ -157,6 +170,13 @@ import {Board} from "../entities/Board";
             log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
             log.debug("active: " + playerActivePieces + " home: " + playerHomePieces + " onwayOut: " + playerOnwayoutPieces + " exited: " + playerExitPieces);
            }
+    }
+
+    public showRulePools(): void {
+        log.debug("<Active> RulePool: " + this.activeMove.rulesPool.length + " ActiveRulePool " +  this.activeMove.activeRulePool.length);
+        log.debug("<Home> RulePool: " + this.homeMove.rulesPool.length + " ActiveRoolPool " + this.homeMove.activeRulePool.length);
+        log.debug("<OnWayOut> RulePool: " + this.onWayOutMove.rulesPool.length + " ActiveRulePool " + this.onWayOutMove.activeRulePool.length);
+        log.debug("----------------------------------------------------------------------");
     }
 
     private decodeActiveMove(move: Move): string {

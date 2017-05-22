@@ -28,14 +28,10 @@ var HomeBoard = (function (_super) {
         if (listener === "rom") {
             if (this.board.containsKey(piece.uniqueId)) {
                 this.board.remove(piece.uniqueId);
-                log.debug("From Listener: " + listener + " I am removing <" + piece.uniqueId +
-                    " " + piece.index + "> from homeboard: New size: " + this.board.size());
             }
         }
-        else if (listener === "backToHome") {
+        if (listener === "backToHome") {
             this.board.setValue(piece.uniqueId, piece.index);
-            log.debug("From Listener: " + listener + " I am adding <" + piece.uniqueId
-                + " " + piece.index + "> to homeboard: New Size " + this.board.size());
         }
     };
     HomeBoard.prototype.containsInHomeBoard = function (piece) {

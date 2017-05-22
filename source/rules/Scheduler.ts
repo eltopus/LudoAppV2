@@ -4,6 +4,7 @@ import {Player} from "../entities/Player";
 import {factory} from "../logging/ConfigLog4j";
 import {Piece} from "../entities/Piece";
 import {Dice} from "../entities/Dice";
+import {Perimeter} from "../entities/Perimeters";
 
 const log = factory.getLogger("model.Scheduler");
 
@@ -12,6 +13,7 @@ export class Scheduler {
     public allPieces: Collections.Dictionary<String, Piece>;
     public players: Player[] = [];
     private dice: Dice;
+    private sequenceNumber = 0;
     constructor(dice: Dice) {
         this.schedule = new Collections.Queue<Player>();
         this.allPieces = new Collections.Dictionary<String, Piece>();
@@ -39,9 +41,13 @@ export class Scheduler {
     public enqueue(player: Player): void {
         if (this.schedule.isEmpty()) {
             player.selectAllPiece();
+            player.sequenceNumber = this.sequenceNumber;
+            ++this.sequenceNumber;
             this.schedule.enqueue(player);
         }else {
             player.unselectAllPiece();
+            player.sequenceNumber = this.sequenceNumber;
+            ++this.sequenceNumber;
             this.schedule.enqueue(player);
         }
         for (let piece of player.pieces){
@@ -66,5 +72,43 @@ export class Scheduler {
             }
         });
         return owner;
+    }
+
+    public getHomeEnemyPerimeters(): Perimeter[] {
+        let currentPlayer = this.getCurrentPlayer();
+        let enemyPerimeter: Perimeter[] = [];
+        for (let player of this.players){
+            if (player.playerId !== currentPlayer.playerId) {
+                let sampleHomePieces = this.getCurrentPlayer().getSampleHomePieces();
+                if (sampleHomePieces.length > 0) {
+                    enemyPerimeter = player.piecesWithinHomePerimeters(sampleHomePieces);
+                }
+            }
+        }
+        return enemyPerimeter;
+    }
+
+    public getActiveEnemyPerimeterss(): Perimeter[] {
+        let currentPlayer = this.getCurrentPlayer();
+        let enemyPerimeter: Perimeter[] = [];
+        for (let player of this.players){
+            if (player.playerId !== currentPlayer.playerId) {
+                let sampleActivePieces = this.getCurrentPlayer().getSampleActivePieces();
+                if (sampleActivePieces.length > 0) {
+                    enemyPerimeter = player.piecesWithinHomePerimeters(sampleActivePieces);
+                }
+            }
+        }
+        return enemyPerimeter;
+    }
+
+    public addPerimetersToPool(perimeters: Perimeter[], playerId: string): void {
+        if (perimeters.length > 0) {
+             for (let player of this.players){
+                 if (player.playerId !== playerId) {
+                    player.addPerimetersToPool(perimeters);
+                 }
+            }
+        }
     }
 }

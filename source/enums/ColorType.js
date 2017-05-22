@@ -4,6 +4,6 @@ var ColorType;
 (function (ColorType) {
     ColorType[ColorType["Red"] = 0] = "Red";
     ColorType[ColorType["Blue"] = 1] = "Blue";
-    ColorType[ColorType["Green"] = 2] = "Green";
-    ColorType[ColorType["Yellow"] = 3] = "Yellow";
+    ColorType[ColorType["Yellow"] = 2] = "Yellow";
+    ColorType[ColorType["Green"] = 3] = "Green";
 })(ColorType = exports.ColorType || (exports.ColorType = {}));

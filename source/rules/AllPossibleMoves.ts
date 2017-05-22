@@ -38,6 +38,10 @@ export class AllPossibleMoves {
         return (this.activeMoves.length === 0 && this.homeMoves.length === 0 && this.onWayOutMoves.length === 0);
     }
 
+    public totalNumberOfRules(): number {
+        return (this.activeMoves.length + this.homeMoves.length + this.onWayOutMoves.length);
+    }
+
     public activeMoveContainsDieId(diceId: string): boolean {
         let match = false;
         for (let movement of this.activeMoves){

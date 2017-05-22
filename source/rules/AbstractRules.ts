@@ -8,6 +8,8 @@ import {Piece} from "../entities/Piece";
 import {States} from "../enums/States";
 import {ActiveBoard} from "../entities/ActiveBoard";
 import {HomeBoard} from "../entities/HomeBoard";
+import {ExitedBoard} from "../entities/ExitedBoard";
+import {OnWayOutBoard} from "../entities/OnWayOutBoard";
 import {factory} from "../logging/ConfigLog4j";
 
 const log = factory.getLogger("model.AbstractRules");
@@ -16,8 +18,8 @@ const log = factory.getLogger("model.AbstractRules");
 export abstract class AbstractRules {
     protected dice: Dice;
     protected schedule: Scheduler;
-    protected rulesPool: Move[];
-    protected activeRulePool: Move[];
+    public rulesPool: Move[];
+    public activeRulePool: Move[];
     protected board: Board;
 
     constructor(dice: Dice, schedule: Scheduler, board: Board) {
@@ -76,6 +78,8 @@ export abstract class AbstractRules {
              log.debug("Active rule: " + this.activeRulePool.length + " RulePool: " + this.rulesPool.length);
         }else if (this.board instanceof HomeBoard) {
             log.debug("Home rule: " + this.activeRulePool.length + " RulePool: " + this.rulesPool.length);
+        }else if (this.board instanceof OnWayOutBoard) {
+            log.debug("OnWayOut rule: " + this.activeRulePool.length + " RulePool: " + this.rulesPool.length);
         }
     }
 
@@ -153,6 +157,16 @@ export abstract class AbstractRules {
         return id;
     }
 
+    public addToRulePool(move: Move): void {
+        for (let i = 0, l = this.activeRulePool.length; i < l; i++) {
+            if (this.activeRulePool[i] === move) {
+                this.activeRulePool.splice(i, 1);
+            }
+        }
+        move.resetRule();
+        this.rulesPool.push(move);
+    }
+
     protected generatePieceMovement(dieUniqueIds: string[], piece: Piece, state: States): Move {
         let move: Move = this.getNewRule();
         if (dieUniqueIds.length === 2) {
@@ -169,16 +183,6 @@ export abstract class AbstractRules {
             move.pieceId = piece.uniqueId;
         }
         return move;
-    }
-
-    private addToRulePool(move: Move): void {
-        for (let i = 0, l = this.activeRulePool.length; i < l; i++) {
-            if (this.activeRulePool[i] === move) {
-                this.activeRulePool.splice(i, 1);
-            }
-        }
-        move.resetRule();
-        this.rulesPool.push(move);
     }
 
 

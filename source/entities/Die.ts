@@ -1,5 +1,6 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 import {Player} from "../entities/Player";
+import {LudoDie} from "../game/LudoDie";
 import {factory} from "../logging/ConfigLog4j";
 const log = factory.getLogger("model.Die");
 
@@ -7,13 +8,13 @@ export class Die extends Phaser.Sprite {
 
     public uniqueId: string;
     public group: Phaser.Group;
+    public playerId: string;
+    public extFrame: number = null;
+    private diceArr: number[] = [5, 1, 6, 2, 0, 4];
+    private removeLater = true;
     private signal: Phaser.Signal;
     private pixels: number[] = [];
     private animation: Phaser.Animation;
-    private playerId: string;
-    private diceArr: number[] = [5, 1, 6, 2, 0, 4];
-    private extFrame: number = null;
-    private removeLater = true;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, uniqueId: string, signal: Phaser.Signal) {
         super(game, x, y, imageId);
@@ -32,6 +33,7 @@ export class Die extends Phaser.Sprite {
         this.animation = this.animations.add("roll", this.pixels);
         this.animation.onComplete.add(this.rollComplete, this);
         this.events.onInputDown.add(this.selectActiveDie, this);
+        this.consume();
     }
 
     public selectActiveDie(): void {
@@ -40,6 +42,10 @@ export class Die extends Phaser.Sprite {
         }else {
             this.alpha = 0.5;
         }
+    }
+
+    public select(): void {
+        this.alpha = 0.5;
     }
 
     public unSelectActiveDie(): void {
@@ -118,6 +124,16 @@ export class Die extends Phaser.Sprite {
                 return 0;
             default:
                 return 8;
+        }
+    }
+
+     public setDieFrame(ludoDie: LudoDie): void {
+        this.frame = ludoDie.extFrame;
+        if (ludoDie.isSelected) {
+            this.select();
+        }
+        if (ludoDie.isConsumed) {
+            this.consume();
         }
     }
 

@@ -15,6 +15,7 @@ var States_1 = require("../enums/States");
 var Movement_1 = require("../movement/Movement");
 var PiecePosition_1 = require("../entities/PiecePosition");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
+var Path_1 = require("../entities/Path");
 var log = ConfigLog4j_1.factory.getLogger("model.Piece");
 var Piece = (function (_super) {
     __extends(Piece, _super);
@@ -39,47 +40,42 @@ var Piece = (function (_super) {
         _this.anchor.x = -0.07;
         _this.anchor.y = -0.07;
         _this.inputEnabled = true;
-        _this.movement = new Movement_1.Move();
+        _this.movement = new Movement_1.PieceMovement(signal);
         _this.speedConstant = 6000 * 12;
+        _this.collidingPiece = null;
+        _this.imageId = imageId;
         _this.events.onInputDown.add(_this.setActivePiece, _this);
         return _this;
     }
-    Piece.prototype.movePiece = function (newIndex) {
-        if (this.isAtHome()) {
-            this.index = this.startIndex;
+    Piece.prototype.constructPath = function (newIndex) {
+        var path = new Path_1.Path();
+        if (this.isOnWayOut()) {
+            path = this.movement.constructOnWayOutPath(this, this.index, newIndex);
         }
-        var path = this.movement.constructActivePath(this, newIndex);
-        if (path.isEmpty()) {
-            log.debug("Path is empty! Nothing to do...");
+        if (this.isActive() || this.isAtHome()) {
+            path = this.movement.constructActivePath(this, newIndex);
         }
-        else {
-            this.index = path.newIndex;
-            this.signal.dispatch("eom", this);
-            this.game.world.bringToTop(this.group);
-            var speed = this.getSpeed(path.x.length);
-            this.movePieceTo(path, speed);
-        }
+        return path;
     };
-    Piece.prototype.movePieceTo = function (path, speed) {
-        var tween = this.game.add.tween(this).to(path, 1000, Phaser.Easing.Linear.None, true).interpolation(function (v, k) {
-            return Phaser.Math.linearInterpolation(v, k);
-        });
-        tween.onComplete.add(this.onCompleteMovementBackToHome, this);
+    Piece.prototype.movePiece = function (path) {
+        this.signal.dispatch("startmovement", this);
+        this.game.world.bringToTop(this.group);
+        var speed = this.getSpeed(path.x.length);
+        this.movePieceTo(path, speed);
     };
-    Piece.prototype.onCompleteMovementBackToHome = function () {
-        log.debug("My index is " + this.index + " my state is " + this.getState());
+    Piece.prototype.onCompleteMovement = function () {
+        if (this.collidingPiece !== null) {
+            this.collidingPiece.moveToHome();
+            this.collidingPiece = null;
+        }
+        if (this.isExited()) {
+            this.visible = false;
+        }
+        this.signal.dispatch("completeMovement", this);
     };
     Piece.prototype.moveToHome = function () {
-        var path = this.movement.constructHomePath(this, this.index, this.index);
-        if (!path.isEmpty) {
-            this.signal.dispatch("backToHome", this);
-            this.index = path.newIndex;
-            this.game.world.bringToTop(this.group);
-            this.game.add.tween(this).to({ x: path.x, y: path.y }, 6000, Phaser.Easing.Linear.None, true);
-        }
-        else {
-            log.debug("Path is empty.");
-        }
+        this.game.world.bringToTop(this.group);
+        this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y }, 1000, Phaser.Easing.Linear.None, true);
     };
     Piece.prototype.getSpeed = function (distance) {
         return Math.floor(this.speedConstant / distance);
@@ -98,15 +94,23 @@ var Piece = (function (_super) {
     };
     Piece.prototype.setAtHome = function () {
         this.state = States_1.States.AtHome;
+        this.index = -1;
+        this.signal.dispatch("backToHome", this);
     };
     Piece.prototype.setActive = function () {
         this.state = States_1.States.Active;
+        this.signal.dispatch("rom", this);
     };
     Piece.prototype.setExited = function () {
+        this.state = States_1.States.Exited;
+        this.signal.dispatch("exit", this);
+    };
+    Piece.prototype.setCollisionExited = function () {
         this.state = States_1.States.Exited;
     };
     Piece.prototype.setOnWayOut = function () {
         this.state = States_1.States.onWayOut;
+        this.signal.dispatch("onwayout", this);
     };
     Piece.prototype.isAtEntryPoint = function () {
         return (this.index === this.entryIndex);
@@ -168,6 +172,77 @@ var Piece = (function (_super) {
             default:
                 return "";
         }
+    };
+    Piece.prototype.setParameters = function (x, y, index, state) {
+        this.x = x;
+        this.y = y;
+        this.state = state;
+        this.index = index;
+    };
+    Piece.prototype.getPerimeter = function () {
+        switch (this.color) {
+            case ColorType_1.ColorType.Red:
+                return 47;
+            case ColorType_1.ColorType.Blue:
+                return 8;
+            case ColorType_1.ColorType.Yellow:
+                return 21;
+            case ColorType_1.ColorType.Green:
+                return 34;
+            default:
+                return 0;
+        }
+    };
+    Piece.prototype.isRed = function () {
+        return this.color === ColorType_1.ColorType.Red;
+    };
+    Piece.prototype.isBlue = function () {
+        return this.color === ColorType_1.ColorType.Blue;
+    };
+    Piece.prototype.isYellow = function () {
+        return this.color === ColorType_1.ColorType.Yellow;
+    };
+    Piece.prototype.isGreen = function () {
+        return this.color === ColorType_1.ColorType.Green;
+    };
+    Piece.prototype.isWithinHomePerimeters = function (piece) {
+        var withinPerimeter = false;
+        if (this.isActive() && (this.index >= piece.getPerimeter()) && (this.index <= (piece.entryIndex + 1))) {
+            withinPerimeter = true;
+        }
+        if (this.isActive() && (piece.isRed()) && this.index === 0) {
+            withinPerimeter = true;
+        }
+        return withinPerimeter;
+    };
+    Piece.prototype.isWithinPerimeters = function (piece) {
+        var withinPerimeter = false;
+        if (this.isActive() && (this.index >= piece.getPerimeter()) && (this.index <= (piece.entryIndex + 1))) {
+            withinPerimeter = true;
+        }
+        if (this.isActive() && (piece.isRed()) && this.index === 0) {
+            withinPerimeter = true;
+        }
+        return withinPerimeter;
+    };
+    Piece.prototype.numberOfEnemiesWithinPerimeter = function (perimeters) {
+        var withinPerimeter = 0;
+        for (var _i = 0, perimeters_1 = perimeters; _i < perimeters_1.length; _i++) {
+            var perimeter = perimeters_1[_i];
+            if (perimeter.pieceIndex >= this.getPerimeter() && perimeter.pieceIndex <= (this.entryIndex + 1)) {
+                ++withinPerimeter;
+            }
+            if (this.isRed() && perimeter.pieceIndex === 0) {
+                ++withinPerimeter;
+            }
+        }
+        return withinPerimeter;
+    };
+    Piece.prototype.movePieceTo = function (path, speed) {
+        var tween = this.game.add.tween(this).to(path, 1000, Phaser.Easing.Linear.None, true).interpolation(function (v, k) {
+            return Phaser.Math.linearInterpolation(v, k);
+        });
+        tween.onComplete.add(this.onCompleteMovement, this);
     };
     Piece.prototype.getStartIndex = function (color) {
         switch (color) {

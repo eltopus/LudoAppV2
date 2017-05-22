@@ -1,2 +1,2 @@
 
-export enum ColorType { Red, Blue, Green, Yellow }
+export enum ColorType { Red, Blue, Yellow, Green }

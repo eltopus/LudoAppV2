@@ -7,7 +7,7 @@ var Board = (function () {
     function Board(signal) {
         this.signal = signal;
         this.board = new Collections.Dictionary();
-        this.signal.add(this.movement, this, 0, "eom");
+        this.signal.add(this.movement, this, 0, "startmovement");
     }
     return Board;
 }());
