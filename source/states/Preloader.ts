@@ -44,9 +44,6 @@ export class Preloader extends Phaser.State {
         let playerFour: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("playerFour", playerFourColors, true);
         newPlayers.push(playerFour);
 
-
-
-
         let newCreatedPlayers = new NewPlayers.NewPlayers(PlayerMode.AiFourPlayerAiVsAi, newPlayers, true);
         this.startGame(newCreatedPlayers);
     }
