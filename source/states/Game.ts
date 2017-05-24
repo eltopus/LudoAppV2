@@ -25,6 +25,7 @@ import {Move} from "../rules/Move";
 import {LudoGame} from "../game/LudoGame";
 import {LudoPlayer} from "../game/LudoPlayer";
 import {NewPlayers} from "../entities/NewPlayers";
+import * as $ from "jquery";
 
 
 const log = factory.getLogger("model.Game");
@@ -40,6 +41,9 @@ export class Game extends Phaser.State {
 
     public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
+        $("#createBtn").parent().click(() => {
+            //
+        });
     }
 
     public create() {
@@ -61,7 +65,7 @@ export class Game extends Phaser.State {
         diceBtn.scale.x = 0.2;
         diceBtn.scale.y = 0.2;
         buttonGroup.add(diceBtn);
-        let reportBtn = this.make.button(730, 320, "report", this.ireport, this, 2, 1, 0);
+        let reportBtn = this.make.button(730, 320, "report", this.fullScreen, this, 2, 1, 0);
         reportBtn.alpha = 0.5;
         reportBtn.scale.x = 0.3;
         reportBtn.scale.y = 0.3;
@@ -248,5 +252,13 @@ export class Game extends Phaser.State {
             }
         }
         return players;
+    }
+
+    private fullScreen(): void {
+        if (this.scale.isFullScreen) {
+            this.scale.stopFullScreen();
+        }else {
+            this.scale.startFullScreen(false);
+        }
     }
 }

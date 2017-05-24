@@ -19,6 +19,12 @@ app.use('/phaser', express.static(__dirname + '/node_modules/phaser/build/'));
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use('/dist', express.static(path.join(__dirname, '/dist')));
 app.use('/images', express.static(path.join(__dirname, '/images')));
+app.use('/js', express.static(path.join(__dirname, '/public/js')));
+app.use('/css', express.static(path.join(__dirname, '/public/css')));
+
+app.get('/setup', function (req, res) {
+    res.sendFile(path.join(__dirname + '/views/setup.html'));
+});
 
 app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname + '/views/index.html'));

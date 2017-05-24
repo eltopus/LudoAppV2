@@ -21,36 +21,11 @@ export class Preloader extends Phaser.State {
     }
 
     public create() {
-        let newPlayers: NewPlayers.NewPlayer[] = [];
-        /*
-        let playerOneColors = [ColorType.Red, ColorType.Blue];
-        let playerOne: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("playerOne", playerOneColors, true);
-        newPlayers.push(playerOne);
-        let playerTwoColors = [ColorType.Yellow, ColorType.Green];
-        let playerTwo: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("playerTwo", playerTwoColors, true);
-        newPlayers.push(playerTwo);
-        */
-
-        let playerOneColors = [ColorType.Red];
-        let playerOne: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("playerOne", playerOneColors, true);
-        newPlayers.push(playerOne);
-        let playerTwoColors = [ColorType.Blue];
-        let playerTwo: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("playerTwo", playerTwoColors, true);
-        newPlayers.push(playerTwo);
-        let playerThreeColors = [ColorType.Yellow];
-        let playerThree: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("playerThree", playerThreeColors, true);
-        newPlayers.push(playerThree);
-        let playerFourColors = [ColorType.Green];
-        let playerFour: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("playerFour", playerFourColors, true);
-        newPlayers.push(playerFour);
-
-        let newCreatedPlayers = new NewPlayers.NewPlayers(PlayerMode.AiFourPlayerAiVsAi, newPlayers, true);
-        this.startGame(newCreatedPlayers);
+        this.startGame();
     }
 
-    public startGame(newPlayers: NewPlayers.NewPlayers) {
-        newPlayers.ludogame = this.game.cache.getJSON("ludoGame");
-        this.game.state.start("Game", true, false, newPlayers);
+    public startGame() {
+        this.game.state.start("GameSetup", true, false);
     }
 
 }

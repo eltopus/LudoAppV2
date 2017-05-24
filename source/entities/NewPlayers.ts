@@ -4,7 +4,8 @@ import {PlayerMode} from "../enums/PlayerMode";
 export class NewPlayer {
     public color: ColorType[];
     public playerName: string;
-    public isAI;
+    public isAI: boolean;
+    public isCreator = false;
     constructor(playerName: string, color: ColorType[], isAI: boolean) {
         this.color = color;
         this.playerName = playerName;
@@ -13,15 +14,17 @@ export class NewPlayer {
 }
 
 export class NewPlayers {
-    public playerMode: PlayerMode;
-    public newPlayers: NewPlayer[];
-    public hasSavedGame: boolean;
-    public ludogame: any;
+    public playerMode: PlayerMode = null;
+    public newPlayers: NewPlayer[] = [];
+    public hasSavedGame = false;
+    public ludogame: any = null;
 
+    /*
     constructor(playerMode: PlayerMode, newPlayers: NewPlayer[], hasSavedGame: boolean, ludogame?: any) {
         this.playerMode = playerMode;
         this.newPlayers = newPlayers;
         this.hasSavedGame = hasSavedGame;
         this.ludogame = ludogame;
     }
+    */
 }

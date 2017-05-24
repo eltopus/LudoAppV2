@@ -108,11 +108,18 @@ gulp.task("build", function() {
 gulp.task("watch", ["default"], function () {
     
     browserSync.init({
-        server: "."
+        server: {
+            baseDir: ".",
+            index: "index.html",
+            serveStaticOptions: {
+            extensions: ["html"]
+            }
+        }
     });
     
     gulp.watch([ "source/**/**.ts", "test/**/*.ts"], ["default"]);
     gulp.watch("dist/*.js").on('change', browserSync.reload); 
+    gulp.watch("app.js").on('change', browserSync.reload); 
 });
 
 //******************************************************************************
