@@ -1,16 +1,203 @@
-<!DOCTYPE html>
-
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <title>Ludo Africa</title>
-    
-    <script src="./node_modules/phaser/build/phaser.min.js"></script>
-    <script src="./dist/ludo.min.js"></script>
+		
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport">
+	<title>Ludo Africa</title>
+	<link href="/css/bootstrap.min.css" rel="stylesheet">
+	<link href="/css/font-awesome.min.css" rel="stylesheet">
+	<link href="/css/sections-frmwrk-styles.css" rel="stylesheet">
+	<link href="/js/jquery-ui/jquery-ui.min.css" rel="stylesheet">
+	<script src="/js/jquery-1.12.2.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<script src="/js/jquery-ui/jquery-ui.min.js"></script>
+	<script src="/js/Example.js"></script>
+	<script src="/phaser/phaser.min.js"></script>
+    <script src="/dist/ludo.min.js"></script>
+<style>
+
+btn.sharp {
+  border-radius:0;
+}
+
+div#chatLog{
+  overflow-y: auto;
+  height: 80px;
+}
+
+#center{
+
+   position:absolute;
+   opacity : 0.5;
+   top: 55px;
+   margin: auto;
+   right: 45px;
+   z-index: 1;
+   display: inline;
+       	
+ }
+ .bb-alert
+{
+    position : fixed;
+    bottom: 25%;
+    right: 0;
+    margin-bottom: 0;
+    font-size: 1.2em;
+    padding: 1em 1.3em;
+    z-index: 2000;
+}
+
+
+</style>
+
 </head>
-<body>
-    <div id="gameContainer"></div>
-    <script type="text/javascript">
-    </script>
+	<body>
+	
+	<section style="display: block; padding-top: 1px;" class="blurred no-padding-bottom no-padding-top">
+	<nav class="navbar navbar-inverse no-margin-bottom" role="navigation">
+		<div class="container">
+			<div class="navbar-section">
+				 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse1"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand" href="#">LUDO AFRICA PROJECT</a>
+			</div>
+			
+			<div class="collapse navbar-collapse navbar-ex1-collapse1">
+				<ul class="nav navbar-nav navbar-right">
+					<li class="active">
+						 <a href="#">Home</a>
+					</li>
+					<li>
+						 <a href="#">About</a>
+					</li>
+					<li>
+						 <a href="#">Work</a>
+					</li>
+					<li>
+						 <a href="#">Services</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+	<div id="main" class="container">
+		<div class="row">
+				<nav class="navbar navbar-default" role="navigation">
+					<div class="navbar-header">
+						 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
+						 </button> <a class="navbar-brand">CREATE LUDO GAME</a>
+					</div>
+					<div class="collapse navbar-collapse navbar-ex1-collapse">
+						
+						<ul class="nav nav-pills left">
+                			<li class="dropdown active">
+	                    		<a class="dropdown-toggle  btn-sm" id="inp_impact" data-toggle="dropdown">
+	                        	 SELECT MODE<span class="caret"></span></a>
+	                    		<ul ID="divNewNotifications" class="dropdown-menu">
+									<li><a>2 PLAYER vs COMP</a></li>
+									<li><a>4 PLAYER vs COMP</a></li>
+	                            	<li><a>2 MULTIPLAYER</a></li> 
+									<li><a>4 MULTIPLAYER</a></li> 
+									<li><a>2 COMP vs COMP</a></li>    
+									<li><a>4 COMP vs COMP</a></li>                               
+	                    		</ul>
+                			</li>
+            			</ul>
+            			
+            				<form class="navbar-form">
+								<div class="form-group no-padding-top">
+									<input id="playerName" class="form-control" placeholder="PLAYER NAME" type="text" maxlength="10"/>
+								</div> 
+								<div  class = "btn-group" data-toggle = "buttons">
+   								<label class = "btn btn-danger">
+      								<input id="redBtn" type = "checkbox"> RED
+   								</label>
+   
+							   	<label class = "btn btn-primary">
+							      	<input id="blueBtn" type = "checkbox"> BLU
+							   	</label>
+   
+							   	<label class = "btn btn-warning">
+							      	<input id="yellowBtn" type = "checkbox"> YLW
+							   	</label>
+							   
+							   	<label class = "btn btn-success">
+							      	<input id="greenBtn" type = "checkbox"> GRN
+							   	</label>
+								</div>
+							</form>	
+							
+							<div class="form-group">
+     							<div class="margin-top-15">
+            						<button id="createBtn" type="button" class="btn btn-md btn-info">CREATE GAME</button>
+        						</div>
+    						</div>
+							
+					</div>
+							
+					
+				</nav>
+				
+				<nav class="navbar navbar-default" role="navigation">
+					<div class="navbar-header">
+						 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex2-collapse"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand">JOIN LUDO GAME</a>
+					</div>
+					
+					<div class="collapse navbar-collapse navbar-ex2-collapse">
+						
+						<form class="navbar-form">
+								<div class="form-group">
+									<input id="joinPlayerName" class="form-control" placeholder="PLAYER NAME" type="text" maxlength="10"/>
+								</div> 
+								<input id="gameCode" class="form-control" placeholder="GAME CODE" type="text"  maxlength="10" />
+						</form>	
+							<div class="form-group">
+     							<div class="margin-top-15">
+            						<button id="joinGameBtn" type="button" class="btn btn-md btn-info">JOIN GAME</button>
+        						</div>
+    						</div>
+					</div>
+					
+				</nav>
+		
+		</div>
+	</div>
+</section>
+
+<section class="blurred " style="display: block; padding-top: 20px; padding-bottom: 20px;" id="orient">
+	<div class="container">
+		<div class="row">
+			<div id="dialog" title=" " class="selector"> </div>
+			<div class="bb-alert alert alert-info" id="bootModal" style="display:none;">
+       					<span></span>
+ 					</div>
+				<div id="gameContainer"></div>
+		</div>
+	</div>
+</section>
+
+<section class="no-padding-bottom no-padding-top" style="display: block;">
+
+<div id="formContainer">
+		<div class="input-group">
+			<div id="chatLog"></div>
+    			<input id="chat" class="form-control custom-control" placeholder="Enter your message" autocomplete="off" style="resize:none" />     
+    			<span id="sendBtn" class="input-group-addon btn btn-primary">Send</span>
+			</div>
+		</div>
+</section>
+
+<script type="text/javascript">
+$(document).ready(function() {
+    $('.dropdown-toggle').dropdown();
+		$(function () {
+            Example.init({
+                "selector": ".bb-alert"
+            });
+        });
+});
+
+</script>
+
 </body>
 </html>

@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var ColorType_1 = require("../enums/ColorType");
 var MoveStatus_1 = require("../enums/MoveStatus");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
@@ -26,6 +25,7 @@ var ActivePath = (function () {
         ];
     }
     ActivePath.prototype.getPath = function (piece, to, path) {
+        // check if piece is at home
         if (piece.isAtHome()) {
             path.x.push(piece.startPosition.x);
             path.y.push(piece.startPosition.y);
@@ -34,21 +34,28 @@ var ActivePath = (function () {
         }
         var entryPoint = piece.entryIndex;
         var from = piece.index + 1;
+        // Necessary to force condition that moves piece in to entrypoint index
         if (piece.isAtEntryPoint()) {
             from = piece.index;
         }
+        // alog.debug("Stepping into From: " + from + " to: " + to + " entryPoint: " + entryPoint);
         for (var i = from; i < to + 1; i++) {
+            // When piece has reached entry index and needs to enter entrytpoint
             if (i < 52) {
                 if (i === entryPoint) {
+                    // Make sure to push entry point
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
                     var remainder = (to % entryPoint);
+                    // alog.debug("Remainder is " + remainder + " to  is " + to);
                     path.moveRemainder = remainder;
                     path.newIndex = entryPoint;
                     path.moveStatus = MoveStatus_1.MoveStatus.ShouldBeExiting;
+                    // alog.debug("i === entryPoint " + entryPoint + " time to enter entry with " + path.moveRemainder);
                     break;
                 }
                 else {
+                    // when a piece is somewhere between entryindex and end of active index
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
                     path.newIndex = i;
@@ -56,7 +63,9 @@ var ActivePath = (function () {
             }
             else if (i > 51) {
                 var remainder = (to % 51);
+                // hlog.debug("k > 51 " + i + " time to round robin with remainder " + remainder);
                 for (var j = 0; j < remainder; j++) {
+                    // alog.debug("After x " + this.x[j] + " y: " + this.y[j] + " remainder: " + remainder);
                     path.x.push(this.x[j]);
                     path.y.push(this.y[j]);
                 }
@@ -64,6 +73,9 @@ var ActivePath = (function () {
                 break;
             }
         }
+        // log.debug("Nothing to do.... " + path.moveRemainder);
+        // hlog.debug("Path x " + path.x.join());
+        // hlog.debug("Path y " + path.y.join());
         return path;
     };
     ActivePath.prototype.getPiecePostionByIndex = function (index) {
@@ -94,7 +106,10 @@ var OnWayOutPaths = (function () {
         pieceOnWayoutPath = this.getPiecePath(piece);
         var x = pieceOnWayoutPath[0];
         var y = pieceOnWayoutPath[1];
+        // hlog.debug("Piece " + piece.uniqueId + " is on the way out ");
+        // Different workflow depending on the states
         if (piece.isActive()) {
+            // This condition should have been taken care of by the Rule.
             if (to > 6) {
                 hlog.debug("to " + to + " is greater than six! Something went wrong!!!");
             }
@@ -123,6 +138,8 @@ var OnWayOutPaths = (function () {
                     path.y.push(y[i]);
                 }
                 path.newIndex = to;
+                // hlog.debug("On Way Out Path x " + path.x.join() + " newIndex " + to);
+                // hlog.debug("On Way Out Path y " + path.y.join() + " newIndex " + to);
                 if (to === 5) {
                     piece.setExited();
                 }

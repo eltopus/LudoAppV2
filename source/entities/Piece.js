@@ -1,51 +1,48 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+/// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 var ColorType_1 = require("../enums/ColorType");
 var States_1 = require("../enums/States");
 var Movement_1 = require("../movement/Movement");
 var PiecePosition_1 = require("../entities/PiecePosition");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var Path_1 = require("../entities/Path");
+// import * as Phasertips from "../Phasertips";
 var log = ConfigLog4j_1.factory.getLogger("model.Piece");
 var Piece = (function (_super) {
     __extends(Piece, _super);
+    // public tips: Phasertips;
     function Piece(game, x, y, imageId, color, playerId, uniqueId, startPosition, signal) {
-        var _this = _super.call(this, game, x, y, imageId) || this;
-        _this.color = color;
-        _this.playerId = playerId;
-        _this.uniqueId = uniqueId;
-        _this.startPosition = startPosition;
-        _this.homePosition = new PiecePosition_1.PiecePosition(x, y);
-        _this.game.physics.enable(_this, Phaser.Physics.ARCADE);
-        _this.frame = 0;
-        _this.index = -1;
-        _this.entryIndex = _this.getEntryIndex();
-        _this.startIndex = _this.getStartIndex(color);
-        _this.state = States_1.States.AtHome;
-        _this.group = _this.game.add.group();
-        _this.group.add(_this);
-        _this.signal = signal;
-        _this.scale.x = 1.1;
-        _this.scale.y = 1.1;
-        _this.anchor.x = -0.07;
-        _this.anchor.y = -0.07;
-        _this.inputEnabled = true;
-        _this.movement = new Movement_1.PieceMovement(signal);
-        _this.speedConstant = 6000 * 12;
-        _this.collidingPiece = null;
-        _this.imageId = imageId;
-        _this.events.onInputDown.add(_this.setActivePiece, _this);
-        return _this;
+        _super.call(this, game, x, y, imageId);
+        this.color = color;
+        this.playerId = playerId;
+        this.uniqueId = uniqueId;
+        this.startPosition = startPosition;
+        this.homePosition = new PiecePosition_1.PiecePosition(x, y);
+        this.game.physics.enable(this, Phaser.Physics.ARCADE);
+        this.frame = 0;
+        this.index = -1;
+        this.entryIndex = this.getEntryIndex();
+        this.startIndex = this.getStartIndex(color);
+        this.state = States_1.States.AtHome;
+        this.group = this.game.add.group();
+        this.group.add(this);
+        this.signal = signal;
+        this.scale.x = 1.1;
+        this.scale.y = 1.1;
+        this.anchor.x = -0.07;
+        this.anchor.y = -0.07;
+        this.inputEnabled = true;
+        this.movement = new Movement_1.PieceMovement(signal);
+        this.speedConstant = 6000 * 12;
+        this.collidingPiece = null;
+        this.imageId = imageId;
+        // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
+        this.events.onInputDown.add(this.setActivePiece, this);
     }
     Piece.prototype.constructPath = function (newIndex) {
         var path = new Path_1.Path();
@@ -73,6 +70,10 @@ var Piece = (function (_super) {
         }
         this.signal.dispatch("completeMovement", this);
     };
+    /**
+     * Moves piece to homePosition
+     * Sends backToHome signal to Game and Board child classes
+     */
     Piece.prototype.moveToHome = function () {
         this.game.world.bringToTop(this.group);
         this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y }, 1000, Phaser.Easing.Linear.None, true);
@@ -105,6 +106,10 @@ var Piece = (function (_super) {
         this.state = States_1.States.Exited;
         this.signal.dispatch("exit", this);
     };
+    Piece.prototype.setExitedWithoutDispatch = function () {
+        this.state = States_1.States.Exited;
+        this.visible = false;
+    };
     Piece.prototype.setCollisionExited = function () {
         this.state = States_1.States.Exited;
     };
@@ -115,9 +120,19 @@ var Piece = (function (_super) {
     Piece.prototype.isAtEntryPoint = function () {
         return (this.index === this.entryIndex);
     };
+    /**
+     * Dispatches select signal to player
+     * Player and piece must have the same player id
+     * @param uniqueId
+     */
     Piece.prototype.setActivePiece = function () {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
     };
+    /**
+     * Dispatches select signal to player
+     * Player and piece must have the same player id
+     * @param uniqueId
+     */
     Piece.prototype.unsetActivePiece = function () {
         this.signal.dispatch("unselect", this.uniqueId, this.playerId);
         this.frame = 0;
@@ -237,6 +252,19 @@ var Piece = (function (_super) {
             }
         }
         return withinPerimeter;
+    };
+    Piece.prototype.getCurrentPiecePostionByIndex = function () {
+        var piecePosition = null;
+        if (this.isActive()) {
+            piecePosition = this.movement.activePath.getPiecePostionByIndex(this.index);
+        }
+        else if (this.isOnWayOut()) {
+            piecePosition = this.movement.onWayOutPaths.getPiecePostionByIndex(this, this.index);
+        }
+        else {
+            piecePosition = this.homePosition;
+        }
+        return piecePosition;
     };
     Piece.prototype.movePieceTo = function (path, speed) {
         var tween = this.game.add.tween(this).to(path, 1000, Phaser.Easing.Linear.None, true).interpolation(function (v, k) {

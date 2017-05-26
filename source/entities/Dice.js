@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Die_1 = require("./Die");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Dice");
@@ -26,6 +25,11 @@ var Dice = (function () {
         this.dieOne.setPlayerId(playerId);
         this.dieTwo.setPlayerId(playerId);
     };
+    /**
+     * Returns the uniqueId of the first occurrence
+     * of the die matching the value
+     * @param value
+     */
     Dice.prototype.getDieUniqueIdByValue = function (value) {
         if (this.dieOne.getValue() === value) {
             return this.dieOne.uniqueId;
@@ -37,6 +41,10 @@ var Dice = (function () {
             return null;
         }
     };
+    /**
+     * Returns an array of dice values
+     * @param uniqueId
+     */
     Dice.prototype.getDieValueArrayByUniqueId = function (uniqueId) {
         var uniqueIds = [];
         var ids = uniqueId.split("#");
@@ -56,6 +64,9 @@ var Dice = (function () {
         }
         return uniqueIds;
     };
+    /**
+     * Returns an array of uniqueIds of selected dice
+     */
     Dice.prototype.getSelectedDiceUniqueIds = function () {
         var diceUniqueIds = [];
         if (this.dieOne.isSelected()) {
@@ -105,12 +116,21 @@ var Dice = (function () {
     Dice.prototype.bothDiceConsumed = function () {
         return (this.dieOne.isConsumed() && this.dieTwo.isConsumed());
     };
+    /**
+     * Returns true if one of the dice value is 6
+     */
     Dice.prototype.rolledAtLeastOneSix = function () {
         return (this.dieOne.getValue() === 6 || this.dieTwo.getValue() === 6);
     };
+    /**
+     * Returns true if both dice values are 6 and 6
+     */
     Dice.prototype.rolledDoubleSix = function () {
         return (this.dieOne.getValue() === 6 && this.dieTwo.getValue() === 6);
     };
+    /**
+     * Returns true if both dice values are greater than 0
+     */
     Dice.prototype.bothDiceHasLegitValues = function () {
         return (this.dieOne.getValue() > 0 && this.dieTwo.getValue() > 0);
     };

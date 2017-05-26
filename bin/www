@@ -20,6 +20,7 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+var io = require('socket.io')(http);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -80,6 +81,9 @@ function onError(error) {
 /**
  * Event listener for HTTP server "listening" event.
  */
+io.on('connection', function(socket){
+	debug('Listening on ' + socket.id);
+});
 
 function onListening() {
   var addr = server.address();
@@ -88,3 +92,40 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+/*
+        for (let x = 4; x < this.playerOne.pieces.length; x++) {
+            homeboard.removePieceFromHomeBoard(this.playerOne.pieces[x]);
+            exitedBoard.addPieceToActiveBoard(this.playerOne.pieces[x]);
+            this.playerOne.pieces[x].setExited();
+            this.playerOne.pieces[x].visible = false;
+        }
+        let p1 = this.playerOne.pieces[0];
+        homeboard.removePieceFromHomeBoard(p1);
+        // this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p1, 19, States.Active, activeboard);
+
+        let p2 = this.playerOne.pieces[1];
+        homeboard.removePieceFromHomeBoard(p2);
+        this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
+        // this.setActivePieceParameters(p2, 51, States.Active, activeboard);
+
+        let p3 = this.playerOne.pieces[3];
+        homeboard.removePieceFromHomeBoard(p3);
+        this.setOnWayOutPieceParameters(p3, 4, States.onWayOut, onWayOutBoard);
+        // this.setActivePieceParameters(p3, 50, States.Active, activeboard);
+        let p4 = this.playerTwo.pieces[1];
+        homeboard.removePieceFromHomeBoard(p4);
+        // this.setOnWayOutPieceParameters(p4, 3, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p4, 51, States.Active, activeboard);
+
+        let p5 = this.playerTwo.pieces[5];
+        homeboard.removePieceFromHomeBoard(p5);
+        // this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p5, 49, States.Active, activeboard);
+
+        let p6 = this.playerTwo.pieces[6];
+        homeboard.removePieceFromHomeBoard(p6);
+        // this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
+        this.setActivePieceParameters(p6, 50, States.Active, activeboard);
+        */

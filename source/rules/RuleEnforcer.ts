@@ -15,6 +15,7 @@ import {factory} from "../logging/ConfigLog4j";
 import {AllPossibleMoves} from "./AllPossibleMoves";
 import {Path} from "../entities/Path";
 import {Perimeter} from "../entities/Perimeters";
+import {EmitDice} from "../emit/EmitDice";
 
 const log = factory.getLogger("model.RuleEnforcer");
 
@@ -25,6 +26,7 @@ export class RuleEnforcer {
     private signal: Phaser.Signal;
     private rollCounter = 0;
     private currentPossibleMovements: AllPossibleMoves;
+    private emitDice;
 
     constructor(signal: Phaser.Signal, scheduler: Scheduler, dice: Dice, activeboard: ActiveBoard,
     homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, exitedBoard: ExitedBoard, currentPossibleMovements?: AllPossibleMoves) {
@@ -35,6 +37,7 @@ export class RuleEnforcer {
         this.rule = new Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
         this.signal.add(this.onCompletePieceMovement, this, 0, "completeMovement");
+        this.emitDice = new EmitDice();
 
     }
 
@@ -47,6 +50,8 @@ export class RuleEnforcer {
             ++this.rollCounter;
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
+                this.emitDice.setParameters(this.dice);
+                this.signal.dispatch("emitRollDice", this.emitDice);
                 this.currentPossibleMovements.resetMoves();
                 this.generateAllPossibleMoves();
                 let currentPlayer = this.scheduler.getCurrentPlayer();

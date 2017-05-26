@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Movement_1 = require("../movement/Movement");
 var Path_1 = require("../entities/Path");
 var AIBrainBox = (function () {
@@ -21,3 +20,4 @@ var AIBrainBox = (function () {
     return AIBrainBox;
 }());
 exports.AIBrainBox = AIBrainBox;
+//# sourceMappingURL=AIBrainBox.js.map

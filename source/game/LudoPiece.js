@@ -1,6 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var PiecePosition_1 = require("../entities/PiecePosition");
 var LudoPiece = (function () {
     function LudoPiece(piece) {
         this.collidingPiece = null;
@@ -12,7 +10,7 @@ var LudoPiece = (function () {
         this.state = piece.state;
         this.startPosition = piece.startPosition;
         this.homePosition = piece.homePosition;
-        this.currentPosition = new PiecePosition_1.PiecePosition(piece.x, piece.y);
+        this.currentPosition = piece.getCurrentPiecePostionByIndex();
         this.entryIndex = piece.entryIndex;
         this.imageId = piece.imageId;
         if (piece.collidingPiece !== null) {

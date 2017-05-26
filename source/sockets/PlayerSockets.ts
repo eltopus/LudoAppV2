@@ -1,31 +1,63 @@
-import * as sio from "socket.io";
+// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
+import * as cio from "socket.io-client";
 import {factory} from "../logging/ConfigLog4j";
+import {Scheduler} from "../rules/Scheduler";
+import {LudoGame} from "../game/LudoGame";
+import {EmitDice} from "../emit/EmitDice";
+import {LudoDie} from "../game/LudoDie";
+import {LudoPiece} from "../game/LudoPiece";
+import {Move} from "../rules/Move";
 
 const log = factory.getLogger("model.PlayerSockets");
 
 export class PlayerSockets {
+    private socket: any = cio();
+    private scheduler: Scheduler;
+    private signal: Phaser.Signal;
 
-    public emitRollDice(): void {
-        log.debug("Emit rollDice");
+    constructor(signal: Phaser.Signal) {
+        this.signal = signal;
+        this.signal.add(this.rollDice, this, 0, "endOfDieRoll");
+        this.socket.on("connect", () => {
+            log.debug("**Player is connected*****");
+        });
     }
 
-    public emitSelectDie(): void {
-        log.debug("Select Die");
+    public saveCreatedGameToServer(ludoGame: LudoGame, callback): void {
+        this.socket.emit("saveGameToServer", ludoGame, (message: string) => {
+            callback(message);
+        });
     }
 
-    public emitUnselectDie(): void {
-        log.debug("Unselect Die");
+    public setScheduler(scheduler: Scheduler): void {
+        this.scheduler = scheduler;
     }
 
-    public emitSelectPiece(): void {
-        log.debug("Select piece");
+    public rollDice(listener: string, dice: EmitDice): void {
+        if (listener === "emitRollDice") {
+            this.socket.emit("rollDice", dice, (message) => {
+                log.debug("RollDice: " + message);
+            });
+        }
     }
 
-    public emitUnselectPiece(): void {
-        log.debug("Unselect Piece");
+    public selectDie(die: LudoDie): void {
+        this.socket.emit("selectDie", die);
     }
 
-    public emitPlayPiece(): void {
-        log.debug("Play piece");
+    public unselectDie(die: LudoDie): void {
+        this.socket.emit("unselectDie", die);
+    }
+
+    public selectPiece(piece: LudoPiece): void {
+        this.socket.emit("selectPiece", piece);
+    }
+
+    public unselectPiece(piece: LudoPiece): void {
+        this.socket.emit("unselectPiece", piece);
+    }
+
+    public playPiece(movement: Move): void {
+        this.socket.emit("playDice", movement);
     }
 }

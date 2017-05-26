@@ -1,15 +1,9 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var Player_1 = require("./Player");
 var AIBrainBox_1 = require("../ai/AIBrainBox");
@@ -19,15 +13,14 @@ var log = ConfigLog4j_1.factory.getLogger("model.PlayerAI");
 var AIPlayer = (function (_super) {
     __extends(AIPlayer, _super);
     function AIPlayer(game, name, playerId, turn, colorTypes, signal, ludoPiece, ruleEnforcer, previousDoubleSix) {
-        var _this = _super.call(this, game, name, playerId, turn, colorTypes, signal, ludoPiece, previousDoubleSix) || this;
-        _this.ruleEnforcer = null;
-        _this.isAI = true;
-        _this.ruleEnforcer = ruleEnforcer;
-        _this.signal.add(_this.aiRollDice, _this, 0, "aiRollDice");
-        _this.signal.add(_this.playAIPlayerMovement, _this, 0, "aiPlayerMovement");
-        _this.logic = new AIBrainBox_1.AIBrainBox(_this.ruleEnforcer, _this.signal);
-        _this.strategy = AIStrategy_1.AIStrategy.Defending;
-        return _this;
+        _super.call(this, game, name, playerId, turn, colorTypes, signal, ludoPiece, previousDoubleSix);
+        this.ruleEnforcer = null;
+        this.isAI = true;
+        this.ruleEnforcer = ruleEnforcer;
+        this.signal.add(this.aiRollDice, this, 0, "aiRollDice");
+        this.signal.add(this.playAIPlayerMovement, this, 0, "aiPlayerMovement");
+        this.logic = new AIBrainBox_1.AIBrainBox(this.ruleEnforcer, this.signal);
+        this.strategy = AIStrategy_1.AIStrategy.Defending;
     }
     AIPlayer.prototype.playAIPlayerMovement = function (listener, playerId, currentPossibleMovements) {
         var _this = this;
@@ -179,3 +172,4 @@ var AIPlayer = (function (_super) {
     return AIPlayer;
 }(Player_1.Player));
 exports.AIPlayer = AIPlayer;
+//# sourceMappingURL=AIPlayer.js.map

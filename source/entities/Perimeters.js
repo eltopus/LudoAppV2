@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Perimeters");
 var Perimeter = (function () {
@@ -51,6 +50,7 @@ var Perimeters = (function () {
         this.showPerimeterPool(playerId);
     };
     Perimeters.prototype.showPerimeterPool = function (playerId) {
+        // log.debug(playerId + " PerimeterRoolPool: " + this.perimeterPool.length + " activePerimeterPool: " + this.activePerimeterPool.length);
     };
     return Perimeters;
 }());

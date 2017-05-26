@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var LudoPiece_1 = require("./LudoPiece");
 var LudoPlayer = (function () {
     function LudoPlayer(player) {

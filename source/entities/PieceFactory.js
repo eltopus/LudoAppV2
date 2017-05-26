@@ -1,5 +1,6 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
+/// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 var Piece_1 = require("../entities/Piece");
 var ColorType_1 = require("../enums/ColorType");
 var PiecePosition_1 = require("../entities/PiecePosition");
@@ -54,6 +55,23 @@ var PieceFactory = (function () {
             return [];
         }
     };
+    /*
+        this.color = piece.color;
+            this.playerId = piece.playerId;
+            this.uniqueId = piece.uniqueId;
+            this.index = piece.index;
+            this.startIndex = piece.startIndex;
+            this.state = piece.state;
+            this.startPosition = piece.startPosition;
+            this.homePosition = piece.homePosition;
+            this.currentPosition = new PiecePosition(piece.x, piece.y);
+            this.entryIndex = piece.entryIndex;
+            this.imageId = piece.imageId;
+            if (piece.collidingPiece !== null) {
+                this.collidingPiece = new LudoPiece(piece.collidingPiece);
+            }
+        }
+        */
     PieceFactory.prototype.createExistingPieces = function (ludoPieces, signal) {
         var pieces = [];
         var collidingPieces = [];

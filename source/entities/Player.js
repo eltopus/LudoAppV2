@@ -1,15 +1,9 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var PieceFactory_1 = require("../entities/PieceFactory");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var Perimeters_1 = require("./Perimeters");
@@ -17,36 +11,35 @@ var log = ConfigLog4j_1.factory.getLogger("model.Player");
 var Player = (function (_super) {
     __extends(Player, _super);
     function Player(game, name, playerId, turn, colorTypes, signal, ludoPieces, previousDoubleSix) {
-        var _this = _super.call(this, game) || this;
-        _this.pieces = [];
-        _this.previousDoubleSix = false;
-        _this.isAI = false;
-        _this.sequenceNumber = 0;
-        _this.name = name;
-        _this.playerId = playerId;
-        _this.turn = turn;
-        _this.pieces = new Array();
-        _this.signal = signal;
-        _this.signal.add(_this.selectCurrentPiece, _this, 0, "select");
-        _this.currentSelectedPiece = null;
-        _this.perimeters = new Perimeters_1.Perimeters();
-        _this.colorTypes = colorTypes;
+        _super.call(this, game);
+        this.pieces = [];
+        this.previousDoubleSix = false;
+        this.isAI = false;
+        this.sequenceNumber = 0;
+        this.name = name;
+        this.playerId = playerId;
+        this.turn = turn;
+        this.pieces = new Array();
+        this.signal = signal;
+        this.signal.add(this.selectCurrentPiece, this, 0, "select");
+        this.currentSelectedPiece = null;
+        this.perimeters = new Perimeters_1.Perimeters();
+        this.colorTypes = colorTypes;
         if (typeof previousDoubleSix !== "undefined") {
-            _this.previousDoubleSix = previousDoubleSix;
+            this.previousDoubleSix = previousDoubleSix;
         }
         if (typeof ludoPieces !== "undefined" && ludoPieces !== null) {
-            _this.pieces = _this.createExistingPieces(ludoPieces, _this.signal);
+            this.pieces = this.createExistingPieces(ludoPieces, this.signal);
         }
         else {
             for (var x = 0; x < colorTypes.length; x++) {
-                var playerPieces = _this.createNewPieces(colorTypes[x], playerId, _this.signal);
+                var playerPieces = this.createNewPieces(colorTypes[x], playerId, this.signal);
                 for (var _i = 0, playerPieces_1 = playerPieces; _i < playerPieces_1.length; _i++) {
                     var piece = playerPieces_1[_i];
-                    _this.pieces.push(piece);
+                    this.pieces.push(piece);
                 }
             }
         }
-        return _this;
     }
     Player.prototype.setSelectedPieceByUniqueId = function (uniqueId) {
         for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
@@ -127,6 +120,7 @@ var Player = (function (_super) {
         }
         return onWayOutPieces;
     };
+    // Necessarily.. although it looks like a duplicate
     Player.prototype.getPlayerOnWayOutPieces = function () {
         var onWayOutPieces = [];
         for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
@@ -137,6 +131,7 @@ var Player = (function (_super) {
         }
         return onWayOutPieces;
     };
+    // Necessarily.. although it looks like a duplicate
     Player.prototype.getPlayerActivePieces = function () {
         var activePieces = [];
         for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
@@ -183,7 +178,13 @@ var Player = (function (_super) {
         }
         return allPiecesOnWayOut;
     };
+    /**
+     * Receives select signal from piece and set select or unselect on piece
+     * using piece uniqueId
+     * @param uniqueId
+     */
     Player.prototype.selectCurrentPiece = function (listener, uniqueId, playerId) {
+        // check if you are the right owner of the piece
         if (this.turn && this.playerId === playerId) {
             if (listener === "select") {
                 for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {

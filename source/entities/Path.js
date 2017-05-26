@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var MoveStatus_1 = require("../enums/MoveStatus");
 var Path = (function () {
     function Path() {

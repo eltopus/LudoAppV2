@@ -25,6 +25,7 @@ import {Move} from "../rules/Move";
 import {LudoGame} from "../game/LudoGame";
 import {LudoPlayer} from "../game/LudoPlayer";
 import {NewPlayers} from "../entities/NewPlayers";
+import {PlayerSockets} from "../sockets/PlayerSockets";
 import * as $ from "jquery";
 
 
@@ -38,18 +39,17 @@ export class Game extends Phaser.State {
     private players: Player[] = [];
     private playerMode: PlayerMode;
     private newPlayers: NewPlayers;
+    private sockets: PlayerSockets;
 
     public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
-        $("#createBtn").parent().click(() => {
-            //
-        });
     }
 
     public create() {
 
         this.add.sprite(0, 0, "board");
         this.signal = new Phaser.Signal();
+        this.sockets = new PlayerSockets(this.signal);
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
         let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
@@ -84,6 +84,7 @@ export class Game extends Phaser.State {
             this.dice.dieOne.setDieFrame(this.newPlayers.ludogame.ludoDice.dieOne);
             this.dice.dieTwo.setDieFrame(this.newPlayers.ludogame.ludoDice.dieTwo);
             this.scheduler = new Scheduler(this.dice);
+            this.sockets.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
             onWayOutBoard, exitedBoard, currentPossibleMovements);
             for (let ludoPlayer of this.newPlayers.ludogame.ludoPlayers){
@@ -114,6 +115,7 @@ export class Game extends Phaser.State {
             let dieTwoUUID = UUID.UUID();
             this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID);
             this.scheduler = new Scheduler(this.dice);
+            this.sockets.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
             onWayOutBoard, exitedBoard, currentPossibleMovements);
             let players: Player[] = this.createNewPlayers(this.newPlayers);
@@ -124,60 +126,11 @@ export class Game extends Phaser.State {
                     homeboard.addPieceToHomeBoard(piece);
                 }
             }
+            this.createAndPersistGame();
 
         }
 
-        this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
-        /*
-        for (let x = 4; x < this.playerOne.pieces.length; x++) {
-            homeboard.removePieceFromHomeBoard(this.playerOne.pieces[x]);
-            exitedBoard.addPieceToActiveBoard(this.playerOne.pieces[x]);
-            this.playerOne.pieces[x].setExited();
-            this.playerOne.pieces[x].visible = false;
-        }
-        let p1 = this.playerOne.pieces[0];
-        homeboard.removePieceFromHomeBoard(p1);
-        // this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p1, 19, States.Active, activeboard);
-
-        let p2 = this.playerOne.pieces[1];
-        homeboard.removePieceFromHomeBoard(p2);
-        this.setOnWayOutPieceParameters(p2, 4, States.onWayOut, onWayOutBoard);
-        // this.setActivePieceParameters(p2, 51, States.Active, activeboard);
-
-        let p3 = this.playerOne.pieces[3];
-        homeboard.removePieceFromHomeBoard(p3);
-        this.setOnWayOutPieceParameters(p3, 4, States.onWayOut, onWayOutBoard);
-        // this.setActivePieceParameters(p3, 50, States.Active, activeboard);
-        let p4 = this.playerTwo.pieces[1];
-        homeboard.removePieceFromHomeBoard(p4);
-        // this.setOnWayOutPieceParameters(p4, 3, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p4, 51, States.Active, activeboard);
-
-        let p5 = this.playerTwo.pieces[5];
-        homeboard.removePieceFromHomeBoard(p5);
-        // this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p5, 49, States.Active, activeboard);
-
-        let p6 = this.playerTwo.pieces[6];
-        homeboard.removePieceFromHomeBoard(p6);
-        // this.setOnWayOutPieceParameters(p5, 3, States.onWayOut, onWayOutBoard);
-        this.setActivePieceParameters(p6, 50, States.Active, activeboard);
-        */
-
-        if (this.scheduler.getCurrentPlayer().isAI) {
-            if (this.dice.bothDiceConsumed()) {
-                 this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
-            }else {
-                this.enforcer.setRollCounter(1);
-                this.enforcer.endOfDiceRoll("endOfDieRoll");
-            }
-        }else if (this.scheduler.getCurrentPlayer().isAI === false && this.dice.bothDiceConsumed() === false) {
-            this.enforcer.setRollCounter(1);
-            this.enforcer.endOfDiceRoll("endOfDieRoll");
-        }
-
-        this.enforcer.rule.checkBoardConsistencies();
+        this.waitUntilGameStarts();
 
 
     }
@@ -229,6 +182,22 @@ export class Game extends Phaser.State {
         return player;
     }
 
+    private waitUntilGameStarts(): void {
+        this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
+        if (this.scheduler.getCurrentPlayer().isAI) {
+            if (this.dice.bothDiceConsumed()) {
+                 this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
+            }else {
+                this.enforcer.setRollCounter(1);
+                this.enforcer.endOfDiceRoll("endOfDieRoll");
+            }
+        }else if (this.scheduler.getCurrentPlayer().isAI === false && this.dice.bothDiceConsumed() === false) {
+            this.enforcer.setRollCounter(1);
+            this.enforcer.endOfDiceRoll("endOfDieRoll");
+        }
+        this.enforcer.rule.checkBoardConsistencies();
+    }
+
 
     private ireport(): void {
         //
@@ -238,6 +207,13 @@ export class Game extends Phaser.State {
         let ludoGame = new LudoGame(this.players, this.dice);
         log.debug(JSON.stringify(ludoGame, null, "\t"));
         log.debug(JSON.stringify(ludoGame));
+    }
+
+    private createAndPersistGame(): void {
+        let ludoGame = new LudoGame(this.players, this.dice);
+        this.sockets.saveCreatedGameToServer(ludoGame, (message: string) => {
+            log.debug(message);
+        });
     }
 
     private createNewPlayers(newPlayers: NewPlayers): Player[] {

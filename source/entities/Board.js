@@ -1,5 +1,6 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference path = "../../node_modules/typescript-collections/dist/lib/index.d.ts" />
+/// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 var Collections = require("typescript-collections");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Board");

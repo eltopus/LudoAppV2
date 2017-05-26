@@ -1,41 +1,34 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Die");
 var Die = (function (_super) {
     __extends(Die, _super);
     function Die(game, x, y, imageId, uniqueId, signal) {
-        var _this = _super.call(this, game, x, y, imageId) || this;
-        _this.extFrame = null;
-        _this.diceArr = [5, 1, 6, 2, 0, 4];
-        _this.removeLater = true;
-        _this.pixels = [];
-        _this.uniqueId = uniqueId;
-        _this.signal = signal;
-        _this.playerId = null;
-        _this.group = _this.game.add.group();
-        _this.group.add(_this);
-        _this.frame = 1;
-        _this.anchor.setTo(0.5, 0.5);
-        _this.inputEnabled = true;
+        _super.call(this, game, x, y, imageId);
+        this.extFrame = null;
+        this.diceArr = [5, 1, 6, 2, 0, 4];
+        this.removeLater = true;
+        this.pixels = [];
+        this.uniqueId = uniqueId;
+        this.signal = signal;
+        this.playerId = null;
+        this.group = this.game.add.group();
+        this.group.add(this);
+        this.frame = 1;
+        this.anchor.setTo(0.5, 0.5);
+        this.inputEnabled = true;
         for (var i = 0; i < 15; i++) {
-            _this.pixels[i] = _this.game.rnd.pick([0, 1, 2, 4, 5, 6]);
+            this.pixels[i] = this.game.rnd.pick([0, 1, 2, 4, 5, 6]);
         }
-        _this.animation = _this.animations.add("roll", _this.pixels);
-        _this.animation.onComplete.add(_this.rollComplete, _this);
-        _this.events.onInputDown.add(_this.selectActiveDie, _this);
-        _this.consume();
-        return _this;
+        this.animation = this.animations.add("roll", this.pixels);
+        this.animation.onComplete.add(this.rollComplete, this);
+        this.events.onInputDown.add(this.selectActiveDie, this);
+        this.consume();
     }
     Die.prototype.selectActiveDie = function () {
         if (this.alpha === 0.5) {

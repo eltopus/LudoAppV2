@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var States_1 = require("../enums/States");
 var MockPiece = (function () {
     function MockPiece(piece) {
@@ -43,3 +42,4 @@ var MockPiece = (function () {
     return MockPiece;
 }());
 exports.MockPiece = MockPiece;
+//# sourceMappingURL=MockPiece.js.map

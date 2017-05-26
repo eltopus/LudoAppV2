@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Rules_1 = require("../rules/Rules");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.RuleEnforcer");
@@ -99,7 +98,6 @@ var RuleEnforcer = (function () {
                     if (backToHomePiece !== null) {
                         backToHomePiece.setAtHome();
                         piece.collidingPiece = backToHomePiece;
-                        piece.setExited();
                     }
                 }
             }
@@ -389,3 +387,4 @@ var RuleEnforcer = (function () {
     return RuleEnforcer;
 }());
 exports.RuleEnforcer = RuleEnforcer;
+//# sourceMappingURL=RuleEnforcer.js.map

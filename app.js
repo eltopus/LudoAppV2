@@ -1,65 +1,91 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var http = require('http');
-
-
-var app = express();
-
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-
-
-app.use('/phaser', express.static(__dirname + '/node_modules/phaser/build/'));
-app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use('/dist', express.static(path.join(__dirname, '/dist')));
-app.use('/images', express.static(path.join(__dirname, '/images')));
-app.use('/js', express.static(path.join(__dirname, '/public/js')));
-app.use('/css', express.static(path.join(__dirname, '/public/css')));
-
-app.get('/setup', function (req, res) {
-    res.sendFile(path.join(__dirname + '/views/setup.html'));
-});
-
-app.get('/', function (req, res) {
-    res.sendFile(path.join(__dirname + '/views/index.html'));
-});
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
-
-// error handlers
-
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-  });
-}
-
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
-});
-
-
-module.exports = app;
+"use strict";
+var express = require("express");
+var http = require("http");
+var socketIo = require("socket.io");
+var path = require("path");
+var favicon = require("serve-favicon");
+var logger = require("morgan");
+var cookieParser = require("cookie-parser");
+var bodyParser = require("body-parser");
+var Ludo_1 = require("./Ludo");
+var Server = (function () {
+    function Server() {
+        this.ludo = new Ludo_1.Ludo();
+        this.createApp();
+        this.middleware();
+        this.config();
+        this.routes();
+        this.createServer();
+        this.sockets();
+        this.listen();
+    }
+    Server.bootstrap = function () {
+        return new Server();
+    };
+    Server.prototype.createApp = function () {
+        this.app = express();
+    };
+    Server.prototype.createServer = function () {
+        this.server = http.createServer(this.app);
+    };
+    Server.prototype.config = function () {
+        this.port = this.normalizePort(process.env.PORT || Server.PORT);
+        this.app.use("/phaser", express.static(__dirname + "/node_modules/phaser/build/"));
+        this.app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
+        this.app.use("/dist", express.static(path.join(__dirname, "/dist")));
+        this.app.use("/images", express.static(path.join(__dirname, "/images")));
+        this.app.use("/js", express.static(path.join(__dirname, "/public/js")));
+        this.app.use("/css", express.static(path.join(__dirname, "/public/css")));
+    };
+    Server.prototype.middleware = function () {
+        this.app.use(logger("dev"));
+        this.app.use(bodyParser.json());
+        this.app.use(bodyParser.urlencoded({ extended: false }));
+        this.app.use(cookieParser());
+    };
+    Server.prototype.routes = function () {
+        var router = express.Router();
+        router.get("/setup", function (req, res, next) {
+            res.sendFile(path.join(__dirname + "/views/setup.html"));
+        });
+        router.get("/", function (req, res, next) {
+            res.sendFile(path.join(__dirname + "/views/index.html"));
+        });
+        this.app.use("/", router);
+    };
+    Server.prototype.sockets = function () {
+        this.io = socketIo(this.server);
+    };
+    Server.prototype.normalizePort = function (val) {
+        var port = parseInt(val, 10);
+        if (isNaN(port)) {
+            return val;
+        }
+        if (port >= 0) {
+            return port;
+        }
+        return port;
+    };
+    Server.prototype.listen = function () {
+        var _this = this;
+        this.server.listen(this.port, function () {
+            console.log("Running server on port %s", _this.port);
+        });
+        this.io.on("connection", function (socket) {
+            console.log("Connected client on port %s.", _this.port);
+            _this.ludo.initLudo(_this.io, socket);
+        });
+        this.io.on("connect", function (socket) {
+            console.log("Connected client on port %s.", _this.port);
+            socket.on("disconnect", function () {
+                console.log("Client disconnected");
+            });
+        });
+    };
+    Server.PORT = 3000;
+    return Server;
+}());
+var server = Server.bootstrap();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = server.app;
+//# sourceMappingURL=app.js.map

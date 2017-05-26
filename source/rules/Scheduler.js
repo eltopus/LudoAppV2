@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Collections = require("typescript-collections");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Scheduler");
@@ -103,3 +102,4 @@ var Scheduler = (function () {
     return Scheduler;
 }());
 exports.Scheduler = Scheduler;
+//# sourceMappingURL=Scheduler.js.map

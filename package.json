@@ -6,7 +6,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "gulp lint && gulp build && gulp test"
+    "test": "gulp lint && gulp build && gulp test",
+    "start": "node server.js"
   },
   "dependencies": {
     "@types/jquery": "^2.0.45",
@@ -26,7 +27,8 @@
     "serve-favicon": "~2.3.0",
     "tsify": "^3.0.1",
     "typescript-collections": "^1.2.3",
-    "typescript-logging": "^0.3.0"
+    "typescript-logging": "^0.3.0",
+    "typings": "^2.1.1"
   },
   "devDependencies": {
     "@types/chai": "^3.5.0",

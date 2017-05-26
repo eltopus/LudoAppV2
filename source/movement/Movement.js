@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Paths = require("../entities/Paths");
 var Path_1 = require("../entities/Path");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
@@ -15,7 +14,9 @@ var PieceMovement = (function () {
         var currentIndex = piece.index;
         var path = new Path_1.Path();
         var finalIndex = currentIndex + newIndex;
+        // log.debug("Moving to finalIndex " + finalIndex + " from: " + currentIndex);
         path = this.activePath.getPath(piece, finalIndex, path);
+        // path.remainder has to be greater than zero to make this call
         if (path.moveStatus === MoveStatus_1.MoveStatus.ShouldBeExiting && path.moveRemainder > 0) {
             path = this.constructOnWayOutPath(piece, 0, path.moveRemainder, path);
         }

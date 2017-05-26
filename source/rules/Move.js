@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Actions_1 = require("../enums/Actions");
 var States_1 = require("../enums/States");
 var Move = (function () {
@@ -40,3 +39,4 @@ var Move = (function () {
     return Move;
 }());
 exports.Move = Move;
+//# sourceMappingURL=Move.js.map

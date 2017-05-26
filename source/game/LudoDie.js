@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var LudoDie = (function () {
     function LudoDie(die) {
         this.uniqueId = die.uniqueId;
