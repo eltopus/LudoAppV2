@@ -2,6 +2,8 @@
 import {Player} from "../entities/Player";
 import {LudoDie} from "../game/LudoDie";
 import {factory} from "../logging/ConfigLog4j";
+import {EmitDie} from "../emit/EmitDie";
+
 const log = factory.getLogger("model.Die");
 
 export class Die extends Phaser.Sprite {
@@ -10,17 +12,22 @@ export class Die extends Phaser.Sprite {
     public group: Phaser.Group;
     public playerId: string;
     public extFrame: number = null;
+    public gameId: string;
     private diceArr: number[] = [5, 1, 6, 2, 0, 4];
     private removeLater = true;
     private signal: Phaser.Signal;
     private pixels: number[] = [];
     private animation: Phaser.Animation;
+    private socket: any;
+    private emitDice: EmitDie;
 
-    constructor(game: Phaser.Game, x: number, y: number, imageId: string, uniqueId: string, signal: Phaser.Signal) {
+    constructor(game: Phaser.Game, x: number, y: number, imageId: string, uniqueId: string, signal: Phaser.Signal, socket: any, gameId: string) {
         super(game, x, y, imageId);
         this.uniqueId = uniqueId;
         this.signal = signal;
         this.playerId = null;
+        this.socket = socket;
+        this.gameId = gameId;
         this.group = this.game.add.group();
         this.group.add(this);
         this.frame = 1;
@@ -34,6 +41,8 @@ export class Die extends Phaser.Sprite {
         this.animation.onComplete.add(this.rollComplete, this);
         this.events.onInputDown.add(this.selectActiveDie, this);
         this.consume();
+        this.emitDice = new EmitDie();
+        this.emitDice.gameId = gameId;
     }
 
     public selectActiveDie(): void {
@@ -57,25 +66,26 @@ export class Die extends Phaser.Sprite {
     }
 
     public rollComplete(): void {
-        let rand = Math.floor(Math.random() * 6);
-        this.frame = this.diceArr[rand];
-        if (this.extFrame !== null) {
-            this.frame = this.extFrame;
-            this.extFrame = null;
-        }
+        this.frame = this.extFrame;
         this.signal.dispatch("endOfDieRoll");
     }
 
-    public roll(playerId: string, value?: number): void {
-        if (this.playerId === playerId) {
-            this.resetDice();
+    public roll(value?: number): void {
+        this.resetDice();
+        if (value === null || typeof value === "undefined") {
+            let rand = Math.floor(Math.random() * 6);
+            this.extFrame = this.diceArr[rand];
+            // emit values
             this.animation.play(20);
         }else {
-            log.debug("Dice PlayerId " + this.playerId + " does not match playerId: " + playerId);
-        }
-        if (this.removeLater && typeof value !== "undefined") {
             this.extFrame = this.getFrame(value);
-            this.removeLater = false;
+            this.animation.play(20);
+        }
+        if (emitGlobal === true) {
+            this.emitDice.setParameters(this);
+            this.socket.emit("rollDice", this.emitDice, (message) => {
+                log.debug("RollDice: " + message);
+            });
         }
     }
 

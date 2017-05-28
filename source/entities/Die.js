@@ -5,10 +5,11 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
+var EmitDie_1 = require("../emit/EmitDie");
 var log = ConfigLog4j_1.factory.getLogger("model.Die");
 var Die = (function (_super) {
     __extends(Die, _super);
-    function Die(game, x, y, imageId, uniqueId, signal) {
+    function Die(game, x, y, imageId, uniqueId, signal, socket, gameId) {
         _super.call(this, game, x, y, imageId);
         this.extFrame = null;
         this.diceArr = [5, 1, 6, 2, 0, 4];
@@ -17,6 +18,8 @@ var Die = (function (_super) {
         this.uniqueId = uniqueId;
         this.signal = signal;
         this.playerId = null;
+        this.socket = socket;
+        this.gameId = gameId;
         this.group = this.game.add.group();
         this.group.add(this);
         this.frame = 1;
@@ -29,6 +32,8 @@ var Die = (function (_super) {
         this.animation.onComplete.add(this.rollComplete, this);
         this.events.onInputDown.add(this.selectActiveDie, this);
         this.consume();
+        this.emitDice = new EmitDie_1.EmitDie();
+        this.emitDice.gameId = gameId;
     }
     Die.prototype.selectActiveDie = function () {
         if (this.alpha === 0.5) {
@@ -48,26 +53,25 @@ var Die = (function (_super) {
         return (!this.isConsumed() && this.alpha === 0.5);
     };
     Die.prototype.rollComplete = function () {
-        var rand = Math.floor(Math.random() * 6);
-        this.frame = this.diceArr[rand];
-        if (this.extFrame !== null) {
-            this.frame = this.extFrame;
-            this.extFrame = null;
-        }
+        this.frame = this.extFrame;
         this.signal.dispatch("endOfDieRoll");
     };
-    Die.prototype.roll = function (playerId, value) {
-        if (this.playerId === playerId) {
-            this.resetDice();
+    Die.prototype.roll = function (value) {
+        this.resetDice();
+        if (value === null || typeof value === "undefined") {
+            var rand = Math.floor(Math.random() * 6);
+            this.extFrame = this.diceArr[rand];
+            // emit values
             this.animation.play(20);
         }
         else {
-            log.debug("Dice PlayerId " + this.playerId + " does not match playerId: " + playerId);
-        }
-        if (this.removeLater && typeof value !== "undefined") {
             this.extFrame = this.getFrame(value);
-            this.removeLater = false;
+            this.animation.play(20);
         }
+        this.emitDice.setParameters(this);
+        this.socket.emit("rollDice", this.emitDice, function (message) {
+            log.debug("RollDice: " + message);
+        });
     };
     Die.prototype.consume = function () {
         this.frame = 3;

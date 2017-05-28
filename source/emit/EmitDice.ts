@@ -6,6 +6,7 @@ import {EmitDie} from "./EmitDie";
 export class EmitDice {
     public dieOne: EmitDie = new EmitDie();
     public dieTwo: EmitDie = new EmitDie();
+    public gameId = "";
 
     public setParameters(dice: Dice) {
         this.dieOne.setParameters(dice.dieOne);

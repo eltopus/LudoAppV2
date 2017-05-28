@@ -12,15 +12,15 @@ export class Dice {
     private signal: Phaser.Signal;
     private previousDoubleSix = false;
 
-    constructor(game: Phaser.Game, imageId: string, signal: Phaser.Signal, dieOneUUID: string, dieTwoUUID: string) {
-        this.dieOne = new Die(game, 330, 390, imageId, dieOneUUID, signal);
-        this.dieTwo = new Die(game, 390, 330, imageId, dieTwoUUID, signal);
+    constructor(game: Phaser.Game, imageId: string, signal: Phaser.Signal, dieOneUUID: string, dieTwoUUID: string, socket: any, gameId: string) {
+        this.dieOne = new Die(game, 330, 390, imageId, dieOneUUID, signal, socket, gameId);
+        this.dieTwo = new Die(game, 390, 330, imageId, dieTwoUUID, signal, socket, gameId);
         this.signal = signal;
     }
 
-    public roll(playerId: string, value1?: number, value2?: number): void {
-        this.dieOne.roll(playerId, value1);
-        this.dieTwo.roll(playerId, value2);
+    public roll(value1?: number, value2?: number): void {
+        this.dieOne.roll(value1);
+        this.dieTwo.roll(value2);
     }
 
     public getHigherDieValue(): string {

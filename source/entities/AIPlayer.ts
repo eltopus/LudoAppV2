@@ -22,9 +22,9 @@ export class AIPlayer extends Player {
     private ruleEnforcer: RuleEnforcer = null;
     private logic: AIBrainBox;
     private strategy: AIStrategy;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, ludoPiece?: LudoPiece[],
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, socket: any, ludoPiece?: LudoPiece[],
      ruleEnforcer?: RuleEnforcer, previousDoubleSix?: boolean) {
-        super(game, name, playerId, turn, colorTypes, signal, ludoPiece, previousDoubleSix);
+        super(game, name, playerId, turn, colorTypes, signal, socket, ludoPiece, previousDoubleSix);
         this.isAI = true;
         this.ruleEnforcer = ruleEnforcer;
         this.signal.add(this.aiRollDice, this, 0, "aiRollDice");
@@ -51,7 +51,7 @@ export class AIPlayer extends Player {
         }
     }
     private aiRollDice(listener: string, dice: Dice, playerId: string) {
-        if (listener === "aiRollDice" && this.playerId === playerId) {
+        if (listener === "aiRollDice") {
              setTimeout(() => {
                 this.roll(dice, 6, 5);
             }, 1000);

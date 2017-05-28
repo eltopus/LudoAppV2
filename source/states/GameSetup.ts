@@ -53,6 +53,28 @@ export class GameSetup extends Phaser.State {
             enablePlayerNameBtnAndColorBtn();
         });
 
+        $("#joinGameBtn").parent().click(() => {
+            let playerName = $("#joinPlayerName").val();
+            let  gameId = $("#gameCode").val();
+            $.ajax({
+			        type: "POST",
+			        url: "join",
+			        data: {gameId : gameId},
+			        success: (ludogame) => {
+			        	if (ludogame) {
+			        		newCreatedPlayers.ludogame = ludogame;
+                            newCreatedPlayers.hasSavedGame = true;
+                            this.startGame(newCreatedPlayers);
+                        }else {
+                            Example.show("Cannot find game game!!!");
+                        }
+                    },
+			        error: function(){
+			            Example.show("Failed to join game!!!");
+			        },
+                });
+            });
+
          $("#createBtn").parent().click(() => {
             let playerName: string = $("#playerName").val();
             if (playerName.length === 0) {
@@ -120,9 +142,11 @@ export class GameSetup extends Phaser.State {
 
     }
 
-    public startGame(newPlayers: NewPlayers.NewPlayers) {
-        newPlayers.ludogame = this.game.cache.getJSON("ludoGame");
-        this.game.state.start("Game", true, false, newPlayers);
+    public startGame(newCreatedPlayers: NewPlayers.NewPlayers) {
+        if (newCreatedPlayers.ludogame) {
+            log.debug("-+++- Ludo game" + JSON.stringify(newCreatedPlayers.ludogame));
+        }
+        this.game.state.start("Game", true, false, newCreatedPlayers);
     }
 
 }

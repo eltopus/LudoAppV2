@@ -1,5 +1,4 @@
 // <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
-import * as cio from "socket.io-client";
 import {factory} from "../logging/ConfigLog4j";
 import {Scheduler} from "../rules/Scheduler";
 import {LudoGame} from "../game/LudoGame";
@@ -7,19 +6,24 @@ import {EmitDice} from "../emit/EmitDice";
 import {LudoDie} from "../game/LudoDie";
 import {LudoPiece} from "../game/LudoPiece";
 import {Move} from "../rules/Move";
+import {RuleEnforcer} from "../rules/RuleEnforcer";
 
 const log = factory.getLogger("model.PlayerSockets");
 
 export class PlayerSockets {
-    private socket: any = cio();
-    private scheduler: Scheduler;
-    private signal: Phaser.Signal;
-
-    constructor(signal: Phaser.Signal) {
-        this.signal = signal;
-        this.signal.add(this.rollDice, this, 0, "endOfDieRoll");
+    private socket: any;
+    constructor(socket: any) {
+        this.socket = socket;
         this.socket.on("connect", () => {
-            log.debug("**Player is connected*****");
+            log.debug(this.socket.id + "**Player is connected*****");
+        });
+
+        this.socket.on("emitRollDice", (dice: EmitDice) => {
+            if (emitGlobal === false) {
+              log.debug( " Emit receieved " + JSON.stringify(dice));
+            }else {
+                log.debug(" I cannot recieve dice rolled");
+            }
         });
     }
 
@@ -29,16 +33,10 @@ export class PlayerSockets {
         });
     }
 
-    public setScheduler(scheduler: Scheduler): void {
-        this.scheduler = scheduler;
-    }
-
-    public rollDice(listener: string, dice: EmitDice): void {
-        if (listener === "emitRollDice") {
-            this.socket.emit("rollDice", dice, (message) => {
-                log.debug("RollDice: " + message);
-            });
-        }
+    public joinExistingGame(gameId: string, callback): void {
+        this.socket.emit("joinExistingGame", gameId, (message: string) => {
+            callback(message);
+        });
     }
 
     public selectDie(die: LudoDie): void {

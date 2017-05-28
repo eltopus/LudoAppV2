@@ -3,15 +3,15 @@ var Die_1 = require("./Die");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Dice");
 var Dice = (function () {
-    function Dice(game, imageId, signal, dieOneUUID, dieTwoUUID) {
+    function Dice(game, imageId, signal, dieOneUUID, dieTwoUUID, socket, gameId) {
         this.previousDoubleSix = false;
-        this.dieOne = new Die_1.Die(game, 330, 390, imageId, dieOneUUID, signal);
-        this.dieTwo = new Die_1.Die(game, 390, 330, imageId, dieTwoUUID, signal);
+        this.dieOne = new Die_1.Die(game, 330, 390, imageId, dieOneUUID, signal, socket, gameId);
+        this.dieTwo = new Die_1.Die(game, 390, 330, imageId, dieTwoUUID, signal, socket, gameId);
         this.signal = signal;
     }
-    Dice.prototype.roll = function (playerId, value1, value2) {
-        this.dieOne.roll(playerId, value1);
-        this.dieTwo.roll(playerId, value2);
+    Dice.prototype.roll = function (value1, value2) {
+        this.dieOne.roll(value1);
+        this.dieTwo.roll(value2);
     };
     Dice.prototype.getHigherDieValue = function () {
         if (this.dieOne.getValue() > this.dieTwo.getValue()) {

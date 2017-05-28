@@ -16,6 +16,7 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
 import {Path} from "../entities/Path";
 import {Perimeter} from "../entities/Perimeters";
 import {EmitDice} from "../emit/EmitDice";
+import {PlayerSockets} from "../sockets/PlayerSockets";
 
 const log = factory.getLogger("model.RuleEnforcer");
 
@@ -26,18 +27,23 @@ export class RuleEnforcer {
     private signal: Phaser.Signal;
     private rollCounter = 0;
     private currentPossibleMovements: AllPossibleMoves;
-    private emitDice;
+    private emitDice: EmitDice;
+    private gameId: string;
+    private socket: any;
 
     constructor(signal: Phaser.Signal, scheduler: Scheduler, dice: Dice, activeboard: ActiveBoard,
-    homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, exitedBoard: ExitedBoard, currentPossibleMovements?: AllPossibleMoves) {
+    homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, exitedBoard: ExitedBoard, gameId: string, socket: any, currentPossibleMovements?: AllPossibleMoves) {
         this.signal = signal;
         this.scheduler = scheduler;
         this.dice = dice;
+        this.gameId = gameId;
+        this.socket = socket;
         this.currentPossibleMovements = currentPossibleMovements;
         this.rule = new Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
         this.signal.add(this.onCompletePieceMovement, this, 0, "completeMovement");
         this.emitDice = new EmitDice();
+        this.emitDice.gameId = gameId;
 
     }
 
@@ -50,8 +56,6 @@ export class RuleEnforcer {
             ++this.rollCounter;
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
-                this.emitDice.setParameters(this.dice);
-                this.signal.dispatch("emitRollDice", this.emitDice);
                 this.currentPossibleMovements.resetMoves();
                 this.generateAllPossibleMoves();
                 let currentPlayer = this.scheduler.getCurrentPlayer();
@@ -213,6 +217,10 @@ export class RuleEnforcer {
             movement.mockDiceId = movement.diceId;
         }
         return movement;
+    }
+
+    public emitRollDice(dice: EmitDice): void {
+        this.dice.roll(dice.dieOne.dieValue, dice.dieTwo.dieValue);
     }
 
     private generateAllPossibleMoves(): void {

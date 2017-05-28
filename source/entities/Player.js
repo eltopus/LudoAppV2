@@ -10,7 +10,7 @@ var Perimeters_1 = require("./Perimeters");
 var log = ConfigLog4j_1.factory.getLogger("model.Player");
 var Player = (function (_super) {
     __extends(Player, _super);
-    function Player(game, name, playerId, turn, colorTypes, signal, ludoPieces, previousDoubleSix) {
+    function Player(game, name, playerId, turn, colorTypes, signal, socket, ludoPieces, previousDoubleSix) {
         _super.call(this, game);
         this.pieces = [];
         this.previousDoubleSix = false;
@@ -21,6 +21,7 @@ var Player = (function (_super) {
         this.turn = turn;
         this.pieces = new Array();
         this.signal = signal;
+        this.socket = socket;
         this.signal.add(this.selectCurrentPiece, this, 0, "select");
         this.currentSelectedPiece = null;
         this.perimeters = new Perimeters_1.Perimeters();
@@ -52,7 +53,7 @@ var Player = (function (_super) {
         }
     };
     Player.prototype.roll = function (dice, value1, value2) {
-        dice.roll(this.playerId, value1, value2);
+        dice.roll(value1, value2);
     };
     Player.prototype.getActivePieces = function (board) {
         var activePieces = [];

@@ -64,6 +64,21 @@ class Server {
         router.get("/", (req, res, next) => {
             res.sendFile(path.join(__dirname + "/views/index.html"));
         });
+
+        router.post("/join", (req, res, next) => {
+            let gameId = req.body.gameId;
+            if (gameId) {
+                this.ludo.getExistingGame(gameId, (ludogame) => {
+                    console.log("Created Game " + ludogame.gameId + " was Found");
+                    res.send(ludogame);
+                });
+            }else {
+                console.log("Game id NOT found.....");
+                res.send({});
+            }
+        });
+
+
         this.app.use("/", router);
     }
 
@@ -89,16 +104,8 @@ class Server {
         });
 
         this.io.on("connection", (socket: any) => {
-            console.log("Connected client on port %s.", this.port);
+            console.log("ON Connection Connected client on port %s.", this.port);
             this.ludo.initLudo(this.io, socket);
-        });
-
-        this.io.on("connect", (socket: any) => {
-            console.log("Connected client on port %s.", this.port);
-
-            socket.on("disconnect", () => {
-                console.log("Client disconnected");
-            });
         });
     }
 }

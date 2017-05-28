@@ -12,9 +12,9 @@ import {LudoPiece} from "../game/LudoPiece";
 
 const log = factory.getLogger("model.RegularPlayer");
 export class RegularPlayer extends Player {
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, ludoPiece?: LudoPiece[],
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, socket: any, ludoPiece?: LudoPiece[],
      ruleEnforcer?: RuleEnforcer, previousDoubleSix?: boolean) {
-        super(game, name, playerId, turn, colorTypes, signal, ludoPiece, previousDoubleSix);
+        super(game, name, playerId, turn, colorTypes, signal, socket, ludoPiece, previousDoubleSix);
         this.isAI = false;
     }
 }

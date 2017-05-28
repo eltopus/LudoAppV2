@@ -27,7 +27,7 @@ import {LudoPlayer} from "../game/LudoPlayer";
 import {NewPlayers} from "../entities/NewPlayers";
 import {PlayerSockets} from "../sockets/PlayerSockets";
 import * as $ from "jquery";
-
+import * as cio from "socket.io-client";
 
 const log = factory.getLogger("model.Game");
 
@@ -40,16 +40,18 @@ export class Game extends Phaser.State {
     private playerMode: PlayerMode;
     private newPlayers: NewPlayers;
     private sockets: PlayerSockets;
+    private gameId: string;
+    private socket: any;
 
     public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
+        this.gameId = this.generateGameId(5);
     }
 
     public create() {
 
         this.add.sprite(0, 0, "board");
         this.signal = new Phaser.Signal();
-        this.sockets = new PlayerSockets(this.signal);
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
         let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
@@ -78,15 +80,16 @@ export class Game extends Phaser.State {
         this.game.stage.disableVisibilityChange = true;
 
         if (this.newPlayers.hasSavedGame) {
+            this.socket = cio();
             let dieOneUUID = this.newPlayers.ludogame.ludoDice.dieOne.uniqueId;
             let dieTwoUUID = this.newPlayers.ludogame.ludoDice.dieTwo.uniqueId;
-            this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID);
+            this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID, this.socket, this.newPlayers.ludogame.gameId);
             this.dice.dieOne.setDieFrame(this.newPlayers.ludogame.ludoDice.dieOne);
             this.dice.dieTwo.setDieFrame(this.newPlayers.ludogame.ludoDice.dieTwo);
             this.scheduler = new Scheduler(this.dice);
-            this.sockets.setScheduler(this.scheduler);
+            this.sockets = new PlayerSockets(this.socket);
             this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
-            onWayOutBoard, exitedBoard, currentPossibleMovements);
+            onWayOutBoard, exitedBoard, this.newPlayers.ludogame.gameId, this.socket, currentPossibleMovements);
             for (let ludoPlayer of this.newPlayers.ludogame.ludoPlayers){
                 if (ludoPlayer !== null && typeof ludoPlayer !== "undefined") {
                     let player = this.createExistingPlayer(ludoPlayer);
@@ -109,15 +112,19 @@ export class Game extends Phaser.State {
                     this.players.push(player);
                 }
             }
+            this.gameId = this.newPlayers.ludogame.gameId;
+            this.displayGameId(this.newPlayers.ludogame.gameId);
+            this.joinExistingGame(this.newPlayers.ludogame.gameId);
 
         }else {
+            this.socket = cio();
             let dieOneUUID = UUID.UUID();
             let dieTwoUUID = UUID.UUID();
-            this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID);
+            this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID, this.socket, this.gameId);
             this.scheduler = new Scheduler(this.dice);
-            this.sockets.setScheduler(this.scheduler);
+            this.sockets = new PlayerSockets(this.socket);
             this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
-            onWayOutBoard, exitedBoard, currentPossibleMovements);
+            onWayOutBoard, exitedBoard, this.gameId, this.socket, currentPossibleMovements);
             let players: Player[] = this.createNewPlayers(this.newPlayers);
             for (let player of players) {
                 this.scheduler.enqueue(player);
@@ -126,8 +133,7 @@ export class Game extends Phaser.State {
                     homeboard.addPieceToHomeBoard(piece);
                 }
             }
-            this.createAndPersistGame();
-
+            this.createGame();
         }
 
         this.waitUntilGameStarts();
@@ -137,7 +143,7 @@ export class Game extends Phaser.State {
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 6, 6);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 3, 1);
     }
 
     public playDice(): void {
@@ -154,6 +160,12 @@ export class Game extends Phaser.State {
     public update(): void {
         //
     }
+
+    private displayGameId(gameId: string): void {
+        let gameIdDisplay = this.game.add.text(0, 0, gameId, {font: "30px Revalia", fill: "#F70C0C", boundsAlignH: "center", boundsAlignV: "middle"});
+        gameIdDisplay.setTextBounds(720, 290, 175, 30);
+    }
+
     private setActivePieceParameters(piece: Piece, index: number, state: States, board: Board): void {
         let path = new Paths.ActivePath();
         let position = path.getPiecePostionByIndex(index);
@@ -172,18 +184,18 @@ export class Game extends Phaser.State {
         let player: Player = null;
         if (ludoPlayer.isAI) {
             player = new AIPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, ludoPlayer.pieces, this.enforcer);
+            this.signal, this.socket, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
         }else {
             player = new RegularPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, ludoPlayer.pieces, this.enforcer);
+            this.signal, this.socket, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
         }
         return player;
     }
 
     private waitUntilGameStarts(): void {
-        this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
+        // this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
         if (this.scheduler.getCurrentPlayer().isAI) {
             if (this.dice.bothDiceConsumed()) {
                  this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
@@ -204,15 +216,28 @@ export class Game extends Phaser.State {
     }
 
     private saveGame(): void {
-        let ludoGame = new LudoGame(this.players, this.dice);
+        let ludoGame = new LudoGame(this.players, this.dice, this.gameId);
         log.debug(JSON.stringify(ludoGame, null, "\t"));
         log.debug(JSON.stringify(ludoGame));
     }
 
-    private createAndPersistGame(): void {
-        let ludoGame = new LudoGame(this.players, this.dice);
-        this.sockets.saveCreatedGameToServer(ludoGame, (message: string) => {
-            log.debug(message);
+    private createGame(): void {
+        let ludoGame = new LudoGame(this.players, this.dice, this.gameId);
+        this.displayGameId(ludoGame.gameId);
+        this.sockets.saveCreatedGameToServer(ludoGame, (data: any) => {
+            if (data.ok) {
+                emitGlobal.emit = data.emit;
+            }
+            log.debug(data.message + " " + emitGlobal);
+        });
+    }
+
+    private joinExistingGame(gameId: string): void {
+        this.sockets.joinExistingGame(gameId, (data: any) => {
+            if (data.ok) {
+                emitGlobal.emit = data.emit;
+            }
+            log.debug(data.message + " " + emitGlobal);
         });
     }
 
@@ -220,10 +245,10 @@ export class Game extends Phaser.State {
         let players: Player[] = [];
         for (let newPlayer of newPlayers.newPlayers){
             if (newPlayer.isAI) {
-                let aiPlayer = new AIPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, null, this.enforcer);
+                let aiPlayer = new AIPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, this.socket, null, this.enforcer);
                 players.push(aiPlayer);
             }else {
-                let regularPlayer = new RegularPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, null, this.enforcer);
+                let regularPlayer = new RegularPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, this.socket, null, this.enforcer);
                 players.push(regularPlayer);
             }
         }
@@ -236,5 +261,9 @@ export class Game extends Phaser.State {
         }else {
             this.scale.startFullScreen(false);
         }
+    }
+
+    private generateGameId(length: number): string {
+        return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
     }
 }

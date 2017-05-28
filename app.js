@@ -44,12 +44,26 @@ var Server = (function () {
         this.app.use(cookieParser());
     };
     Server.prototype.routes = function () {
+        var _this = this;
         var router = express.Router();
         router.get("/setup", function (req, res, next) {
             res.sendFile(path.join(__dirname + "/views/setup.html"));
         });
         router.get("/", function (req, res, next) {
             res.sendFile(path.join(__dirname + "/views/index.html"));
+        });
+        router.post("/join", function (req, res, next) {
+            var gameId = req.body.gameId;
+            if (gameId) {
+                _this.ludo.getExistingGame(gameId, function (ludogame) {
+                    console.log("Created Game " + ludogame.gameId + " was Found");
+                    res.send(ludogame);
+                });
+            }
+            else {
+                console.log("Game id NOT found.....");
+                res.send({});
+            }
         });
         this.app.use("/", router);
     };
@@ -62,6 +76,7 @@ var Server = (function () {
             return val;
         }
         if (port >= 0) {
+            // port number
             return port;
         }
         return port;
@@ -72,20 +87,13 @@ var Server = (function () {
             console.log("Running server on port %s", _this.port);
         });
         this.io.on("connection", function (socket) {
-            console.log("Connected client on port %s.", _this.port);
+            console.log("ON Connection Connected client on port %s.", _this.port);
             _this.ludo.initLudo(_this.io, socket);
-        });
-        this.io.on("connect", function (socket) {
-            console.log("Connected client on port %s.", _this.port);
-            socket.on("disconnect", function () {
-                console.log("Client disconnected");
-            });
         });
     };
     Server.PORT = 3000;
     return Server;
 }());
 var server = Server.bootstrap();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = server.app;
-//# sourceMappingURL=app.js.map
+exports.__esModule = true;
+exports["default"] = server.app;

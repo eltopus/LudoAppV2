@@ -11,17 +11,14 @@ import {Player} from "../entities/Player";
 export class LudoGame {
     public ludoPlayers: LudoPlayer[] = [];
     public ludoDice: LudoDice;
-    public gameId = this.generateGameId(5);
+    public gameId: string;
 
-    constructor(players: Player[], dice: Dice) {
+    constructor(players: Player[], dice: Dice, gameId: string) {
         for (let player of players){
             let ludoPlayer = new LudoPlayer(player);
             this.ludoPlayers.push(ludoPlayer);
         }
         this.ludoDice = new LudoDice(dice);
-    }
-
-    private generateGameId(length: number): string {
-        return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
+        this.gameId = gameId;
     }
 }

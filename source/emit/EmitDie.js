@@ -1,16 +1,8 @@
-import {Die} from "../entities/Die";
-
-
-export class EmitDie {
-    public uniqueId: string;
-    public playerId: string;
-    public extFrame: number;
-    public dieValue: number;
-    public isSelected: boolean;
-    public isConsumed: boolean;
-    public gameId: string;
-
-    public setParameters(die: Die) {
+"use strict";
+var EmitDie = (function () {
+    function EmitDie() {
+    }
+    EmitDie.prototype.setParameters = function (die) {
         this.uniqueId = die.uniqueId;
         this.playerId = die.playerId;
         this.extFrame = die.getFrame(die.getValue());
@@ -18,15 +10,15 @@ export class EmitDie {
         this.isSelected = die.isSelected();
         this.isConsumed = die.isConsumed();
         this.gameId = die.gameId;
-    }
-
-    public resetParameters() {
+    };
+    EmitDie.prototype.resetParameters = function () {
         this.uniqueId = null;
         this.playerId = null;
         this.extFrame = null;
         this.dieValue = null;
         this.isSelected = null;
         this.isConsumed = null;
-    }
-
-}
+    };
+    return EmitDie;
+}());
+exports.EmitDie = EmitDie;

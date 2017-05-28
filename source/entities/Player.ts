@@ -23,7 +23,8 @@ export abstract class Player extends PieceFactory {
     public isAI = false;
     public sequenceNumber = 0;
     private perimeters: Perimeters;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, ludoPieces: LudoPiece[],
+    private socket: any;
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, socket: any, ludoPieces: LudoPiece[],
      previousDoubleSix?: boolean) {
         super(game);
         this.name = name;
@@ -31,6 +32,7 @@ export abstract class Player extends PieceFactory {
         this.turn = turn;
         this.pieces = new Array<Piece>();
         this.signal = signal;
+        this.socket = socket;
         this.signal.add(this.selectCurrentPiece, this, 0, "select");
         this.currentSelectedPiece = null;
         this.perimeters = new Perimeters();
@@ -61,7 +63,7 @@ export abstract class Player extends PieceFactory {
     }
 
     public roll(dice: Dice, value1?: number, value2?: number): void {
-        dice.roll(this.playerId, value1, value2);
+        dice.roll(value1, value2);
     }
 
 
