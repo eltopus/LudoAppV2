@@ -3,9 +3,11 @@ import {Player} from "../entities/Player";
 import {LudoDie} from "../game/LudoDie";
 import {factory} from "../logging/ConfigLog4j";
 import {EmitDie} from "../emit/EmitDie";
+import {Emit} from "../emit/Emit";
 
 const log = factory.getLogger("model.Die");
 
+let emit = Emit.getInstance();
 export class Die extends Phaser.Sprite {
 
     public uniqueId: string;
@@ -81,7 +83,7 @@ export class Die extends Phaser.Sprite {
             this.extFrame = this.getFrame(value);
             this.animation.play(20);
         }
-        if (emitGlobal === true) {
+        if (emit.getEmit() === true) {
             this.emitDice.setParameters(this);
             this.socket.emit("rollDice", this.emitDice, (message) => {
                 log.debug("RollDice: " + message);
@@ -149,6 +151,25 @@ export class Die extends Phaser.Sprite {
 
     public getValue(): number {
         switch (this.frame) {
+            case 0:
+                return 6;
+            case 1:
+                return 1;
+            case 2:
+                return 2;
+            case 4:
+                return 5;
+            case 5:
+                return 3;
+            case 6:
+                return 4;
+            default:
+                return 0;
+        }
+    }
+
+    public getFrameValue(): number {
+        switch (this.extFrame) {
             case 0:
                 return 6;
             case 1:

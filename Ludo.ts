@@ -50,7 +50,7 @@ export class Ludo {
 
     private rollDice(dice: any, callback): void {
         console.log("Broadcating roll dice" + socket.id);
-        socket.broadcast.to(dice.gameId).emit("emitRollDice", dice);
+        io.in(dice.gameId).emit("emitRollDice", dice);
         callback(dice);
     }
 }

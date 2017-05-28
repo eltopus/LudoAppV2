@@ -15,9 +15,11 @@ import {factory} from "../logging/ConfigLog4j";
 import {AllPossibleMoves} from "./AllPossibleMoves";
 import {Path} from "../entities/Path";
 import {Perimeter} from "../entities/Perimeters";
-import {EmitDice} from "../emit/EmitDice";
+import {EmitDie} from "../emit/EmitDie";
+import {Emit} from "../emit/Emit";
 import {PlayerSockets} from "../sockets/PlayerSockets";
 
+let emit = Emit.getInstance();
 const log = factory.getLogger("model.RuleEnforcer");
 
 export class RuleEnforcer {
@@ -26,8 +28,10 @@ export class RuleEnforcer {
     public dice: Dice;
     private signal: Phaser.Signal;
     private rollCounter = 0;
+    private emitRollCounter = 0;
     private currentPossibleMovements: AllPossibleMoves;
-    private emitDice: EmitDice;
+    private emitDie: EmitDie;
+    private emitDice: EmitDie[] = [];
     private gameId: string;
     private socket: any;
 
@@ -42,8 +46,9 @@ export class RuleEnforcer {
         this.rule = new Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
         this.signal.add(this.onCompletePieceMovement, this, 0, "completeMovement");
-        this.emitDice = new EmitDice();
-        this.emitDice.gameId = gameId;
+        this.emitDie = new EmitDie();
+        this.emitDie.gameId = gameId;
+        this.setSocketHandlers();
 
     }
 
@@ -217,10 +222,6 @@ export class RuleEnforcer {
             movement.mockDiceId = movement.diceId;
         }
         return movement;
-    }
-
-    public emitRollDice(dice: EmitDice): void {
-        this.dice.roll(dice.dieOne.dieValue, dice.dieTwo.dieValue);
     }
 
     private generateAllPossibleMoves(): void {
@@ -454,5 +455,25 @@ export class RuleEnforcer {
               this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
             }
         }
+    }
+
+    private setSocketHandlers(): void {
+        this.socket.on("connect", () => {
+            log.debug(this.socket.id + "**Player is connected*****");
+        });
+
+        this.socket.on("emitRollDice", (die: EmitDie) => {
+            if (emit.getEmit() === false) {
+                this.emitDice.push(die);
+                if (this.emitDice.length > 1) {
+                    this.dice.roll(this.emitDice[0].dieValue, this.emitDice[1].dieValue);
+                    this.emitDice = [];
+                    log.debug( " Emit receieved " + JSON.stringify(this.emitDice[0]));
+                    log.debug( " Emit receieved " + JSON.stringify(this.emitDice[1]));
+                }
+            }else {
+                log.debug(" I cannot recieve dice rolled");
+            }
+        });
     }
 }

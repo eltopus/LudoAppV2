@@ -13,8 +13,8 @@ export class EmitDie {
     public setParameters(die: Die) {
         this.uniqueId = die.uniqueId;
         this.playerId = die.playerId;
-        this.extFrame = die.getFrame(die.getValue());
-        this.dieValue = die.getValue();
+        this.extFrame = die.extFrame;
+        this.dieValue = die.getFrameValue();
         this.isSelected = die.isSelected();
         this.isConsumed = die.isConsumed();
         this.gameId = die.gameId;

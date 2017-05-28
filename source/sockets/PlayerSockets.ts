@@ -3,6 +3,7 @@ import {factory} from "../logging/ConfigLog4j";
 import {Scheduler} from "../rules/Scheduler";
 import {LudoGame} from "../game/LudoGame";
 import {EmitDice} from "../emit/EmitDice";
+import {Emit} from "../emit/Emit";
 import {LudoDie} from "../game/LudoDie";
 import {LudoPiece} from "../game/LudoPiece";
 import {Move} from "../rules/Move";
@@ -10,21 +11,11 @@ import {RuleEnforcer} from "../rules/RuleEnforcer";
 
 const log = factory.getLogger("model.PlayerSockets");
 
+let emit = Emit.getInstance();
 export class PlayerSockets {
     private socket: any;
     constructor(socket: any) {
         this.socket = socket;
-        this.socket.on("connect", () => {
-            log.debug(this.socket.id + "**Player is connected*****");
-        });
-
-        this.socket.on("emitRollDice", (dice: EmitDice) => {
-            if (emitGlobal === false) {
-              log.debug( " Emit receieved " + JSON.stringify(dice));
-            }else {
-                log.debug(" I cannot recieve dice rolled");
-            }
-        });
     }
 
     public saveCreatedGameToServer(ludoGame: LudoGame, callback): void {

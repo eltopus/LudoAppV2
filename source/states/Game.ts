@@ -26,11 +26,13 @@ import {LudoGame} from "../game/LudoGame";
 import {LudoPlayer} from "../game/LudoPlayer";
 import {NewPlayers} from "../entities/NewPlayers";
 import {PlayerSockets} from "../sockets/PlayerSockets";
+import {Emit} from "../emit/Emit";
 import * as $ from "jquery";
 import * as cio from "socket.io-client";
 
 const log = factory.getLogger("model.Game");
 
+let emit = Emit.getInstance();
 export class Game extends Phaser.State {
     public dice: Dice;
     public signal: Phaser.Signal;
@@ -143,7 +145,7 @@ export class Game extends Phaser.State {
 
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
-        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice, 3, 1);
+        this.enforcer.scheduler.getCurrentPlayer().roll(this.dice);
     }
 
     public playDice(): void {
@@ -226,18 +228,18 @@ export class Game extends Phaser.State {
         this.displayGameId(ludoGame.gameId);
         this.sockets.saveCreatedGameToServer(ludoGame, (data: any) => {
             if (data.ok) {
-                emitGlobal.emit = data.emit;
+                emit.setEmit(data.emit);
             }
-            log.debug(data.message + " " + emitGlobal);
+            log.debug(data.message + " " + emit.getEmit());
         });
     }
 
     private joinExistingGame(gameId: string): void {
         this.sockets.joinExistingGame(gameId, (data: any) => {
             if (data.ok) {
-                emitGlobal.emit = data.emit;
+                emit.setEmit(data.emit);
             }
-            log.debug(data.message + " " + emitGlobal);
+            log.debug(data.message + " " + emit.getEmit());
         });
     }
 

@@ -25,7 +25,6 @@ var Ludo = (function () {
     Ludo.prototype.createGame = function (ludogame, callback) {
         games.setValue(ludogame.gameId, ludogame);
         socket.join(ludogame.gameId);
-        console.log("Number of sockets" + io.nsps["/"].adapter.rooms[ludogame.gameId].length);
         callback({ ok: true, message: ludogame.gameId + " was successfuly created." + socket.id, emit: true });
     };
     Ludo.prototype.joinExistingGame = function (gameId, callback) {
@@ -33,7 +32,6 @@ var Ludo = (function () {
         if (ludogame) {
             console.log(ludogame.gameId + " was successfuly joined." + socket.id);
             socket.join(gameId);
-            console.log("Number of sockets" + io.nsps["/"].adapter.rooms[gameId].length);
             callback({ ok: true, message: ludogame.gameId + " was successfuly joined." + socket.id, emit: false });
         }
         else {
@@ -45,7 +43,8 @@ var Ludo = (function () {
     };
     Ludo.prototype.rollDice = function (dice, callback) {
         console.log("Broadcating roll dice" + socket.id);
-        socket.broadcast.to(dice.gameId).emit("emitRollDice", dice);
+        // socket.broadcast.to(dice.gameId).emit("emitRollDice", dice);
+        io.in(dice.gameId).emit("emitRollDice", dice);
         callback(dice);
     };
     return Ludo;

@@ -6,7 +6,9 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var EmitDie_1 = require("../emit/EmitDie");
+var Emit_1 = require("../emit/Emit");
 var log = ConfigLog4j_1.factory.getLogger("model.Die");
+var emit = Emit_1.Emit.getInstance();
 var Die = (function (_super) {
     __extends(Die, _super);
     function Die(game, x, y, imageId, uniqueId, signal, socket, gameId) {
@@ -68,10 +70,12 @@ var Die = (function (_super) {
             this.extFrame = this.getFrame(value);
             this.animation.play(20);
         }
-        this.emitDice.setParameters(this);
-        this.socket.emit("rollDice", this.emitDice, function (message) {
-            log.debug("RollDice: " + message);
-        });
+        if (emit.getEmit() === true) {
+            this.emitDice.setParameters(this);
+            this.socket.emit("rollDice", this.emitDice, function (message) {
+                log.debug("RollDice: " + message);
+            });
+        }
     };
     Die.prototype.consume = function () {
         this.frame = 3;

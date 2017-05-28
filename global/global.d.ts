@@ -1,6 +1,6 @@
 
 interface EmitGlobal {
-    emit: Boolean;
+    emits: Boolean;
 }
 
 declare var emitGlobal: EmitGlobal;
