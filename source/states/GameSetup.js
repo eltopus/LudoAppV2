@@ -1,9 +1,15 @@
 "use strict";
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
 var PlayerMode_1 = require("../enums/PlayerMode");
 var NewPlayers = require("../entities/NewPlayers");
 var ColorType_1 = require("../enums/ColorType");
@@ -13,7 +19,7 @@ var log = ConfigLog4j_1.factory.getLogger("model.GameSetup");
 var GameSetup = (function (_super) {
     __extends(GameSetup, _super);
     function GameSetup() {
-        _super.apply(this, arguments);
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     GameSetup.prototype.init = function () {
         $("#playerName").prop("disabled", true);
@@ -57,6 +63,28 @@ var GameSetup = (function (_super) {
                 newCreatedPlayers.playerMode = PlayerMode_1.PlayerMode.AiFourPlayerAiVsAi;
             }
             enablePlayerNameBtnAndColorBtn();
+        });
+        $("#joinGameBtn").parent().click(function () {
+            var playerName = $("#joinPlayerName").val();
+            var gameId = $("#gameCode").val();
+            $.ajax({
+                type: "POST",
+                url: "join",
+                data: { gameId: gameId },
+                success: function (ludogame) {
+                    if (ludogame) {
+                        newCreatedPlayers.ludogame = ludogame;
+                        newCreatedPlayers.hasSavedGame = true;
+                        _this.startGame(newCreatedPlayers);
+                    }
+                    else {
+                        Example.show("Cannot find game game!!!");
+                    }
+                },
+                error: function () {
+                    Example.show("Failed to join game!!!");
+                },
+            });
         });
         $("#createBtn").parent().click(function () {
             var playerName = $("#playerName").val();
@@ -123,9 +151,11 @@ var GameSetup = (function (_super) {
             _this.startGame(newCreatedPlayers);
         });
     };
-    GameSetup.prototype.startGame = function (newPlayers) {
-        newPlayers.ludogame = this.game.cache.getJSON("ludoGame");
-        this.game.state.start("Game", true, false, newPlayers);
+    GameSetup.prototype.startGame = function (newCreatedPlayers) {
+        if (newCreatedPlayers.ludogame) {
+            log.debug("-+++- Ludo game" + JSON.stringify(newCreatedPlayers.ludogame));
+        }
+        this.game.state.start("Game", true, false, newCreatedPlayers);
     };
     return GameSetup;
 }(Phaser.State));

@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var Emit = (function () {
     function Emit() {
         this.emit = false;
@@ -16,7 +17,7 @@ var Emit = (function () {
     Emit.prototype.getEmit = function () {
         return this.emit;
     };
-    Emit.emitInstance = new Emit();
     return Emit;
 }());
+Emit.emitInstance = new Emit();
 exports.Emit = Emit;

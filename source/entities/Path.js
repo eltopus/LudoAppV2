@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var MoveStatus_1 = require("../enums/MoveStatus");
 var Path = (function () {
     function Path() {

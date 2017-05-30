@@ -1,9 +1,15 @@
 "use strict";
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+exports.__esModule = true;
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 var ColorType_1 = require("../enums/ColorType");
 var States_1 = require("../enums/States");
@@ -11,38 +17,45 @@ var Movement_1 = require("../movement/Movement");
 var PiecePosition_1 = require("../entities/PiecePosition");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var Path_1 = require("../entities/Path");
+var Emit_1 = require("../emit/Emit");
+var EmitPiece_1 = require("../emit/EmitPiece");
 // import * as Phasertips from "../Phasertips";
 var log = ConfigLog4j_1.factory.getLogger("model.Piece");
+var emit = Emit_1.Emit.getInstance();
 var Piece = (function (_super) {
     __extends(Piece, _super);
     // public tips: Phasertips;
-    function Piece(game, x, y, imageId, color, playerId, uniqueId, startPosition, signal) {
-        _super.call(this, game, x, y, imageId);
-        this.color = color;
-        this.playerId = playerId;
-        this.uniqueId = uniqueId;
-        this.startPosition = startPosition;
-        this.homePosition = new PiecePosition_1.PiecePosition(x, y);
-        this.game.physics.enable(this, Phaser.Physics.ARCADE);
-        this.frame = 0;
-        this.index = -1;
-        this.entryIndex = this.getEntryIndex();
-        this.startIndex = this.getStartIndex(color);
-        this.state = States_1.States.AtHome;
-        this.group = this.game.add.group();
-        this.group.add(this);
-        this.signal = signal;
-        this.scale.x = 1.1;
-        this.scale.y = 1.1;
-        this.anchor.x = -0.07;
-        this.anchor.y = -0.07;
-        this.inputEnabled = true;
-        this.movement = new Movement_1.PieceMovement(signal);
-        this.speedConstant = 6000 * 12;
-        this.collidingPiece = null;
-        this.imageId = imageId;
+    function Piece(game, x, y, imageId, color, playerId, uniqueId, startPosition, signal, socket, gameId) {
+        var _this = _super.call(this, game, x, y, imageId) || this;
+        _this.color = color;
+        _this.playerId = playerId;
+        _this.uniqueId = uniqueId;
+        _this.startPosition = startPosition;
+        _this.homePosition = new PiecePosition_1.PiecePosition(x, y);
+        _this.game.physics.enable(_this, Phaser.Physics.ARCADE);
+        _this.frame = 0;
+        _this.index = -1;
+        _this.entryIndex = _this.getEntryIndex();
+        _this.startIndex = _this.getStartIndex(color);
+        _this.state = States_1.States.AtHome;
+        _this.group = _this.game.add.group();
+        _this.group.add(_this);
+        _this.signal = signal;
+        _this.scale.x = 1.1;
+        _this.scale.y = 1.1;
+        _this.anchor.x = -0.07;
+        _this.anchor.y = -0.07;
+        _this.inputEnabled = true;
+        _this.movement = new Movement_1.PieceMovement(signal);
+        _this.speedConstant = 6000 * 12;
+        _this.collidingPiece = null;
+        _this.imageId = imageId;
+        _this.socket = socket;
+        _this.gameId = gameId;
+        _this.emitPiece = new EmitPiece_1.EmitPiece();
         // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
-        this.events.onInputDown.add(this.setActivePiece, this);
+        _this.events.onInputDown.add(_this.setActivePiece, _this);
+        return _this;
     }
     Piece.prototype.constructPath = function (newIndex) {
         var path = new Path_1.Path();
@@ -127,6 +140,10 @@ var Piece = (function (_super) {
      */
     Piece.prototype.setActivePiece = function () {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
+        if (emit.getEmit() === true) {
+            this.emitPiece.setParameters(this);
+            this.socket.emit("selectActivePiece", this.emitPiece);
+        }
     };
     /**
      * Dispatches select signal to player

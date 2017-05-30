@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 /// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 var Piece_1 = require("../entities/Piece");
@@ -9,45 +10,45 @@ var PieceFactory = (function () {
     function PieceFactory(game) {
         this.game = game;
     }
-    PieceFactory.prototype.createNewPieces = function (colorType, playerId, signal) {
+    PieceFactory.prototype.createNewPieces = function (colorType, playerId, signal, socket, gameId) {
         var imageId = this.getImageKey(colorType);
         if (imageId === "red_piece") {
             var startPosition = new PiecePosition_1.PiecePosition(49, 287);
             var redPieces = [
-                new Piece_1.Piece(this.game, 118, 72, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 72, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 168, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 120, 168, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
+                new Piece_1.Piece(this.game, 118, 72, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 72, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 168, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 120, 168, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
             ];
             return redPieces;
         }
         else if (imageId === "blue_piece") {
             var startPosition = new PiecePosition_1.PiecePosition(384, 48);
             var bluePieces = [
-                new Piece_1.Piece(this.game, 552, 72, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 503, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 600, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 552, 168, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
+                new Piece_1.Piece(this.game, 552, 72, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 503, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 600, 118, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 552, 168, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
             ];
             return bluePieces;
         }
         else if (imageId === "yellow_piece") {
             var startPosition = new PiecePosition_1.PiecePosition(624, 385);
             var yellowPieces = [
-                new Piece_1.Piece(this.game, 552, 503, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 503, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 600, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 552, 600, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
+                new Piece_1.Piece(this.game, 552, 503, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 503, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 600, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 552, 600, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
             ];
             return yellowPieces;
         }
         else if (imageId === "green_piece") {
             var startPosition = new PiecePosition_1.PiecePosition(287, 622);
             var greenPieces = [
-                new Piece_1.Piece(this.game, 118, 503, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 72, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 168, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
-                new Piece_1.Piece(this.game, 118, 600, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal),
+                new Piece_1.Piece(this.game, 118, 503, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 72, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 168, 552, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
+                new Piece_1.Piece(this.game, 118, 600, imageId, colorType, playerId, angular2_uuid_1.UUID.UUID(), startPosition, signal, socket, gameId),
             ];
             return greenPieces;
         }
@@ -72,14 +73,14 @@ var PieceFactory = (function () {
             }
         }
         */
-    PieceFactory.prototype.createExistingPieces = function (ludoPieces, signal) {
+    PieceFactory.prototype.createExistingPieces = function (ludoPieces, signal, socket, gameId) {
         var pieces = [];
         var collidingPieces = [];
         for (var _i = 0, ludoPieces_1 = ludoPieces; _i < ludoPieces_1.length; _i++) {
             var ludoPiece = ludoPieces_1[_i];
             switch (ludoPiece.color) {
                 case ColorType_1.ColorType.Red: {
-                    var redPiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    var redPiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal, socket, gameId);
                     redPiece = this.updateRemainingPieceParameters(ludoPiece, redPiece);
                     if (ludoPiece.collidingPiece !== null) {
                         collidingPieces.push(ludoPiece);
@@ -88,7 +89,7 @@ var PieceFactory = (function () {
                     break;
                 }
                 case ColorType_1.ColorType.Blue: {
-                    var bluePiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    var bluePiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal, socket, gameId);
                     bluePiece = this.updateRemainingPieceParameters(ludoPiece, bluePiece);
                     if (ludoPiece.collidingPiece !== null) {
                         collidingPieces.push(ludoPiece);
@@ -97,7 +98,7 @@ var PieceFactory = (function () {
                     break;
                 }
                 case ColorType_1.ColorType.Yellow: {
-                    var yellowPiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    var yellowPiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal, socket, gameId);
                     yellowPiece = this.updateRemainingPieceParameters(ludoPiece, yellowPiece);
                     if (ludoPiece.collidingPiece !== null) {
                         collidingPieces.push(ludoPiece);
@@ -106,7 +107,7 @@ var PieceFactory = (function () {
                     break;
                 }
                 case ColorType_1.ColorType.Green: {
-                    var greenPiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal);
+                    var greenPiece = new Piece_1.Piece(this.game, ludoPiece.currentPosition.x, ludoPiece.currentPosition.y, ludoPiece.imageId, ludoPiece.color, ludoPiece.playerId, ludoPiece.uniqueId, ludoPiece.startPosition, signal, socket, gameId);
                     greenPiece = this.updateRemainingPieceParameters(ludoPiece, greenPiece);
                     if (ludoPiece.collidingPiece !== null) {
                         collidingPieces.push(ludoPiece);

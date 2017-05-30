@@ -1,6 +1,7 @@
 import * as socketIO from "socket.io";
 import {LudoGame} from "./source/game/LudoGame";
 import {Dictionary} from "typescript-collections";
+import {EmitPiece} from "./source/emit/EmitPiece";
 
 let games = new Dictionary<String, LudoGame>();
 let socket: SocketIO.Socket;
@@ -15,6 +16,7 @@ export class Ludo {
         socket.on("rollDice", this.rollDice);
         socket.on("joinExistingGame", this.joinExistingGame);
         socket.on("connected", this.connected);
+        socket.on("selectActivePiece", this.selectActivePiece);
         socket.on("disconnect", () => {
                 console.log("Client disconnected");
         });
@@ -49,8 +51,13 @@ export class Ludo {
     }
 
     private rollDice(dice: any, callback): void {
-        console.log("Broadcating roll dice" + socket.id);
+        // console.log("Broadcating roll dice" + socket.id);
         io.in(dice.gameId).emit("emitRollDice", dice);
         callback(dice);
+    }
+
+    private selectActivePiece(emitPiece: EmitPiece): void {
+        console.log("Broadcating select piece" + socket.id);
+        io.in(emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
     }
 }

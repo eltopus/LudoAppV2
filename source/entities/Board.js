@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 /// <reference path = "../../node_modules/typescript-collections/dist/lib/index.d.ts" />
 /// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 var Collections = require("typescript-collections");

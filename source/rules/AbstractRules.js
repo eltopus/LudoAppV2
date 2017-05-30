@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var Actions_1 = require("../enums/Actions");
 var Move_1 = require("./Move");
 var ActiveBoard_1 = require("../entities/ActiveBoard");

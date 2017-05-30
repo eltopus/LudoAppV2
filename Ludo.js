@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var typescript_collections_1 = require("typescript-collections");
 var games = new typescript_collections_1.Dictionary();
 var socket;
@@ -14,6 +15,7 @@ var Ludo = (function () {
         socket.on("rollDice", this.rollDice);
         socket.on("joinExistingGame", this.joinExistingGame);
         socket.on("connected", this.connected);
+        socket.on("selectActivePiece", this.selectActivePiece);
         socket.on("disconnect", function () {
             console.log("Client disconnected");
         });
@@ -42,10 +44,13 @@ var Ludo = (function () {
         console.log("New socket connecting " + " was found " + socket.id);
     };
     Ludo.prototype.rollDice = function (dice, callback) {
-        console.log("Broadcating roll dice" + socket.id);
-        // socket.broadcast.to(dice.gameId).emit("emitRollDice", dice);
-        io.in(dice.gameId).emit("emitRollDice", dice);
+        // console.log("Broadcating roll dice" + socket.id);
+        io["in"](dice.gameId).emit("emitRollDice", dice);
         callback(dice);
+    };
+    Ludo.prototype.selectActivePiece = function (emitPiece) {
+        console.log("Broadcating select piece" + socket.id);
+        io["in"](emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
     };
     return Ludo;
 }());

@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var LudoDie_1 = require("./LudoDie");
 var LudoDice = (function () {
     function LudoDice(dice) {

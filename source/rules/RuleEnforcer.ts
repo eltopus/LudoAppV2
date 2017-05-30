@@ -16,6 +16,7 @@ import {AllPossibleMoves} from "./AllPossibleMoves";
 import {Path} from "../entities/Path";
 import {Perimeter} from "../entities/Perimeters";
 import {EmitDie} from "../emit/EmitDie";
+import {EmitPiece} from "../emit/EmitPiece";
 import {Emit} from "../emit/Emit";
 import {PlayerSockets} from "../sockets/PlayerSockets";
 
@@ -475,5 +476,14 @@ export class RuleEnforcer {
                 log.debug(" I cannot recieve dice rolled");
             }
         });
+
+        this.socket.on("emitSelectActivePiece", (emitPiece: EmitPiece) => {
+            if (emit.getEmit() === false) {
+                this.scheduler.getCurrentPlayer().emitSelectCurrentPiece(emitPiece.uniqueId);
+            }
+            log.debug("Select piece: " + emitPiece.uniqueId);
+        });
+        
     }
+    
 }

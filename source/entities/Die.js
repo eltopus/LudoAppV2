@@ -1,9 +1,15 @@
 "use strict";
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+exports.__esModule = true;
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var EmitDie_1 = require("../emit/EmitDie");
 var Emit_1 = require("../emit/Emit");
@@ -12,30 +18,31 @@ var emit = Emit_1.Emit.getInstance();
 var Die = (function (_super) {
     __extends(Die, _super);
     function Die(game, x, y, imageId, uniqueId, signal, socket, gameId) {
-        _super.call(this, game, x, y, imageId);
-        this.extFrame = null;
-        this.diceArr = [5, 1, 6, 2, 0, 4];
-        this.removeLater = true;
-        this.pixels = [];
-        this.uniqueId = uniqueId;
-        this.signal = signal;
-        this.playerId = null;
-        this.socket = socket;
-        this.gameId = gameId;
-        this.group = this.game.add.group();
-        this.group.add(this);
-        this.frame = 1;
-        this.anchor.setTo(0.5, 0.5);
-        this.inputEnabled = true;
+        var _this = _super.call(this, game, x, y, imageId) || this;
+        _this.extFrame = null;
+        _this.diceArr = [5, 1, 6, 2, 0, 4];
+        _this.removeLater = true;
+        _this.pixels = [];
+        _this.uniqueId = uniqueId;
+        _this.signal = signal;
+        _this.playerId = null;
+        _this.socket = socket;
+        _this.gameId = gameId;
+        _this.group = _this.game.add.group();
+        _this.group.add(_this);
+        _this.frame = 1;
+        _this.anchor.setTo(0.5, 0.5);
+        _this.inputEnabled = true;
         for (var i = 0; i < 15; i++) {
-            this.pixels[i] = this.game.rnd.pick([0, 1, 2, 4, 5, 6]);
+            _this.pixels[i] = _this.game.rnd.pick([0, 1, 2, 4, 5, 6]);
         }
-        this.animation = this.animations.add("roll", this.pixels);
-        this.animation.onComplete.add(this.rollComplete, this);
-        this.events.onInputDown.add(this.selectActiveDie, this);
-        this.consume();
-        this.emitDice = new EmitDie_1.EmitDie();
-        this.emitDice.gameId = gameId;
+        _this.animation = _this.animations.add("roll", _this.pixels);
+        _this.animation.onComplete.add(_this.rollComplete, _this);
+        _this.events.onInputDown.add(_this.selectActiveDie, _this);
+        _this.consume();
+        _this.emitDice = new EmitDie_1.EmitDie();
+        _this.emitDice.gameId = gameId;
+        return _this;
     }
     Die.prototype.selectActiveDie = function () {
         if (this.alpha === 0.5) {
@@ -128,6 +135,24 @@ var Die = (function (_super) {
     };
     Die.prototype.getValue = function () {
         switch (this.frame) {
+            case 0:
+                return 6;
+            case 1:
+                return 1;
+            case 2:
+                return 2;
+            case 4:
+                return 5;
+            case 5:
+                return 3;
+            case 6:
+                return 4;
+            default:
+                return 0;
+        }
+    };
+    Die.prototype.getFrameValue = function () {
+        switch (this.extFrame) {
             case 0:
                 return 6;
             case 1:

@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var express = require("express");
 var http = require("http");
 var socketIo = require("socket.io");
@@ -91,9 +92,8 @@ var Server = (function () {
             _this.ludo.initLudo(_this.io, socket);
         });
     };
-    Server.PORT = 3000;
     return Server;
 }());
+Server.PORT = 3000;
 var server = Server.bootstrap();
-exports.__esModule = true;
 exports["default"] = server.app;

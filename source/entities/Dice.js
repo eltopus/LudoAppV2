@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var Die_1 = require("./Die");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Dice");
@@ -97,9 +98,11 @@ var Dice = (function () {
             var id = ids_4[_i];
             if (id === this.dieOne.uniqueId) {
                 this.dieOne.consume();
+                // log.debug("Die id " + id + " consumed");
             }
             if (id === this.dieTwo.uniqueId) {
                 this.dieTwo.consume();
+                // log.debug("Die id " + id + " consumed");
             }
         }
     };

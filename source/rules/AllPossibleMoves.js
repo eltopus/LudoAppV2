@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var States_1 = require("../enums/States");
 var AllPossibleMoves = (function () {
     function AllPossibleMoves() {

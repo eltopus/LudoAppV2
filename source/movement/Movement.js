@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var Paths = require("../entities/Paths");
 var Path_1 = require("../entities/Path");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");

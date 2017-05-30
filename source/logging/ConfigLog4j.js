@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var typescript_logging_1 = require("typescript-logging");
 // Create options instance and specify 2 LogGroupRules:
 // * One for any logger with a name starting with model, to log on debug

@@ -186,11 +186,11 @@ export class Game extends Phaser.State {
         let player: Player = null;
         if (ludoPlayer.isAI) {
             player = new AIPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, this.socket, ludoPlayer.pieces, this.enforcer);
+            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
         }else {
             player = new RegularPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, this.socket, ludoPlayer.pieces, this.enforcer);
+            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
         }
         return player;
@@ -247,10 +247,10 @@ export class Game extends Phaser.State {
         let players: Player[] = [];
         for (let newPlayer of newPlayers.newPlayers){
             if (newPlayer.isAI) {
-                let aiPlayer = new AIPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, this.socket, null, this.enforcer);
+                let aiPlayer = new AIPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, this.socket, this.gameId, null, this.enforcer);
                 players.push(aiPlayer);
             }else {
-                let regularPlayer = new RegularPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, this.socket, null, this.enforcer);
+                let regularPlayer = new RegularPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, this.socket, this.gameId, null, this.enforcer);
                 players.push(regularPlayer);
             }
         }

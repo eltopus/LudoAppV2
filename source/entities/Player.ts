@@ -24,7 +24,7 @@ export abstract class Player extends PieceFactory {
     public sequenceNumber = 0;
     private perimeters: Perimeters;
     private socket: any;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, socket: any, ludoPieces: LudoPiece[],
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, socket: any, gameId: string, ludoPieces: LudoPiece[],
      previousDoubleSix?: boolean) {
         super(game);
         this.name = name;
@@ -41,10 +41,10 @@ export abstract class Player extends PieceFactory {
             this.previousDoubleSix = previousDoubleSix;
         }
         if (typeof ludoPieces !== "undefined" && ludoPieces !== null) {
-            this.pieces = this.createExistingPieces(ludoPieces, this.signal);
+            this.pieces = this.createExistingPieces(ludoPieces, this.signal, this.socket, gameId);
         }else {
             for (let x = 0; x < colorTypes.length; x++) {
-            let playerPieces = this.createNewPieces(colorTypes[x], playerId, this.signal);
+            let playerPieces = this.createNewPieces(colorTypes[x], playerId, this.signal, this.socket, gameId);
             for (let piece of playerPieces){
                 this.pieces.push(piece);
             }
@@ -210,6 +210,21 @@ export abstract class Player extends PieceFactory {
             }
 
         }
+    }
+    /**
+     * Used  by socket to select piece
+     * @param uniqueId 
+     */
+    public emitSelectCurrentPiece(uniqueId: string): void {
+        for (let piece of this.pieces) {
+            if (piece.uniqueId === uniqueId) {
+                piece.select();
+                this.currentSelectedPiece = piece;
+                 // log.debug("I am being selected..." + this.currentSelectedPiece.uniqueId);
+                }else {
+                    piece.unselect();
+                }
+            }
     }
 
     public pieceBelongsToMe(uniqueId: string): boolean {

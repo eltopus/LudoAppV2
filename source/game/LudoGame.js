@@ -1,4 +1,5 @@
 "use strict";
+exports.__esModule = true;
 var LudoPlayer_1 = require("./LudoPlayer");
 var LudoDice_1 = require("./LudoDice");
 var LudoGame = (function () {

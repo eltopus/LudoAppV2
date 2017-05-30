@@ -1,12 +1,13 @@
 "use strict";
+exports.__esModule = true;
 var EmitDie = (function () {
     function EmitDie() {
     }
     EmitDie.prototype.setParameters = function (die) {
         this.uniqueId = die.uniqueId;
         this.playerId = die.playerId;
-        this.extFrame = die.getFrame(die.getValue());
-        this.dieValue = die.getValue();
+        this.extFrame = die.extFrame;
+        this.dieValue = die.getFrameValue();
         this.isSelected = die.isSelected();
         this.isConsumed = die.isConsumed();
         this.gameId = die.gameId;

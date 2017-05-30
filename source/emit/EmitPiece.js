@@ -1,23 +1,22 @@
 "use strict";
 exports.__esModule = true;
-var LudoPiece = (function () {
-    function LudoPiece(piece) {
+var EmitPiece = (function () {
+    function EmitPiece() {
         this.collidingPiece = null;
+    }
+    EmitPiece.prototype.setParameters = function (piece) {
         this.color = piece.color;
         this.playerId = piece.playerId;
         this.uniqueId = piece.uniqueId;
         this.index = piece.index;
-        this.startIndex = piece.startIndex;
         this.state = piece.state;
-        this.startPosition = piece.startPosition;
-        this.homePosition = piece.homePosition;
         this.currentPosition = piece.getCurrentPiecePostionByIndex();
         this.entryIndex = piece.entryIndex;
-        this.imageId = piece.imageId;
+        this.gameId = piece.gameId;
         if (piece.collidingPiece !== null) {
             this.collidingPiece = piece.collidingPiece.uniqueId;
         }
-    }
-    return LudoPiece;
+    };
+    return EmitPiece;
 }());
-exports.LudoPiece = LudoPiece;
+exports.EmitPiece = EmitPiece;

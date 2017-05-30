@@ -6,10 +6,12 @@ import {PiecePosition} from "../entities/PiecePosition";
 import {factory} from "../logging/ConfigLog4j";
 import {Path} from "../entities/Path";
 import {Perimeter} from "./Perimeters";
+import {Emit} from "../emit/Emit";
+import {EmitPiece} from "../emit/EmitPiece";
 // import * as Phasertips from "../Phasertips";
 
 const log = factory.getLogger("model.Piece");
-
+let emit = Emit.getInstance();
 export interface PieceInterface {
     group: Phaser.Group;
     color: ColorType;
@@ -50,10 +52,13 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public entryIndex: number;
     public collidingPiece: Piece;
     public imageId: string;
+    public gameId: string;
+    private socket: any;
+    private emitPiece: EmitPiece;
       // public tips: Phasertips;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, color: ColorType,
-    playerId: string, uniqueId: string, startPosition: PiecePosition, signal: Phaser.Signal) {
+    playerId: string, uniqueId: string, startPosition: PiecePosition, signal: Phaser.Signal, socket: any, gameId: string) {
         super(game, x, y, imageId);
         this.color = color;
         this.playerId = playerId;
@@ -78,6 +83,9 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.speedConstant = 6000 * 12;
         this.collidingPiece = null;
         this.imageId = imageId;
+        this.socket = socket;
+        this.gameId = gameId;
+        this.emitPiece = new EmitPiece();
         // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
         this.events.onInputDown.add(this.setActivePiece, this);
 
@@ -171,6 +179,10 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      */
     public setActivePiece(): void {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
+        if (emit.getEmit() === true){
+            this.emitPiece.setParameters(this);
+            this.socket.emit("selectActivePiece", this.emitPiece);
+        }
     }
     /**
      * Dispatches select signal to player

@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var NewPlayer = (function () {
     function NewPlayer(playerName, color, isAI) {
         this.isCreator = false;
