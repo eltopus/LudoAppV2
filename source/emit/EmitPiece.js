@@ -1,8 +1,8 @@
 "use strict";
-exports.__esModule = true;
 var EmitPiece = (function () {
     function EmitPiece() {
         this.collidingPiece = null;
+        this.movement = null;
     }
     EmitPiece.prototype.setParameters = function (piece) {
         this.color = piece.color;

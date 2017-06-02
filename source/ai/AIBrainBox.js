@@ -20,4 +20,3 @@ var AIBrainBox = (function () {
     return AIBrainBox;
 }());
 exports.AIBrainBox = AIBrainBox;
-//# sourceMappingURL=AIBrainBox.js.map

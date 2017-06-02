@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Actions_1 = require("../enums/Actions");
 var States_1 = require("../enums/States");
 var Move = (function () {
@@ -11,6 +10,7 @@ var Move = (function () {
         this.diceId = "";
         this.mockConsumeDieValueSix = false;
         this.mockDiceId = "";
+        this.gameId = "";
     }
     Move.prototype.resetRule = function () {
         this.pieceId = "";
@@ -21,6 +21,7 @@ var Move = (function () {
         this.mockConsumeDieValueSix = false;
         this.mockDiceId = "";
     };
+    // Unit Test this function
     Move.prototype.compare = function (move) {
         var match = false;
         if (move.action === this.action && move.diceId === this.diceId && move.pieceId === this.pieceId) {
@@ -40,4 +41,3 @@ var Move = (function () {
     return Move;
 }());
 exports.Move = Move;
-//# sourceMappingURL=Move.js.map

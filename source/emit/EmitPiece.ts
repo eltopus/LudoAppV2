@@ -2,6 +2,7 @@ import {ColorType} from "../enums/ColorType";
 import {States} from "../enums/States";
 import {PiecePosition} from "../entities/PiecePosition";
 import {Piece} from "../entities/Piece";
+import {Move} from "../rules/Move";
 
 export class EmitPiece {
     public color: ColorType;
@@ -13,6 +14,8 @@ export class EmitPiece {
     public entryIndex: number;
     public collidingPiece: string = null;
     public gameId: string;
+    public diceUniqueIds: string[];
+    public movement: Move = null;
 
     public setParameters(piece: Piece) {
         this.color = piece.color;

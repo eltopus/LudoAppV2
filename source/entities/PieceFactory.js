@@ -1,5 +1,4 @@
 "use strict";
-exports.__esModule = true;
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 /// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 var Piece_1 = require("../entities/Piece");

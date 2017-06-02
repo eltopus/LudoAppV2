@@ -1,17 +1,31 @@
 "use strict";
 var Rules_1 = require("../rules/Rules");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
+var EmitDie_1 = require("../emit/EmitDie");
+var EmitPiece_1 = require("../emit/EmitPiece");
+var Emit_1 = require("../emit/Emit");
+var emit = Emit_1.Emit.getInstance();
 var log = ConfigLog4j_1.factory.getLogger("model.RuleEnforcer");
 var RuleEnforcer = (function () {
-    function RuleEnforcer(signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard, currentPossibleMovements) {
+    function RuleEnforcer(signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard, gameId, socket, currentPossibleMovements) {
         this.rollCounter = 0;
+        this.emitRollCounter = 0;
+        this.emitDice = [];
+        this.emitPiece = new EmitPiece_1.EmitPiece();
         this.signal = signal;
         this.scheduler = scheduler;
         this.dice = dice;
+        this.gameId = gameId;
+        this.socket = socket;
         this.currentPossibleMovements = currentPossibleMovements;
         this.rule = new Rules_1.Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
         this.signal.add(this.onCompletePieceMovement, this, 0, "completeMovement");
+        this.emitDie = new EmitDie_1.EmitDie();
+        this.emitDie.gameId = gameId;
+        if (emit.getEnableSocket()) {
+            this.setSocketHandlers();
+        }
     }
     RuleEnforcer.prototype.setRollCounter = function (rollCounter) {
         this.rollCounter = rollCounter;
@@ -33,7 +47,21 @@ var RuleEnforcer = (function () {
             }
         }
     };
+    /**
+     * Generates move object using selected piece and selected die or dice
+     * @param dieIds
+     * @param piece
+     */
     RuleEnforcer.prototype.generatePieceMovement = function (dieIds, piece) {
+        // Send player move
+        if (emit.getEmit() === true && emit.getEnableSocket()) {
+            this.emitPiece.setParameters(piece);
+            this.emitPiece.diceUniqueIds = dieIds;
+            this.socket.emit("pieceMovement", this.emitPiece, function (message) {
+                log.debug("pieceMovement: " + message);
+            });
+        }
+        //
         var pieceMovement = this.rule.generatePieceMovement(dieIds, piece);
         var canPlay = false;
         var possibleMovements = this.currentPossibleMovements.getPieceMoves(piece.state);
@@ -48,6 +76,7 @@ var RuleEnforcer = (function () {
                 var path = piece.constructPath(diceValue);
                 if (!path.isEmpty()) {
                     piece.index = path.newIndex;
+                    // Condition for collision or peck
                     if (piece.isActive()) {
                         var id = this.checkCollision(piece.uniqueId, piece.index);
                         if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
@@ -91,6 +120,7 @@ var RuleEnforcer = (function () {
         var path = piece.constructPath(diceValue);
         if (!path.isEmpty()) {
             piece.index = path.newIndex;
+            // Condition for collision or peck
             if (piece.isActive()) {
                 var id = this.checkCollision(piece.uniqueId, piece.index);
                 if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
@@ -101,7 +131,20 @@ var RuleEnforcer = (function () {
                     }
                 }
             }
-            piece.movePiece(path);
+            var rand = Math.floor(Math.random() * 2) + 1;
+            log.debug("Rand is: " + rand);
+            if (rand === 1) {
+                piece.setActivePiece();
+                setTimeout(function () {
+                    piece.movePiece(path);
+                }, 1000);
+            }
+            else {
+                piece.setActivePiece();
+                setTimeout(function () {
+                    piece.movePiece(path);
+                }, 1000);
+            }
         }
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
@@ -109,6 +152,9 @@ var RuleEnforcer = (function () {
         this.currentPossibleMovements.resetMoves();
         this.generateAllPossibleMoves();
         return aiPieceMovement;
+    };
+    RuleEnforcer.prototype.selectAIDPiece = function (piece) {
+        piece.setActivePiece();
     };
     RuleEnforcer.prototype.mockPieceCollision = function (uniqueId, index) {
         var id = this.rule.getUniqueIdCollision(uniqueId, index);
@@ -177,10 +223,16 @@ var RuleEnforcer = (function () {
         var currentPlayer = this.scheduler.getCurrentPlayer();
         this.currentPossibleMovements.resetMoves();
         this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
+        // log.debug("Possible Moves Generated: " + this.currentPossibleMovements.totalNumberOfRules());
+        // this.rule.showRulePools();
         this.analyzeAllPossibleMove(currentPlayer);
     };
     RuleEnforcer.prototype.analyzeAllPossibleMove = function (currentPlayer) {
         var _this = this;
+        /**
+         * Corner case for when player can only play one active or home or onwayout piece.
+         * This does not necessarily mean that the player has a total of one piece.
+        */
         if (this.currentPossibleMovements.isEmpty()) {
             setTimeout(function () {
                 _this.handleEmptyPossibleMovements();
@@ -205,8 +257,14 @@ var RuleEnforcer = (function () {
             else {
             }
         }
+        // this.readAllMoves();
     };
     RuleEnforcer.prototype.filterOnHasExactlyOneActivePiece = function (currentPossibleMovements, player) {
+        /**
+         * This block of code validates corner cases where a player has only one active piece
+         * and has one or more onwayout pieces. This check is necessarily to prevent player
+         * from playing an invalid die value on the active piece.
+         */
         if (player.hasOnWayOutPieces()) {
             var onWayOutPieces = player.getPlayerOnWayOutPieces();
             var onWayOutPieceMovements = [];
@@ -214,6 +272,11 @@ var RuleEnforcer = (function () {
                 var onWayOutPiece = onWayOutPieces_1[_i];
                 onWayOutPieceMovements = onWayOutPieceMovements.concat(this.getDieMovementsOnPiece(onWayOutPiece.uniqueId, currentPossibleMovements.onWayOutMoves));
             }
+            // log.debug("Size: " + onWayOutPieceMovements.length);
+            /** This checks corner case for when a player has one onwayout piece and one active piece
+                Rule must ensure that player is not allowed to play die value on active piece leaving
+                the other value that onwayout piece cannot play
+            */
             if (onWayOutPieceMovements.length >= 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
                 if (this.dice.bothDiceHasLegitValues()) {
                     if ((this.homeManyShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves)) === 1) {
@@ -222,11 +285,13 @@ var RuleEnforcer = (function () {
                 }
             }
             else if (onWayOutPieceMovements.length === 0 && this.dice.bothDiceHasLegitValues() && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+                // cond-009
                 if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
                     currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
                 }
             }
             else {
+                // cond-007
                 if (this.dice.bothDiceHasLegitValues() && this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) {
                     if (player.hasHomePieces()) {
                         currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
@@ -253,6 +318,7 @@ var RuleEnforcer = (function () {
             }
         }
         else {
+            // tough call to make. Needs serious thought process
             if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
                 currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
             }
@@ -288,6 +354,7 @@ var RuleEnforcer = (function () {
         }
         return currentPossibleMovements;
     };
+    // Establish that onwayout movements has the same unique ids
     RuleEnforcer.prototype.diceIdsAreDistinct = function (onWayOutMovements) {
         var movement = onWayOutMovements[0];
         var distinctIds = true;
@@ -309,6 +376,7 @@ var RuleEnforcer = (function () {
                     sharedIds = true;
                     if (splice) {
                         var illegalMove = activeMovements[x];
+                        // log.debug("7 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                         activeMovements.splice(x, 1);
                         this.rule.addSpentMoveBackToPool(illegalMove);
                     }
@@ -353,6 +421,7 @@ var RuleEnforcer = (function () {
                 legalMoves.push(movements[x]);
             }
             else {
+                // log.debug("5 Successfully Removed illegal move: " + this.rule.decodeMove(movements[x]));
                 this.rule.addSpentMoveBackToPool(illegalMove);
             }
         }
@@ -368,6 +437,7 @@ var RuleEnforcer = (function () {
                 }
                 else {
                     var illegalMove = movements[x];
+                    // log.debug("6 Successfully Removed illegal move: " + this.rule.decodeMove(illegalMove));
                     this.rule.addSpentMoveBackToPool(illegalMove);
                 }
             }
@@ -384,7 +454,44 @@ var RuleEnforcer = (function () {
             }
         }
     };
+    RuleEnforcer.prototype.setSocketHandlers = function () {
+        var _this = this;
+        this.socket.on("connect", function () {
+            log.debug(_this.socket.id + "**Player is connected*****");
+        });
+        this.socket.on("emitRollDice", function (die) {
+            if (emit.getEmit() === false) {
+                log.debug(" Emit receieved " + JSON.stringify(die));
+                _this.emitDice.push(die);
+                if (_this.emitDice.length > 1) {
+                    _this.dice.roll(_this.emitDice[0].dieValue, _this.emitDice[1].dieValue);
+                    _this.emitDice = [];
+                }
+            }
+            else {
+                log.debug(" I cannot recieve dice rolled");
+            }
+        });
+        this.socket.on("emitSelectActivePiece", function (emitPiece) {
+            if (emit.getEmit() === false) {
+                _this.scheduler.getCurrentPlayer().emitSelectCurrentPiece(emitPiece.uniqueId);
+            }
+            log.debug("Select piece: " + emitPiece.uniqueId);
+        });
+        this.socket.on("emitPieceMovement", function (emitPiece) {
+            if (emit.getEmit() === false) {
+                var piece = _this.scheduler.getPieceByUniqueId(emitPiece.uniqueId);
+                if (piece) {
+                    log.debug("Playing dice values: " + emitPiece.diceUniqueIds.join());
+                    _this.generatePieceMovement(emitPiece.diceUniqueIds, piece);
+                }
+                else {
+                    log.debug("Error finding piece: " + emitPiece.uniqueId);
+                }
+            }
+            log.debug("Play movement on : " + emitPiece.uniqueId);
+        });
+    };
     return RuleEnforcer;
 }());
 exports.RuleEnforcer = RuleEnforcer;
-//# sourceMappingURL=RuleEnforcer.js.map

@@ -17,12 +17,14 @@ import {Perimeters} from "./Perimeters";
 import {Perimeter} from "./Perimeters";
 import {LudoPiece} from "../game/LudoPiece";
 
+
 const log = factory.getLogger("model.PlayerAI");
 export class AIPlayer extends Player {
     private ruleEnforcer: RuleEnforcer = null;
     private logic: AIBrainBox;
     private strategy: AIStrategy;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, socket: any, gameId: string, ludoPiece?: LudoPiece[],
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
+    socket: any, gameId: string, ludoPiece?: LudoPiece[],
      ruleEnforcer?: RuleEnforcer, previousDoubleSix?: boolean) {
         super(game, name, playerId, turn, colorTypes, signal, socket, gameId, ludoPiece, previousDoubleSix);
         this.isAI = true;
@@ -42,6 +44,9 @@ export class AIPlayer extends Player {
                 // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
                 let piece = this.getPieceByUniqueId(bestMove.pieceId);
                 setTimeout(() => {
+                    if (piece) {
+                        piece.setActivePiece();
+                    }
                     this.ruleEnforcer.generateAIPieceMovement(piece, bestMove);
                 }, 1000);
             }else {
@@ -52,9 +57,7 @@ export class AIPlayer extends Player {
     }
     private aiRollDice(listener: string, dice: Dice, playerId: string) {
         if (listener === "aiRollDice") {
-             setTimeout(() => {
-                this.roll(dice, 6, 5);
-            }, 1000);
+             setTimeout(() => this.roll(dice), 1000);
         }
     }
 

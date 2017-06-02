@@ -1,5 +1,4 @@
 "use strict";
-exports.__esModule = true;
 var LudoDie = (function () {
     function LudoDie(die) {
         this.uniqueId = die.uniqueId;

@@ -12,8 +12,8 @@ var AIStrategy_1 = require("../enums/AIStrategy");
 var log = ConfigLog4j_1.factory.getLogger("model.PlayerAI");
 var AIPlayer = (function (_super) {
     __extends(AIPlayer, _super);
-    function AIPlayer(game, name, playerId, turn, colorTypes, signal, ludoPiece, ruleEnforcer, previousDoubleSix) {
-        _super.call(this, game, name, playerId, turn, colorTypes, signal, ludoPiece, previousDoubleSix);
+    function AIPlayer(game, name, playerId, turn, colorTypes, signal, socket, gameId, ludoPiece, ruleEnforcer, previousDoubleSix) {
+        _super.call(this, game, name, playerId, turn, colorTypes, signal, socket, gameId, ludoPiece, previousDoubleSix);
         this.ruleEnforcer = null;
         this.isAI = true;
         this.ruleEnforcer = ruleEnforcer;
@@ -29,6 +29,7 @@ var AIPlayer = (function (_super) {
             var possibleMovesTotal = movements.length;
             if (possibleMovesTotal > 0) {
                 var bestMove_1 = this.bestMovement(movements);
+                // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
                 var piece_1 = this.getPieceByUniqueId(bestMove_1.pieceId);
                 setTimeout(function () {
                     _this.ruleEnforcer.generateAIPieceMovement(piece_1, bestMove_1);
@@ -41,7 +42,7 @@ var AIPlayer = (function (_super) {
     };
     AIPlayer.prototype.aiRollDice = function (listener, dice, playerId) {
         var _this = this;
-        if (listener === "aiRollDice" && this.playerId === playerId) {
+        if (listener === "aiRollDice") {
             setTimeout(function () {
                 _this.roll(dice, 6, 5);
             }, 1000);
@@ -63,6 +64,7 @@ var AIPlayer = (function (_super) {
             movementIndex = (Math.floor(Math.random() * movements.length + 1)) - 1;
             bestMove = movements[movementIndex];
             if (bestMove.isHomeMovement()) {
+                // Player has more than one color
                 if (this.colorTypes.length > 1) {
                     var piece = this.ruleEnforcer.scheduler.getPieceByUniqueId(bestMove.pieceId);
                     if (piece !== null) {
@@ -172,4 +174,3 @@ var AIPlayer = (function (_super) {
     return AIPlayer;
 }(Player_1.Player));
 exports.AIPlayer = AIPlayer;
-//# sourceMappingURL=AIPlayer.js.map

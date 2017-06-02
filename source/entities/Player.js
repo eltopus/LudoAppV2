@@ -1,53 +1,47 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-exports.__esModule = true;
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var PieceFactory_1 = require("../entities/PieceFactory");
+var ColorType_1 = require("../enums/ColorType");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var Perimeters_1 = require("./Perimeters");
 var log = ConfigLog4j_1.factory.getLogger("model.Player");
 var Player = (function (_super) {
     __extends(Player, _super);
     function Player(game, name, playerId, turn, colorTypes, signal, socket, gameId, ludoPieces, previousDoubleSix) {
-        var _this = _super.call(this, game) || this;
-        _this.pieces = [];
-        _this.previousDoubleSix = false;
-        _this.isAI = false;
-        _this.sequenceNumber = 0;
-        _this.name = name;
-        _this.playerId = playerId;
-        _this.turn = turn;
-        _this.pieces = new Array();
-        _this.signal = signal;
-        _this.socket = socket;
-        _this.signal.add(_this.selectCurrentPiece, _this, 0, "select");
-        _this.currentSelectedPiece = null;
-        _this.perimeters = new Perimeters_1.Perimeters();
-        _this.colorTypes = colorTypes;
+        _super.call(this, game);
+        this.pieces = [];
+        this.previousDoubleSix = false;
+        this.isAI = false;
+        this.sequenceNumber = 0;
+        this.name = name;
+        this.playerId = playerId;
+        this.turn = turn;
+        this.pieces = new Array();
+        this.signal = signal;
+        this.socket = socket;
+        this.signal.add(this.selectCurrentPiece, this, 0, "select");
+        this.currentSelectedPiece = null;
+        this.perimeters = new Perimeters_1.Perimeters();
+        this.colorTypes = colorTypes;
         if (typeof previousDoubleSix !== "undefined") {
-            _this.previousDoubleSix = previousDoubleSix;
+            this.previousDoubleSix = previousDoubleSix;
         }
         if (typeof ludoPieces !== "undefined" && ludoPieces !== null) {
-            _this.pieces = _this.createExistingPieces(ludoPieces, _this.signal, _this.socket, gameId);
+            this.pieces = this.createExistingPieces(ludoPieces, this.signal, this.socket, gameId);
         }
         else {
             for (var x = 0; x < colorTypes.length; x++) {
-                var playerPieces = _this.createNewPieces(colorTypes[x], playerId, _this.signal, _this.socket, gameId);
+                var playerPieces = this.createNewPieces(colorTypes[x], playerId, this.signal, this.socket, gameId);
                 for (var _i = 0, playerPieces_1 = playerPieces; _i < playerPieces_1.length; _i++) {
                     var piece = playerPieces_1[_i];
-                    _this.pieces.push(piece);
+                    this.pieces.push(piece);
                 }
             }
         }
-        return _this;
     }
     Player.prototype.setSelectedPieceByUniqueId = function (uniqueId) {
         for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
@@ -200,12 +194,27 @@ var Player = (function (_super) {
                     if (piece.uniqueId === uniqueId) {
                         piece.select();
                         this.currentSelectedPiece = piece;
-                        // log.debug("I am being selected..." + this.currentSelectedPiece.uniqueId);
                     }
                     else {
                         piece.unselect();
                     }
                 }
+            }
+        }
+    };
+    /**
+     * Used  by socket to select piece
+     * @param uniqueId
+     */
+    Player.prototype.emitSelectCurrentPiece = function (uniqueId) {
+        for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
+            var piece = _a[_i];
+            if (piece.uniqueId === uniqueId) {
+                piece.select();
+                this.currentSelectedPiece = piece;
+            }
+            else {
+                piece.unselect();
             }
         }
     };
@@ -371,6 +380,28 @@ var Player = (function (_super) {
             if (perimeter.playerId === this.playerId) {
                 this.perimeters.addPerimetersToPool(perimeter, this.playerId);
             }
+        }
+    };
+    Player.prototype.getColorTypes = function () {
+        var colorTypes = [];
+        for (var _i = 0, _a = this.colorTypes; _i < _a.length; _i++) {
+            var color = _a[_i];
+            colorTypes.push(this.getColor(color));
+        }
+        return colorTypes;
+    };
+    Player.prototype.getColor = function (color) {
+        switch (color) {
+            case ColorType_1.ColorType.Red:
+                return "RED";
+            case ColorType_1.ColorType.Blue:
+                return "BLUE";
+            case ColorType_1.ColorType.Yellow:
+                return "YELLOW";
+            case ColorType_1.ColorType.Green:
+                return "GREEN";
+            default:
+                return "";
         }
     };
     return Player;

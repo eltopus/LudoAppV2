@@ -21,7 +21,7 @@ export class Die extends Phaser.Sprite {
     private pixels: number[] = [];
     private animation: Phaser.Animation;
     private socket: any;
-    private emitDice: EmitDie;
+    private emitDice: EmitDie = new EmitDie();
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, uniqueId: string, signal: Phaser.Signal, socket: any, gameId: string) {
         super(game, x, y, imageId);
@@ -42,16 +42,26 @@ export class Die extends Phaser.Sprite {
         this.animation = this.animations.add("roll", this.pixels);
         this.animation.onComplete.add(this.rollComplete, this);
         this.events.onInputDown.add(this.selectActiveDie, this);
-        this.consume();
-        this.emitDice = new EmitDie();
         this.emitDice.gameId = gameId;
+        if (emit.getEnableSocket()) {
+            this.setSocketHandlers();
+        }
+        this.frame = 3;
     }
 
     public selectActiveDie(): void {
         if (this.alpha === 0.5) {
             this.alpha = 1;
+            if (emit.getEmit() === true && emit.getEnableSocket()) {
+                this.emitDice.setParameters(this);
+                this.socket.emit("unselectActiveDie", this.emitDice);
+            }
         }else {
             this.alpha = 0.5;
+            if (emit.getEmit() === true && emit.getEnableSocket()) {
+                this.emitDice.setParameters(this);
+                this.socket.emit("selectActiveDie", this.emitDice);
+            }
         }
     }
 
@@ -77,27 +87,41 @@ export class Die extends Phaser.Sprite {
         if (value === null || typeof value === "undefined") {
             let rand = Math.floor(Math.random() * 6);
             this.extFrame = this.diceArr[rand];
-            // emit values
             this.animation.play(20);
         }else {
             this.extFrame = this.getFrame(value);
             this.animation.play(20);
         }
-        if (emit.getEmit() === true) {
+        if (emit.getEmit() === true && emit.getEnableSocket()) {
             this.emitDice.setParameters(this);
-            this.socket.emit("rollDice", this.emitDice, (message) => {
-                log.debug("RollDice: " + message);
-            });
+            this.socket.emit("rollDice", this.emitDice);
+        }
+    }
+
+    public rollEmitDie(emitDieOne: EmitDie, emitDieTwo: EmitDie): void {
+        if (emitDieOne.uniqueId === this.uniqueId) {
+            this.roll(emitDieOne.dieValue);
+        }
+        if (emitDieTwo.uniqueId === this.uniqueId) {
+            this.roll(emitDieTwo.dieValue);
         }
     }
 
     public consume(): void {
         this.frame = 3;
-        this.unSelectActiveDie();
+        if (emit.getEmit() === true && emit.getEnableSocket()) {
+            this.emitDice.setParameters(this);
+            this.socket.emit("consumeDie", this.emitDice);
+        }
+    }
+
+    public consumeWithoutEmission(): void {
+        this.frame = 3;
     }
 
     public resetDice() {
         this.alpha = 1;
+        this.visible = true;
     }
 
     public isConsumed(): boolean {
@@ -146,6 +170,7 @@ export class Die extends Phaser.Sprite {
         }
         if (ludoDie.isConsumed) {
             this.consume();
+            this.visible = false;
         }
     }
 
@@ -185,6 +210,21 @@ export class Die extends Phaser.Sprite {
             default:
                 return 0;
         }
+    }
+
+    private setSocketHandlers(): void {
+        this.socket.on("emitSelectActiveDie", (die: EmitDie) => {
+            if (emit.getEmit() === false && die.uniqueId === this.uniqueId) {
+                log.debug("Select piece: " + die.uniqueId);
+                this.select();
+            }
+        });
+        this.socket.on("emitUnselectActiveDie", (die: EmitDie) => {
+            if (emit.getEmit() === false && die.uniqueId === this.uniqueId) {
+                log.debug("Select piece: " + die.uniqueId);
+                this.unSelectActiveDie();
+            }
+        });
     }
 
 }

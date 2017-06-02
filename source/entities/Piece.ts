@@ -179,7 +179,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      */
     public setActivePiece(): void {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
-        if (emit.getEmit() === true){
+        if (emit.getEmit() === true && this.isSelected() && emit.getEnableSocket()) {
             this.emitPiece.setParameters(this);
             this.socket.emit("selectActivePiece", this.emitPiece);
         }
@@ -196,6 +196,10 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
 
     public select(): void {
         this.frame = 1;
+    }
+
+    public isSelected(): boolean {
+        return (this.frame === 1);
     }
 
     public unselect(): void {

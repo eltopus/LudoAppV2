@@ -6,6 +6,9 @@ import * as NewPlayers from "../entities/NewPlayers";
 import {ColorType} from "../enums/ColorType";
 import {factory} from "../logging/ConfigLog4j";
 import * as $ from "jquery";
+import {Emit} from "../emit/Emit";
+
+let emit = Emit.getInstance();
 
 const log = factory.getLogger("model.GameSetup");
 
@@ -59,6 +62,7 @@ export class GameSetup extends Phaser.State {
             $.ajax({
 			        type: "POST",
 			        url: "join",
+			        // tslint:disable-next-line:object-literal-sort-keys
 			        data: {gameId : gameId},
 			        success: (ludogame) => {
 			        	if (ludogame) {
@@ -137,6 +141,8 @@ export class GameSetup extends Phaser.State {
                     break;
                 }
             }
+            emit.setEmit(true);
+            newCreatedPlayers.isCreator = true;
             this.startGame(newCreatedPlayers);
          });
 

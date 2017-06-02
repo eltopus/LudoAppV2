@@ -8,6 +8,7 @@ export class Move {
     public playBothDice: boolean;
     public mockConsumeDieValueSix: boolean;
     public mockDiceId: string;
+    public gameId: string;
 
     constructor() {
         this.action = Actions.DO_NOTHING;
@@ -17,6 +18,7 @@ export class Move {
         this.diceId = "";
         this.mockConsumeDieValueSix = false;
         this.mockDiceId = "";
+        this.gameId = "";
     }
 
     public resetRule(): void {

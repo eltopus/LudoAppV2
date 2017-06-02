@@ -1,5 +1,4 @@
 "use strict";
-exports.__esModule = true;
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Perimeters");
 var Perimeter = (function () {

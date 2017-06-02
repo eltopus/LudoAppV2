@@ -1,5 +1,4 @@
 "use strict";
-exports.__esModule = true;
 var LudoPiece_1 = require("./LudoPiece");
 var LudoPlayer = (function () {
     function LudoPlayer(player) {
@@ -11,6 +10,7 @@ var LudoPlayer = (function () {
         this.previousDoubleSix = player.previousDoubleSix;
         this.colorTypes = player.colorTypes;
         this.isAI = player.isAI;
+        this.colors = player.getColorTypes();
         this.sequenceNumber = player.sequenceNumber;
         if (player.currentSelectedPiece !== null) {
             this.currentSelectedPiece = player.currentSelectedPiece.uniqueId;

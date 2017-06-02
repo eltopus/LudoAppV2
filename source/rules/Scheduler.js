@@ -1,5 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 var Collections = require("typescript-collections");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Scheduler");
@@ -24,6 +24,7 @@ var Scheduler = (function () {
             player.turn = true;
         }
         else {
+            // Returning same player. Set value back to false
             player.previousDoubleSix = false;
         }
         return player;
@@ -103,4 +104,3 @@ var Scheduler = (function () {
     return Scheduler;
 }());
 exports.Scheduler = Scheduler;
-//# sourceMappingURL=Scheduler.js.map

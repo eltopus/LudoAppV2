@@ -18,7 +18,7 @@ import {Perimeter} from "../entities/Perimeters";
 import {EmitDie} from "../emit/EmitDie";
 import {EmitPiece} from "../emit/EmitPiece";
 import {Emit} from "../emit/Emit";
-import {PlayerSockets} from "../sockets/PlayerSockets";
+import * as Paths from "../entities/Paths";
 
 let emit = Emit.getInstance();
 const log = factory.getLogger("model.RuleEnforcer");
@@ -31,10 +31,13 @@ export class RuleEnforcer {
     private rollCounter = 0;
     private emitRollCounter = 0;
     private currentPossibleMovements: AllPossibleMoves;
-    private emitDie: EmitDie;
+    private emitDie = new EmitDie();
     private emitDice: EmitDie[] = [];
     private gameId: string;
     private socket: any;
+    private emitPiece: EmitPiece = new EmitPiece();
+    private activepath = new Paths.ActivePath();
+    private onwayoutpath = new Paths.OnWayOutPaths();
 
     constructor(signal: Phaser.Signal, scheduler: Scheduler, dice: Dice, activeboard: ActiveBoard,
     homeboard: HomeBoard, onWayOutBoard: OnWayOutBoard, exitedBoard: ExitedBoard, gameId: string, socket: any, currentPossibleMovements?: AllPossibleMoves) {
@@ -47,9 +50,11 @@ export class RuleEnforcer {
         this.rule = new Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
         this.signal.add(this.onCompletePieceMovement, this, 0, "completeMovement");
-        this.emitDie = new EmitDie();
+        this.signal.add(this.setStateChange, this, 0,  "setStateChange");
         this.emitDie.gameId = gameId;
-        this.setSocketHandlers();
+        if (emit.getEnableSocket()) {
+            this.setSocketHandlers();
+        }
 
     }
 
@@ -69,7 +74,9 @@ export class RuleEnforcer {
                     currentPlayer.previousDoubleSix = true;
                 }
                 if (currentPlayer.isAI) {
-                    this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                    if (emit.getEmit()) {
+                        this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                    }
                 }
                 // this.rule.checkBoardConsistencies();
             }
@@ -83,6 +90,9 @@ export class RuleEnforcer {
      */
     public generatePieceMovement(dieIds: string[], piece: Piece): Move {
         let pieceMovement = this.rule.generatePieceMovement(dieIds, piece);
+        if (emit.getEmit() && emit.getEnableSocket()) {
+            this.emitAIPieceMovement(pieceMovement);
+        }
         let canPlay = false;
         let possibleMovements = this.currentPossibleMovements.getPieceMoves(piece.state);
         let currentPlayer = this.scheduler.getCurrentPlayer();
@@ -102,8 +112,12 @@ export class RuleEnforcer {
                             let backToHomePiece = this.scheduler.getPieceByUniqueId(id);
                             if (backToHomePiece !== null) {
                                 backToHomePiece.setAtHome();
+                                if (emit.getEmit() === true && emit.getEnableSocket()) {
+                                    this.emitPiece.setParameters(backToHomePiece);
+                                    this.socket.emit("setBackToHome", this.emitPiece);
+                                }
                                 piece.collidingPiece = backToHomePiece;
-                                piece.setExited();
+                                // piece.setExited();
                             }
                         }
                     }
@@ -133,6 +147,9 @@ export class RuleEnforcer {
 
 
     public generateAIPieceMovement(piece: Piece, aiPieceMovement: Move): Move {
+        if (emit.getEmit() && emit.getEnableSocket()) {
+            this.emitAIPieceMovement(aiPieceMovement);
+        }
         aiPieceMovement = this.filterConsumeDieValueSixMovement(aiPieceMovement, piece);
         let currentPlayer = this.scheduler.getCurrentPlayer();
         let diceValue = this.addDiceValues(this.dice.getDieValueArrayByUniqueId(aiPieceMovement.diceId));
@@ -147,6 +164,10 @@ export class RuleEnforcer {
                     let backToHomePiece = this.scheduler.getPieceByUniqueId(id);
                     if (backToHomePiece !== null) {
                         backToHomePiece.setAtHome();
+                        if (emit.getEmit() === true && emit.getEnableSocket()) {
+                            this.emitPiece.setParameters(backToHomePiece);
+                            this.socket.emit("setBackToHome", this.emitPiece);
+                        }
                         piece.collidingPiece = backToHomePiece;
                         // piece.setExited();
                     }
@@ -197,7 +218,9 @@ export class RuleEnforcer {
         let nextPlayer = this.scheduler.getNextPlayer();
         if (nextPlayer.isAI) {
             this.dice.setDicePlayerId(nextPlayer.playerId);
-            this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+            if (emit.getEmit() === true) {
+                this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+            }
         }
     }
 
@@ -240,9 +263,7 @@ export class RuleEnforcer {
          * This does not necessarily mean that the player has a total of one piece.
         */
         if (this.currentPossibleMovements.isEmpty()) {
-            setTimeout(() => {
-                this.handleEmptyPossibleMovements();
-            }, 1000);
+            setTimeout(() => this.handleEmptyPossibleMovements(), 1000);
         }else {
             if (currentPlayer.allPiecesAreAtHome()) {
                 this.currentPossibleMovements = this.filterOnAllPiecesAreAtHome(this.currentPossibleMovements, currentPlayer);
@@ -335,7 +356,7 @@ export class RuleEnforcer {
     }
 
     private filterOnAllPiecesAreAtHome(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
-        if (!player.hasActivePieces()) {
+        if (!player.hasActivePieces() && !this.dice.rolledDoubleSix()) {
             currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.homeMoves);
         }
         return currentPossibleMovements;
@@ -453,9 +474,30 @@ export class RuleEnforcer {
              this.currentPossibleMovements.resetMoves();
              this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
             if (!this.currentPossibleMovements.isEmpty()) {
-              this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                if (emit.getEmit()) {
+                    this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                }
             }
         }
+    }
+
+    private setStateChange(listener: string, piece: Piece): void {
+        if (listener === "startmovement") {
+                if (emit.getEmit() === true && emit.getEnableSocket()) {
+                this.emitPiece.setParameters(piece);
+                this.socket.emit("setStateChange", this.emitPiece);
+            }
+        }
+    }
+
+    private emitPieceMovement(movement: Move): void {
+        movement.gameId = this.gameId;
+        this.socket.emit("pieceMovement", movement);
+    }
+
+    private emitAIPieceMovement(movement: Move): void {
+        movement.gameId = this.gameId;
+        this.socket.emit("aiPieceMovement", movement);
     }
 
     private setSocketHandlers(): void {
@@ -465,15 +507,14 @@ export class RuleEnforcer {
 
         this.socket.on("emitRollDice", (die: EmitDie) => {
             if (emit.getEmit() === false) {
+                // log.debug( " Emit receieved " + JSON.stringify(die));
                 this.emitDice.push(die);
                 if (this.emitDice.length > 1) {
-                    this.dice.roll(this.emitDice[0].dieValue, this.emitDice[1].dieValue);
+                    this.dice.rollEmitDice(this.emitDice[0], this.emitDice[1]);
                     this.emitDice = [];
-                    log.debug( " Emit receieved " + JSON.stringify(this.emitDice[0]));
-                    log.debug( " Emit receieved " + JSON.stringify(this.emitDice[1]));
                 }
             }else {
-                log.debug(" I cannot recieve dice rolled");
+                // log.debug(" I cannot recieve dice rolled");
             }
         });
 
@@ -481,9 +522,43 @@ export class RuleEnforcer {
             if (emit.getEmit() === false) {
                 this.scheduler.getCurrentPlayer().emitSelectCurrentPiece(emitPiece.uniqueId);
             }
-            log.debug("Select piece: " + emitPiece.uniqueId);
+            // log.debug("Select piece: " + emitPiece.uniqueId);
         });
-        
+
+        this.socket.on("emitPieceMovement", (movement: Move) => {
+            if (emit.getEmit() === false) {
+                let piece = this.scheduler.getPieceByUniqueId(movement.pieceId);
+                if (piece) {
+                    let diceUniqueIds = movement.diceId.split("#");
+                    // log.debug("Playing dice values: " + diceUniqueIds.join());
+                    this.generatePieceMovement(diceUniqueIds, piece);
+                }else {
+                    log.debug("Error finding piece: " + movement.pieceId);
+                }
+            }
+            // log.debug("Play movement on : " + movement.pieceId);
+        });
+
+        this.socket.on("emitAIPieceMovement", (movement: Move) => {
+            log.debug("Playing dice values: " + movement.pieceId);
+            if (emit.getEmit() === false) {
+                let piece = this.scheduler.getPieceByUniqueId(movement.pieceId);
+                if (piece) {
+                    // log.debug("Playing dice values: " + movement.pieceId);
+                    this.generateAIPieceMovement(piece, movement);
+                }else {
+                    log.debug("Error finding piece: " + movement.pieceId);
+                }
+            }
+            // log.debug("Play movement on : " + movement.pieceId);
+        });
+
+
+        this.socket.on("emitChangePlayer", (playerId: string) => {
+            if (emit.getEmit() === false) {
+                log.debug("Clearing dice values...... ");
+                this.dice.consumeWithoutEmission();
+            }
+        });
     }
-    
 }

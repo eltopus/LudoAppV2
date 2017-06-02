@@ -1,8 +1,8 @@
 "use strict";
-exports.__esModule = true;
 var Emit = (function () {
     function Emit() {
         this.emit = false;
+        this.enableSocket = true;
         if (Emit.emitInstance) {
             throw new Error("Error: Instantiation failed: Use SingletonDemo.getInstance() instead of new.");
         }
@@ -17,7 +17,13 @@ var Emit = (function () {
     Emit.prototype.getEmit = function () {
         return this.emit;
     };
+    Emit.prototype.setEnableSocket = function (enableSocket) {
+        this.enableSocket = enableSocket;
+    };
+    Emit.prototype.getEnableSocket = function () {
+        return this.enableSocket;
+    };
+    Emit.emitInstance = new Emit();
     return Emit;
 }());
-Emit.emitInstance = new Emit();
 exports.Emit = Emit;

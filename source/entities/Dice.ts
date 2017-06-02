@@ -3,6 +3,7 @@ import {Player} from "../entities/Player";
 import {Die} from "./Die";
 import {factory} from "../logging/ConfigLog4j";
 import { UUID } from "angular2-uuid";
+import {EmitDie} from "../emit/EmitDie";
 
 const log = factory.getLogger("model.Dice");
 
@@ -21,6 +22,11 @@ export class Dice {
     public roll(value1?: number, value2?: number): void {
         this.dieOne.roll(value1);
         this.dieTwo.roll(value2);
+    }
+
+    public rollEmitDice(emitDieOne: EmitDie, emitDieTwo: EmitDie): void {
+        this.dieOne.rollEmitDie(emitDieOne, emitDieTwo);
+        this.dieTwo.rollEmitDie(emitDieOne, emitDieTwo);
     }
 
     public getHigherDieValue(): string {
@@ -112,9 +118,26 @@ export class Dice {
         }
     }
 
+    public selectDiceByUniqueId(uniqueIdStr: string): void {
+        let uniqueIds = uniqueIdStr.split("#");
+        for (let uniqueId of uniqueIds){
+            if (uniqueId === this.dieOne.uniqueId) {
+                this.dieOne.selectActiveDie();
+            }
+            if (uniqueId === this.dieTwo.uniqueId) {
+                this.dieTwo.selectActiveDie();
+            }
+        }
+    }
+
     public consumeDice(): void {
         this.dieOne.consume();
         this.dieTwo.consume();
+    }
+
+    public consumeWithoutEmission(): void {
+        this.dieOne.consumeWithoutEmission();
+        this.dieTwo.consumeWithoutEmission();
     }
 
     public isDieOneConsumed(): boolean {

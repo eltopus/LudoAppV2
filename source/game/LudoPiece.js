@@ -1,5 +1,4 @@
 "use strict";
-exports.__esModule = true;
 var LudoPiece = (function () {
     function LudoPiece(piece) {
         this.collidingPiece = null;

@@ -18,6 +18,7 @@ export class NewPlayers {
     public newPlayers: NewPlayer[] = [];
     public hasSavedGame = false;
     public ludogame: any = null;
+    public isCreator = false;
 
     /*
     constructor(playerMode: PlayerMode, newPlayers: NewPlayer[], hasSavedGame: boolean, ludogame?: any) {

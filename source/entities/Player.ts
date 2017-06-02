@@ -24,7 +24,8 @@ export abstract class Player extends PieceFactory {
     public sequenceNumber = 0;
     private perimeters: Perimeters;
     private socket: any;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, socket: any, gameId: string, ludoPieces: LudoPiece[],
+    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
+     socket: any, gameId: string, ludoPieces: LudoPiece[],
      previousDoubleSix?: boolean) {
         super(game);
         this.name = name;
@@ -213,7 +214,7 @@ export abstract class Player extends PieceFactory {
     }
     /**
      * Used  by socket to select piece
-     * @param uniqueId 
+     * @param uniqueId
      */
     public emitSelectCurrentPiece(uniqueId: string): void {
         for (let piece of this.pieces) {
@@ -386,6 +387,29 @@ export abstract class Player extends PieceFactory {
             if (perimeter.playerId === this.playerId) {
                 this.perimeters.addPerimetersToPool(perimeter, this.playerId);
             }
+        }
+    }
+
+    public getColorTypes(): string[] {
+        let colorTypes: string[] = [];
+        for (let color of this.colorTypes){
+            colorTypes.push(this.getColor(color));
+        }
+        return colorTypes;
+    }
+
+    public getColor(color: ColorType): string {
+        switch (color) {
+            case ColorType.Red:
+            return "RED";
+            case ColorType.Blue:
+            return "BLUE";
+            case ColorType.Yellow:
+            return "YELLOW";
+            case ColorType.Green:
+            return "GREEN";
+            default:
+            return "";
         }
     }
 

@@ -1,15 +1,9 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var Actions_1 = require("../enums/Actions");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var AbstractRules_1 = require("./AbstractRules");
@@ -18,9 +12,8 @@ var log = ConfigLog4j_1.factory.getLogger("model.HomeRules");
 var HomeRules = (function (_super) {
     __extends(HomeRules, _super);
     function HomeRules(dice, schedule, board) {
-        var _this = _super.call(this, dice, schedule, board) || this;
-        _this.state = States_1.States.AtHome;
-        return _this;
+        _super.call(this, dice, schedule, board);
+        this.state = States_1.States.AtHome;
     }
     HomeRules.prototype.generateMoves = function (player) {
         var moves = [];
@@ -78,6 +71,7 @@ var HomeRules = (function (_super) {
                     move_1.state = this.state;
                     moves.push(move_1);
                 }
+                // Play six on an home piece regardless of the value of the second die
                 var move = this.getNewRule();
                 move.action = Actions_1.Actions.PLAY;
                 move.diceId = uniqueId;
@@ -94,4 +88,3 @@ var HomeRules = (function (_super) {
     return HomeRules;
 }(AbstractRules_1.AbstractRules));
 exports.HomeRules = HomeRules;
-//# sourceMappingURL=HomeRules.js.map

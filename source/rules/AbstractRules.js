@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var Actions_1 = require("../enums/Actions");
 var Move_1 = require("./Move");
 var ActiveBoard_1 = require("../entities/ActiveBoard");
@@ -14,6 +13,7 @@ var AbstractRules = (function () {
         this.board = board;
         this.rulesPool = new Array();
         this.activeRulePool = new Array();
+        // Define object pooling for rules coz we used them a lot
         for (var i = 0; i < 10; ++i) {
             this.rulesPool.push(new Move_1.Move());
         }
@@ -21,12 +21,22 @@ var AbstractRules = (function () {
     AbstractRules.prototype.getBoard = function () {
         return this.board;
     };
+    /**
+     * Returns true if one of the dice value is 6
+     */
     AbstractRules.prototype.rolledAtLeastOneSix = function () {
         return this.dice.rolledAtLeastOneSix();
     };
+    /**
+     * Returns true if both dice values are 6 and 6
+     */
     AbstractRules.prototype.rolledDoubleSix = function () {
         return this.dice.rolledDoubleSix();
     };
+    /**
+     * Returns uniqueId of a die that equals the value parameter
+     * @param value
+     */
     AbstractRules.prototype.getDieByValue = function (value) {
         return (this.dice.getDieUniqueIdByValue(value));
     };
@@ -52,12 +62,20 @@ var AbstractRules = (function () {
             log.debug("OnWayOut rule: " + this.activeRulePool.length + " RulePool: " + this.rulesPool.length);
         }
     };
+    /**
+     *Add spent moves object back to pool
+     * @param moves
+     */
     AbstractRules.prototype.addSpentRulesBackToPool = function (moves) {
         for (var _i = 0, moves_1 = moves; _i < moves_1.length; _i++) {
             var move = moves_1[_i];
             this.addToRulePool(move);
         }
     };
+    /**
+     * Returns array of die uniqueIds that could take piece pass exit point
+     * @param piece
+     */
     AbstractRules.prototype.willCrossEntryPoint = function (piece) {
         var uniqueIds = [];
         var currentIndex = piece.index;
@@ -76,6 +94,13 @@ var AbstractRules = (function () {
         }
         return uniqueIds;
     };
+    /**
+     * Returns true if piece will overshoot exit point with
+     * die value. Piece needs exact exit value to exit
+     * Not a single die value can achieve this so therefore,
+     * both dice values are used
+     * @param piece
+     */
     AbstractRules.prototype.willCrossExitPoint = function (piece) {
         var uniqueIds = [];
         var diceValue = this.dice.dieOne.getValue() + this.dice.dieTwo.getValue();
@@ -91,6 +116,9 @@ var AbstractRules = (function () {
         }
         return uniqueIds;
     };
+    /**
+     * Returns unique id of dice with higher value
+     */
     AbstractRules.prototype.getHigherDieValue = function () {
         return this.dice.getHigherDieValue();
     };
@@ -136,4 +164,3 @@ var AbstractRules = (function () {
     return AbstractRules;
 }());
 exports.AbstractRules = AbstractRules;
-//# sourceMappingURL=AbstractRules.js.map

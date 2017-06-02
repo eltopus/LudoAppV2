@@ -42,4 +42,3 @@ var MockPiece = (function () {
     return MockPiece;
 }());
 exports.MockPiece = MockPiece;
-//# sourceMappingURL=MockPiece.js.map

@@ -1,5 +1,4 @@
 "use strict";
-exports.__esModule = true;
 var ColorType_1 = require("../enums/ColorType");
 var MoveStatus_1 = require("../enums/MoveStatus");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
@@ -32,7 +31,6 @@ var ActivePath = (function () {
             path.y.push(piece.startPosition.y);
             piece.setActive();
             path.newIndex = piece.startIndex;
-            // alog.debug("Setting piece to active: " + piece.index);
         }
         var entryPoint = piece.entryIndex;
         var from = piece.index + 1;
@@ -62,7 +60,6 @@ var ActivePath = (function () {
                     path.y.push(this.y[i]);
                     path.newIndex = i;
                 }
-                // When a piece has reached end of active index and needs to roundrobin
             }
             else if (i > 51) {
                 var remainder = (to % 51);
@@ -129,8 +126,6 @@ var OnWayOutPaths = (function () {
                 else {
                     piece.setOnWayOut();
                 }
-                // hlog.debug("Active Path x " + path.x.join() + " newIndex " + path.newIndex);
-                // hlog.debug("Active Path y " + path.y.join() + " newIndex " + path.newIndex);
             }
         }
         else if (piece.isOnWayOut()) {

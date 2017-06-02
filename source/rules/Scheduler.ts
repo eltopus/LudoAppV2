@@ -5,25 +5,33 @@ import {factory} from "../logging/ConfigLog4j";
 import {Piece} from "../entities/Piece";
 import {Dice} from "../entities/Dice";
 import {Perimeter} from "../entities/Perimeters";
+import {Emit} from "../emit/Emit";
 
 const log = factory.getLogger("model.Scheduler");
-
+let emit = Emit.getInstance();
 export class Scheduler {
     public schedule: Collections.Queue<Player>;
     public allPieces: Collections.Dictionary<String, Piece>;
     public players: Player[] = [];
     private dice: Dice;
     private sequenceNumber = 0;
-    constructor(dice: Dice) {
+    private socket: any;
+    private gameId: string;
+    constructor(dice: Dice, socket: any, gameId: string) {
         this.schedule = new Collections.Queue<Player>();
         this.allPieces = new Collections.Dictionary<String, Piece>();
         this.dice = dice;
+        this.socket = socket;
+        this.gameId = gameId;
     }
 
     public getNextPlayer(): Player {
         let player = this.schedule.peek();
         if (player.previousDoubleSix === false) {
-            this.dice.consumeDice();
+            if (emit.getEmit()) {
+                this.changePlayer(player);
+            }
+            this.dice.consumeWithoutEmission();
             player = this.schedule.dequeue();
             player.unselectAllPiece();
             player.turn = false;
@@ -110,5 +118,9 @@ export class Scheduler {
                  }
             }
         }
+    }
+    private changePlayer(player: Player): void {
+        log.debug("PlayerColor: " + player.getColorTypes().join());
+        this.socket.emit("changePlayer", this.gameId);
     }
 }

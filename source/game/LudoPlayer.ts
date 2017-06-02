@@ -13,6 +13,7 @@ export class LudoPlayer {
     public colorTypes: ColorType[];
     public isAI: boolean;
     public sequenceNumber: number;
+    public colors: string[];
 
     constructor(player: Player) {
         this.name = player.name;
@@ -21,6 +22,7 @@ export class LudoPlayer {
         this.previousDoubleSix = player.previousDoubleSix;
         this.colorTypes = player.colorTypes;
         this.isAI = player.isAI;
+        this.colors = player.getColorTypes();
         this.sequenceNumber = player.sequenceNumber;
         if (player.currentSelectedPiece !== null) {
             this.currentSelectedPiece = player.currentSelectedPiece.uniqueId;

@@ -1,5 +1,4 @@
 "use strict";
-exports.__esModule = true;
 var Die_1 = require("./Die");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var log = ConfigLog4j_1.factory.getLogger("model.Dice");
@@ -13,6 +12,10 @@ var Dice = (function () {
     Dice.prototype.roll = function (value1, value2) {
         this.dieOne.roll(value1);
         this.dieTwo.roll(value2);
+    };
+    Dice.prototype.rollEmitDice = function (emitDieOne, emitDieTwo) {
+        this.dieOne.rollEmitDie(emitDieOne, emitDieTwo);
+        this.dieTwo.rollEmitDie(emitDieOne, emitDieTwo);
     };
     Dice.prototype.getHigherDieValue = function () {
         if (this.dieOne.getValue() > this.dieTwo.getValue()) {
@@ -98,17 +101,31 @@ var Dice = (function () {
             var id = ids_4[_i];
             if (id === this.dieOne.uniqueId) {
                 this.dieOne.consume();
-                // log.debug("Die id " + id + " consumed");
             }
             if (id === this.dieTwo.uniqueId) {
                 this.dieTwo.consume();
-                // log.debug("Die id " + id + " consumed");
+            }
+        }
+    };
+    Dice.prototype.selectDiceByUniqueId = function (uniqueIdStr) {
+        var uniqueIds = uniqueIdStr.split("#");
+        for (var _i = 0, uniqueIds_1 = uniqueIds; _i < uniqueIds_1.length; _i++) {
+            var uniqueId = uniqueIds_1[_i];
+            if (uniqueId === this.dieOne.uniqueId) {
+                this.dieOne.selectActiveDie();
+            }
+            if (uniqueId === this.dieTwo.uniqueId) {
+                this.dieTwo.selectActiveDie();
             }
         }
     };
     Dice.prototype.consumeDice = function () {
         this.dieOne.consume();
         this.dieTwo.consume();
+    };
+    Dice.prototype.consumeWithoutEmission = function () {
+        this.dieOne.consumeWithoutEmission();
+        this.dieTwo.consumeWithoutEmission();
     };
     Dice.prototype.isDieOneConsumed = function () {
         return this.dieOne.isConsumed();
