@@ -540,7 +540,6 @@ export class RuleEnforcer {
         });
 
         this.socket.on("emitAIPieceMovement", (movement: Move) => {
-            log.debug("Playing dice values: " + movement.pieceId);
             if (emit.getEmit() === false) {
                 let piece = this.scheduler.getPieceByUniqueId(movement.pieceId);
                 if (piece) {
@@ -556,7 +555,6 @@ export class RuleEnforcer {
 
         this.socket.on("emitChangePlayer", (playerId: string) => {
             if (emit.getEmit() === false) {
-                log.debug("Clearing dice values...... ");
                 this.dice.consumeWithoutEmission();
             }
         });

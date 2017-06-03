@@ -6,6 +6,8 @@ import {Piece} from "../entities/Piece";
 import {Dice} from "../entities/Dice";
 import {Perimeter} from "../entities/Perimeters";
 import {Emit} from "../emit/Emit";
+import {LudoGame} from "../game/LudoGame";
+import * as checksum from "checksum";
 
 const log = factory.getLogger("model.Scheduler");
 let emit = Emit.getInstance();
@@ -39,6 +41,13 @@ export class Scheduler {
             player = this.schedule.peek();
             player.selectAllPiece();
             player.turn = true;
+            let currentplayer = this.players.pop();
+            this.players.unshift(currentplayer);
+            if (!emit.getEmit()) {
+                this.socket.emit("getCheckSum", this.gameId, (game_check_sum: string) => {
+                    this.compareCheckSum(game_check_sum);
+                });
+            }
         }else {
             // Returning same player. Set value back to false
             player.previousDoubleSix =  false;
@@ -120,7 +129,20 @@ export class Scheduler {
         }
     }
     private changePlayer(player: Player): void {
-        log.debug("PlayerColor: " + player.getColorTypes().join());
+        // log.debug("PlayerColor: " + player.getColorTypes().join());
         this.socket.emit("changePlayer", this.gameId);
+    }
+
+    private compareCheckSum(check_sum_from_server: string): void {
+        let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+        let check_sum_from_client = "";
+        for (let lp of ludogame.ludoPlayers){
+            check_sum_from_client = check_sum_from_client + "#" + (checksum(JSON.stringify(lp.pieces)));
+        }
+        if (check_sum_from_client !== check_sum_from_server) {
+            log.debug("Client: "  + check_sum_from_client + " NOT EQUAL Server: " + check_sum_from_server);
+        }else {
+            log.debug("Checksum is good");
+        }
     }
 }

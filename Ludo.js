@@ -1,4 +1,5 @@
 "use strict";
+var checksum = require("checksum");
 var typescript_collections_1 = require("typescript-collections");
 var games = new typescript_collections_1.Dictionary();
 var socket;
@@ -23,6 +24,7 @@ var Ludo = (function () {
         socket.on("setBackToHome", this.setBackToHome);
         socket.on("setStateChange", this.setStateChange);
         socket.on("changePlayer", this.changePlayer);
+        socket.on("getCheckSum", this.getCheckSum);
         socket.on("disconnect", function () {
             console.log("Client disconnected");
         });
@@ -83,6 +85,7 @@ var Ludo = (function () {
         }
     };
     Ludo.prototype.selectActivePiece = function (emitPiece) {
+        var sock = this;
         var ludogame = games.getValue(emitPiece.gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
@@ -95,7 +98,7 @@ var Ludo = (function () {
                 }
             }
         }
-        io.in(emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
+        sock.volatile.to(emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
     };
     Ludo.prototype.setBackToHome = function (emitPiece) {
         var ludogame = games.getValue(emitPiece.gameId);
@@ -149,6 +152,7 @@ var Ludo = (function () {
         io.in(movement.gameId).emit("emitAIPieceMovement", movement);
     };
     Ludo.prototype.selectActiveDie = function (emitDie) {
+        var sock = this;
         var ludogame = games.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
@@ -159,10 +163,12 @@ var Ludo = (function () {
                 // console.log("Select Before " + ludogame.ludoDice.dieTwo.uniqueId + " value: " + ludogame.ludoDice.dieTwo.isSelected);
                 ludogame.ludoDice.dieTwo.isSelected = emitDie.isSelected;
             }
+            // console.log("----------------------------------------------------------------------------------");
+            sock.volatile.to(emitDie.gameId).emit("emitSelectActiveDie", emitDie);
         }
-        io.in(emitDie.gameId).emit("emitSelectActiveDie", emitDie);
     };
     Ludo.prototype.unselectActiveDie = function (emitDie) {
+        var sock = this;
         var ludogame = games.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
@@ -173,13 +179,14 @@ var Ludo = (function () {
                 // console.log("Select Before " + ludogame.ludoDice.dieTwo.uniqueId + " value: " + ludogame.ludoDice.dieTwo.isSelected);
                 ludogame.ludoDice.dieTwo.isSelected = emitDie.isSelected;
             }
+            // console.log("----------------------------------------------------------------------------------");
+            sock.volatile.to(emitDie.gameId).emit("emitUnselectActiveDie", emitDie);
         }
-        io.in(emitDie.gameId).emit("emitUnselectActiveDie", emitDie);
     };
     Ludo.prototype.changePlayer = function (gameId) {
         var ludogame = games.getValue(gameId);
         if (ludogame) {
-            console.log("");
+            // console.log("");
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var players = _a[_i];
             }
@@ -190,6 +197,17 @@ var Ludo = (function () {
             // console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " + player.colors.join());
             io.in(gameId).emit("emitChangePlayer", player.playerId);
         }
+    };
+    Ludo.prototype.getCheckSum = function (gameId, callback) {
+        var check_sum = "";
+        var ludogame = games.getValue(gameId);
+        if (ludogame) {
+            for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
+                var player = _a[_i];
+                check_sum = check_sum + "#" + (checksum(JSON.stringify(player.pieces)));
+            }
+        }
+        callback(check_sum);
     };
     return Ludo;
 }());

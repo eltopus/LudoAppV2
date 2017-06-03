@@ -1,4 +1,5 @@
 import * as socketIO from "socket.io";
+import * as checksum from "checksum";
 import {LudoGame} from "./source/game/LudoGame";
 import {Dictionary} from "typescript-collections";
 import {EmitPiece} from "./source/emit/EmitPiece";
@@ -27,6 +28,7 @@ export class Ludo {
         socket.on("setBackToHome", this.setBackToHome);
         socket.on("setStateChange", this.setStateChange);
         socket.on("changePlayer", this.changePlayer);
+        socket.on("getCheckSum", this.getCheckSum);
         socket.on("disconnect", () => {
                 console.log("Client disconnected");
         });
@@ -103,6 +105,7 @@ export class Ludo {
 
 
     private selectActivePiece(emitPiece: EmitPiece): void {
+        let sock: any  = this;
         let ludogame = games.getValue(emitPiece.gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
@@ -114,7 +117,7 @@ export class Ludo {
                 }
             }
         }
-        io.in(emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
+        sock.volatile.to(emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
     }
 
     private setBackToHome(emitPiece: EmitPiece): void {
@@ -170,6 +173,7 @@ export class Ludo {
     }
 
     private selectActiveDie(emitDie: EmitDie): void {
+        let sock: any = this;
         let ludogame = games.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
@@ -183,11 +187,12 @@ export class Ludo {
                 // console.log("Select After " + ludogame.ludoDice.dieTwo.uniqueId + " value: " + ludogame.ludoDice.dieTwo.isSelected);
             }
             // console.log("----------------------------------------------------------------------------------");
+            sock.volatile.to(emitDie.gameId).emit("emitSelectActiveDie", emitDie);
         }
-        io.in(emitDie.gameId).emit("emitSelectActiveDie", emitDie);
     }
 
     private unselectActiveDie(emitDie: EmitDie): void {
+        let sock: any = this;
         let ludogame = games.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
@@ -201,8 +206,8 @@ export class Ludo {
                 // console.log("Select After " + ludogame.ludoDice.dieTwo.uniqueId + " value: " + ludogame.ludoDice.dieTwo.isSelected);
             }
             // console.log("----------------------------------------------------------------------------------");
+            sock.volatile.to(emitDie.gameId).emit("emitUnselectActiveDie", emitDie);
         }
-        io.in(emitDie.gameId).emit("emitUnselectActiveDie", emitDie);
     }
 
     private changePlayer(gameId: string): void {
@@ -219,6 +224,17 @@ export class Ludo {
             // console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " + player.colors.join());
             io.in(gameId).emit("emitChangePlayer", player.playerId);
         }
+    }
+
+    private getCheckSum(gameId: string, callback): void {
+        let check_sum = "";
+        let ludogame = games.getValue(gameId);
+        if (ludogame) {
+            for (let player of ludogame.ludoPlayers){
+                check_sum = check_sum + "#" + (checksum(JSON.stringify(player.pieces)));
+            }
+        }
+        callback(check_sum);
     }
 
 }

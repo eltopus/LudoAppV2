@@ -57,13 +57,13 @@ export class GameSetup extends Phaser.State {
         });
 
         $("#joinGameBtn").parent().click(() => {
-            let playerName = $("#joinPlayerName").val();
-            let  gameId = $("#gameCode").val();
+            let playerName: string = $("#joinPlayerName").val();
+            let  gameId: string = $("#gameCode").val();
             $.ajax({
 			        type: "POST",
 			        url: "join",
 			        // tslint:disable-next-line:object-literal-sort-keys
-			        data: {gameId : gameId},
+			        data: {gameId : gameId.toLowerCase().trim()},
 			        success: (ludogame) => {
 			        	if (ludogame) {
 			        		newCreatedPlayers.ludogame = ludogame;
@@ -150,7 +150,7 @@ export class GameSetup extends Phaser.State {
 
     public startGame(newCreatedPlayers: NewPlayers.NewPlayers) {
         if (newCreatedPlayers.ludogame) {
-            log.debug("-+++- Ludo game" + JSON.stringify(newCreatedPlayers.ludogame));
+            // log.debug("-+++- Ludo game" + JSON.stringify(newCreatedPlayers.ludogame));
         }
         this.game.state.start("Game", true, false, newCreatedPlayers);
     }
