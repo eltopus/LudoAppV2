@@ -413,5 +413,11 @@ export abstract class Player extends PieceFactory {
         }
     }
 
+    public updateLudoPieces(ludopieces: LudoPiece[]): void {
+       for (let piece of this.pieces) {
+            piece.updateLudoPieces(ludopieces);
+        }
+    }
+
 }
 

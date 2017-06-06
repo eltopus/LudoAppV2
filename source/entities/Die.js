@@ -190,13 +190,13 @@ var Die = (function (_super) {
         var _this = this;
         this.socket.on("emitSelectActiveDie", function (die) {
             if (emit.getEmit() === false && die.uniqueId === _this.uniqueId) {
-                log.debug("Select piece: " + die.uniqueId);
+                // log.debug("Select piece: " + die.uniqueId);
                 _this.select();
             }
         });
         this.socket.on("emitUnselectActiveDie", function (die) {
             if (emit.getEmit() === false && die.uniqueId === _this.uniqueId) {
-                log.debug("Select piece: " + die.uniqueId);
+                // log.debug("Select piece: " + die.uniqueId);
                 _this.unSelectActiveDie();
             }
         });

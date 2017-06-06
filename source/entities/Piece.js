@@ -21,6 +21,7 @@ var Piece = (function (_super) {
     // public tips: Phasertips;
     function Piece(game, x, y, imageId, color, playerId, uniqueId, startPosition, signal, socket, gameId) {
         _super.call(this, game, x, y, imageId);
+        this.isMoving = false;
         this.color = color;
         this.playerId = playerId;
         this.uniqueId = uniqueId;
@@ -74,6 +75,7 @@ var Piece = (function (_super) {
         if (this.isExited()) {
             this.visible = false;
         }
+        this.isMoving = false;
         this.signal.dispatch("completeMovement", this);
     };
     /**
@@ -81,8 +83,10 @@ var Piece = (function (_super) {
      * Sends backToHome signal to Game and Board child classes
      */
     Piece.prototype.moveToHome = function () {
+        this.isMoving = true;
         this.game.world.bringToTop(this.group);
-        this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y }, 1000, Phaser.Easing.Linear.None, true);
+        var tween = this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y }, 1000, Phaser.Easing.Linear.None, true);
+        tween.onComplete.add(this.onCompleteBackToHomeMovement, this);
     };
     Piece.prototype.getSpeed = function (distance) {
         return Math.floor(this.speedConstant / distance);
@@ -279,7 +283,24 @@ var Piece = (function (_super) {
         }
         return piecePosition;
     };
+    Piece.prototype.updateLudoPieces = function (pieces) {
+        for (var _i = 0, pieces_1 = pieces; _i < pieces_1.length; _i++) {
+            var piece = pieces_1[_i];
+            if (piece.uniqueId === this.uniqueId) {
+                if (!this.isMoving) {
+                    this.x = piece.currentPosition.x;
+                    this.y = piece.currentPosition.y;
+                }
+                this.state = piece.state;
+                this.index = piece.index;
+            }
+        }
+    };
+    Piece.prototype.onCompleteBackToHomeMovement = function () {
+        this.isMoving = false;
+    };
     Piece.prototype.movePieceTo = function (path, speed) {
+        this.isMoving = true;
         var tween = this.game.add.tween(this).to(path, 1000, Phaser.Easing.Linear.None, true).interpolation(function (v, k) {
             return Phaser.Math.linearInterpolation(v, k);
         });

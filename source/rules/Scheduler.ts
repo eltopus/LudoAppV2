@@ -7,6 +7,7 @@ import {Dice} from "../entities/Dice";
 import {Perimeter} from "../entities/Perimeters";
 import {Emit} from "../emit/Emit";
 import {LudoGame} from "../game/LudoGame";
+import {LudoPlayer} from "../game/LudoPlayer";
 import * as checksum from "checksum";
 
 const log = factory.getLogger("model.Scheduler");
@@ -43,11 +44,13 @@ export class Scheduler {
             player.turn = true;
             let currentplayer = this.players.pop();
             this.players.unshift(currentplayer);
+            /*
             if (!emit.getEmit()) {
                 this.socket.emit("getCheckSum", this.gameId, (game_check_sum: string) => {
                     this.compareCheckSum(game_check_sum);
                 });
             }
+            */
         }else {
             // Returning same player. Set value back to false
             player.previousDoubleSix =  false;
@@ -117,6 +120,14 @@ export class Scheduler {
             }
         }
         return enemyPerimeter;
+    }
+
+    public updatePlayers(ludoplayer: LudoPlayer): void {
+        for (let player of this.players){
+            if (ludoplayer.playerId === player.playerId) {
+                player.updateLudoPieces(ludoplayer.pieces);
+            }
+        }
     }
 
     public addPerimetersToPool(perimeters: Perimeter[], playerId: string): void {

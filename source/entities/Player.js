@@ -404,6 +404,12 @@ var Player = (function (_super) {
                 return "";
         }
     };
+    Player.prototype.updateLudoPieces = function (ludopieces) {
+        for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
+            var piece = _a[_i];
+            piece.updateLudoPieces(ludopieces);
+        }
+    };
     return Player;
 }(PieceFactory_1.PieceFactory));
 exports.Player = Player;

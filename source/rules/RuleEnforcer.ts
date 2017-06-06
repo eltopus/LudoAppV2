@@ -18,6 +18,7 @@ import {Perimeter} from "../entities/Perimeters";
 import {EmitDie} from "../emit/EmitDie";
 import {EmitPiece} from "../emit/EmitPiece";
 import {Emit} from "../emit/Emit";
+import {LudoPlayer} from "../game/LudoPlayer";
 import * as Paths from "../entities/Paths";
 
 let emit = Emit.getInstance();
@@ -553,9 +554,15 @@ export class RuleEnforcer {
         });
 
 
-        this.socket.on("emitChangePlayer", (playerId: string) => {
+        this.socket.on("emitChangePlayer", (ludoplayers: LudoPlayer[]) => {
             if (emit.getEmit() === false) {
                 this.dice.consumeWithoutEmission();
+                /*
+                for (let ludoplayer of ludoplayers){
+                    this.scheduler.updatePlayers(ludoplayer);
+                    this.rule.updateBoards(ludoplayer.pieces);
+                }
+                */
             }
         });
     }

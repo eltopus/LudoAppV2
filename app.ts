@@ -6,6 +6,8 @@ import * as favicon from "serve-favicon";
 import * as logger from "morgan";
 import * as cookieParser from "cookie-parser";
 import * as bodyParser from "body-parser";
+import * as ExpressSession from "express-session";
+import * as sharedSession from "express-socket.io-session";
 import {Ludo} from "./Ludo";
 
 class Server {
@@ -14,6 +16,9 @@ class Server {
     private server: any;
     private io: any;
     private port: number;
+    private sharedsession: any;
+    private session: any;
+
     private ludo = new Ludo();
 
     public static bootstrap(): Server {
@@ -22,11 +27,12 @@ class Server {
 
     constructor() {
         this.createApp();
+        this.createServer();
         this.middleware();
+        this.sessionStorage();
+        this.sockets();
         this.config();
         this.routes();
-        this.createServer();
-        this.sockets();
         this.listen();
     }
 
@@ -57,12 +63,23 @@ class Server {
 
     private routes(): void {
         let router = express.Router();
-        router.get("/setup", (req, res, next) => {
-            res.sendFile(path.join(__dirname + "/views/setup.html"));
+
+        router.get("/", (req: any, res: any, next) => {
+            res.sendFile(path.join(__dirname + "/views/index.html"));
         });
 
-        router.get("/", (req, res, next) => {
-            res.sendFile(path.join(__dirname + "/views/index.html"));
+        router.post("/setup", (req: any, res, next) => {
+            if (req.session.gameId) {
+                this.ludo.getExistingGame(req.session.gameId, (ludogame) => {
+                    if (req.session.playerTurn === true) {
+                        ludogame.playerTurn = true;
+                    }
+                    res.send(ludogame);
+                });
+            }else {
+                console.log("Game id NOT found.....");
+                res.send({message: "This is a mess"});
+            }
         });
 
         router.post("/join", (req, res, next) => {
@@ -74,7 +91,7 @@ class Server {
                 });
             }else {
                 console.log("Game id NOT found.....");
-                res.send({});
+                res.send({message: "This is a mess"});
             }
         });
 
@@ -82,8 +99,18 @@ class Server {
         this.app.use("/", router);
     }
 
+    private sessionStorage(): void {
+        this.session = ExpressSession({
+            resave: false,
+            saveUninitialized: true,
+            secret: "i-love-husky",
+        });
+        this.app.use(this.session);
+    }
+
     private sockets(): void {
         this.io = socketIo(this.server);
+        this.io.use(sharedSession(this.session, {autoSave: true}));
     }
 
     private  normalizePort(val): number {

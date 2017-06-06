@@ -19,6 +19,7 @@ import {ExitedRules} from "./ExitedRules";
 import {States} from "../enums/States";
 import {AllPossibleMoves} from "./AllPossibleMoves";
 import {Board} from "../entities/Board";
+import {LudoPiece} from "../game/LudoPiece";
 
 
     const log = factory.getLogger("model.Rules");
@@ -177,6 +178,29 @@ import {Board} from "../entities/Board";
         log.debug("<Home> RulePool: " + this.homeMove.rulesPool.length + " ActiveRoolPool " + this.homeMove.activeRulePool.length);
         log.debug("<OnWayOut> RulePool: " + this.onWayOutMove.rulesPool.length + " ActiveRulePool " + this.onWayOutMove.activeRulePool.length);
         log.debug("----------------------------------------------------------------------");
+    }
+
+    public updateBoards(ludopieces: LudoPiece[]): void {
+        for (let piece of ludopieces){
+            switch (piece.state) {
+                case States.AtHome: {
+                    this.homeMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States.Active: {
+                    this.activeMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States.onWayOut: {
+                    this.onWayOutMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States.Exited: {
+                    this.exitedMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+            }
+        }
     }
 
     private decodeActiveMove(move: Move): string {

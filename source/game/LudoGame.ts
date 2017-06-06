@@ -12,6 +12,7 @@ export class LudoGame {
     public ludoPlayers: LudoPlayer[] = [];
     public ludoDice: LudoDice;
     public gameId: string;
+    public playerTurn = false;
 
     constructor(players: Player[], dice: Dice, gameId: string) {
         for (let player of players){

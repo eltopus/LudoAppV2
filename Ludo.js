@@ -34,29 +34,37 @@ var Ludo = (function () {
         callback(ludogame);
     };
     Ludo.prototype.createGame = function (ludogame, callback) {
+        var sock = this;
         games.setValue(ludogame.gameId, ludogame);
-        socket.join(ludogame.gameId);
-        callback({ ok: true, message: ludogame.gameId + " was successfuly created." + socket.id, emit: true });
+        sock.join(ludogame.gameId);
+        sock.handshake.session.gameId = ludogame.gameId;
+        sock.handshake.session.playerTurn = true;
+        sock.handshake.session.save();
+        callback({ ok: true, message: ludogame.gameId + " was successfuly created." + sock.id, emit: true });
     };
     Ludo.prototype.joinExistingGame = function (gameId, callback) {
+        var sock = this;
         var ludogame = games.getValue(gameId);
         var message = "";
         if (ludogame) {
             message = ludogame.gameId + " was successfuly joined.";
-            socket.join(gameId);
-            console.log(message + " " + socket.id);
+            sock.join(gameId);
+            console.log(message + " " + sock.id);
+            sock.handshake.session.gameId = ludogame.gameId;
+            sock.handshake.session.save();
         }
         else {
             message = gameId + " does not exist!!!.";
-            console.log(message + " " + socket.id);
+            console.log(message + " " + sock.id);
         }
-        callback({ ok: true, message: message + socket.id, emit: false });
+        callback({ ok: true, message: message + sock.id, emit: false });
     };
     Ludo.prototype.connected = function () {
         console.log("New socket connecting " + " was found " + socket.id);
     };
     Ludo.prototype.rollDice = function (die) {
-        // console.log("Broadcating roll dice" + socket.id);
+        var sock = this;
+        // console.log("Broadcating roll dice" + sock.id);
         // console.log("----------------------------------------------------------------------------------");
         var ludogame = games.getValue(die.gameId);
         if (ludogame) {
@@ -195,7 +203,7 @@ var Ludo = (function () {
             ludogame.ludoDice.dieOne.isConsumed = true;
             ludogame.ludoDice.dieTwo.isConsumed = true;
             // console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " + player.colors.join());
-            io.in(gameId).emit("emitChangePlayer", player.playerId);
+            io.in(gameId).emit("emitChangePlayer", ludogame.ludoPlayers);
         }
     };
     Ludo.prototype.getCheckSum = function (gameId, callback) {

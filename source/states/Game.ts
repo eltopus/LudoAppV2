@@ -46,8 +46,12 @@ export class Game extends Phaser.State {
 
     public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
-        this.gameId = this.generateGameId(5);
         this.isCreator = newPlayers.isCreator;
+        if (this.newPlayers.hasSavedGame) {
+            this.gameId = newPlayers.ludogame.gameId;
+        }else {
+            this.gameId = this.generateGameId(5);
+        }
     }
 
     public create() {
@@ -148,6 +152,7 @@ export class Game extends Phaser.State {
     public rollDice(): void {
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
         this.enforcer.scheduler.getCurrentPlayer().roll(this.dice);
+        // log.debug(" Emiiter show me: " + emit.getEmit());
     }
 
     public playDice(): void {
@@ -182,20 +187,6 @@ export class Game extends Phaser.State {
         let position = path.getPiecePostionByIndex(piece, index);
         piece.setParameters(position.x, position.y, index, state);
         board.board.setValue(piece.uniqueId, index);
-    }
-
-    private createExistingPlayer(ludoPlayer: LudoPlayer): Player {
-        let player: Player = null;
-        if (ludoPlayer.isAI) {
-            player = new AIPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
-            player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
-        }else {
-            player = new RegularPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
-            player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
-        }
-        return player;
     }
 
     private waitUntilGameStarts(): void {
@@ -245,7 +236,6 @@ export class Game extends Phaser.State {
         if (emit.getEnableSocket()) {
             this.socket.emit("joinExistingGame", gameId, (data: any) => {
                 if (data.ok) {
-                    emit.setEmit(data.emit);
                     log.debug(data.message + " " + emit.getEmit());
                 }
             });
@@ -266,6 +256,20 @@ export class Game extends Phaser.State {
             }
         }
         return players;
+    }
+
+    private createExistingPlayer(ludoPlayer: LudoPlayer): Player {
+        let player: Player = null;
+        if (ludoPlayer.isAI) {
+            player = new AIPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
+            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
+            player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
+        }else {
+            player = new RegularPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
+            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
+            player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
+        }
+        return player;
     }
 
     private fullScreen(): void {

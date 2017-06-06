@@ -215,13 +215,13 @@ export class Die extends Phaser.Sprite {
     private setSocketHandlers(): void {
         this.socket.on("emitSelectActiveDie", (die: EmitDie) => {
             if (emit.getEmit() === false && die.uniqueId === this.uniqueId) {
-                log.debug("Select piece: " + die.uniqueId);
+                // log.debug("Select piece: " + die.uniqueId);
                 this.select();
             }
         });
         this.socket.on("emitUnselectActiveDie", (die: EmitDie) => {
             if (emit.getEmit() === false && die.uniqueId === this.uniqueId) {
-                log.debug("Select piece: " + die.uniqueId);
+                // log.debug("Select piece: " + die.uniqueId);
                 this.unSelectActiveDie();
             }
         });

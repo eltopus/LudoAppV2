@@ -11,7 +11,7 @@ import {Emit} from "../emit/Emit";
 let emit = Emit.getInstance();
 
 const log = factory.getLogger("model.GameSetup");
-
+let newCreatedPlayers: NewPlayers.NewPlayers = new NewPlayers.NewPlayers();
 export class GameSetup extends Phaser.State {
 
     public init() {
@@ -25,7 +25,6 @@ export class GameSetup extends Phaser.State {
 
 
     public create() {
-        let newCreatedPlayers: NewPlayers.NewPlayers = new NewPlayers.NewPlayers();
         let colors: ColorType[] = [];
 
         let enablePlayerNameBtnAndColorBtn = function() {
@@ -65,10 +64,10 @@ export class GameSetup extends Phaser.State {
 			        // tslint:disable-next-line:object-literal-sort-keys
 			        data: {gameId : gameId.toLowerCase().trim()},
 			        success: (ludogame) => {
-			        	if (ludogame) {
+			        	if (ludogame.gameId) {
 			        		newCreatedPlayers.ludogame = ludogame;
                             newCreatedPlayers.hasSavedGame = true;
-                            this.startGame(newCreatedPlayers);
+                            this.startGame();
                         }else {
                             Example.show("Cannot find game game!!!");
                         }
@@ -143,12 +142,36 @@ export class GameSetup extends Phaser.State {
             }
             emit.setEmit(true);
             newCreatedPlayers.isCreator = true;
-            this.startGame(newCreatedPlayers);
+            this.startGame();
          });
+
+         this.checkExistingSession();
 
     }
 
-    public startGame(newCreatedPlayers: NewPlayers.NewPlayers) {
+    public checkExistingSession(): void {
+        $.ajax({
+            type: "POST",
+			url: "setup",
+			// tslint:disable-next-line:object-literal-sort-keys
+			success: (ludogame) => {
+			    if (ludogame.gameId) {
+			        newCreatedPlayers.ludogame = ludogame;
+                    newCreatedPlayers.hasSavedGame = true;
+                    emit.setEmit(newCreatedPlayers.ludogame.playerTurn);
+                    log.debug("Show emitter: " + emit.getEmit());
+                    this.startGame();
+                }else {
+                    Example.show("Cannot find game game!!!");
+                }
+            },
+			error: function(){
+			    Example.show("Session does not exists");
+			},
+        });
+    }
+
+    public startGame() {
         if (newCreatedPlayers.ludogame) {
             // log.debug("-+++- Ludo game" + JSON.stringify(newCreatedPlayers.ludogame));
         }

@@ -8,6 +8,7 @@ import {Path} from "../entities/Path";
 import {Perimeter} from "./Perimeters";
 import {Emit} from "../emit/Emit";
 import {EmitPiece} from "../emit/EmitPiece";
+import {LudoPiece} from "../game/LudoPiece";
 // import * as Phasertips from "../Phasertips";
 
 const log = factory.getLogger("model.Piece");
@@ -53,6 +54,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public collidingPiece: Piece;
     public imageId: string;
     public gameId: string;
+    public isMoving = false;
     private socket: any;
     private emitPiece: EmitPiece;
       // public tips: Phasertips;
@@ -117,6 +119,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         if (this.isExited()) {
             this.visible = false;
         }
+        this.isMoving = false;
         this.signal.dispatch("completeMovement", this);
     }
     /**
@@ -124,9 +127,11 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      * Sends backToHome signal to Game and Board child classes
      */
     public moveToHome(): void {
+        this.isMoving = true;
         this.game.world.bringToTop(this.group);
-        this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y}, 1000,
+        let tween = this.game.add.tween(this).to({ x: this.homePosition.x, y: this.homePosition.y}, 1000,
         Phaser.Easing.Linear.None, true);
+        tween.onComplete.add(this.onCompleteBackToHomeMovement, this);
     }
     public getSpeed(distance: number) {
         return Math.floor(this.speedConstant / distance);
@@ -339,7 +344,25 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         return piecePosition;
     }
 
+    public updateLudoPieces(pieces: LudoPiece[]): void {
+        for (let piece of pieces){
+            if (piece.uniqueId === this.uniqueId) {
+                if (!this.isMoving) {
+                    this.x = piece.currentPosition.x;
+                    this.y = piece.currentPosition.y;
+                }
+                this.state = piece.state;
+                this.index = piece.index;
+            }
+        }
+    }
+
+    private onCompleteBackToHomeMovement(): void {
+        this.isMoving = false;
+    }
+
     private movePieceTo(path: Path, speed: number): void {
+        this.isMoving = true;
         let tween = this.game.add.tween(this).to(path, 1000,
         Phaser.Easing.Linear.None, true).interpolation(function(v: number[], k: number){
             return Phaser.Math.linearInterpolation(v, k);
