@@ -45,6 +45,7 @@ var Die = (function (_super) {
             this.alpha = 1;
             if (emit.getEmit() === true && emit.getEnableSocket()) {
                 this.emitDice.setParameters(this);
+                this.signal.dispatch("unselectActiveDieLocal", this.emitDice);
                 this.socket.emit("unselectActiveDie", this.emitDice);
             }
         }
@@ -52,6 +53,7 @@ var Die = (function (_super) {
             this.alpha = 0.5;
             if (emit.getEmit() === true && emit.getEnableSocket()) {
                 this.emitDice.setParameters(this);
+                this.signal.dispatch("selectActiveDieLocal", this.emitDice);
                 this.socket.emit("selectActiveDie", this.emitDice);
             }
         }
@@ -82,6 +84,7 @@ var Die = (function (_super) {
         }
         if (emit.getEmit() === true && emit.getEnableSocket()) {
             this.emitDice.setParameters(this);
+            this.signal.dispatch("endOfDieRollLocal", this.emitDice);
             this.socket.emit("rollDice", this.emitDice);
         }
     };
@@ -97,6 +100,7 @@ var Die = (function (_super) {
         this.frame = 3;
         if (emit.getEmit() === true && emit.getEnableSocket()) {
             this.emitDice.setParameters(this);
+            this.signal.dispatch("consumeDieLocal", this.emitDice);
             this.socket.emit("consumeDie", this.emitDice);
         }
     };

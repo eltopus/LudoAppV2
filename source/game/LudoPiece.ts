@@ -30,7 +30,7 @@ export class LudoPiece {
         this.entryIndex = piece.entryIndex;
         this.imageId = piece.imageId;
         if (piece.collidingPiece !== null) {
-            this.collidingPiece = piece.collidingPiece.uniqueId;
+            this.collidingPiece = piece.collidingPiece;
         }
     }
 }

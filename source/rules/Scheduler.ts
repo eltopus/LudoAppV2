@@ -20,12 +20,14 @@ export class Scheduler {
     private sequenceNumber = 0;
     private socket: any;
     private gameId: string;
-    constructor(dice: Dice, socket: any, gameId: string) {
+    private signal: Phaser.Signal;
+    constructor(dice: Dice, socket: any, signal: Phaser.Signal, gameId: string) {
         this.schedule = new Collections.Queue<Player>();
         this.allPieces = new Collections.Dictionary<String, Piece>();
         this.dice = dice;
         this.socket = socket;
         this.gameId = gameId;
+        this.signal = signal;
     }
 
     public getNextPlayer(): Player {
@@ -141,6 +143,7 @@ export class Scheduler {
     }
     private changePlayer(player: Player): void {
         // log.debug("PlayerColor: " + player.getColorTypes().join());
+        this.signal.dispatch("changePlayerLocal", this.gameId);
         this.socket.emit("changePlayer", this.gameId);
     }
 

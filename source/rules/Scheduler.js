@@ -2,19 +2,29 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 var Collections = require("typescript-collections");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
+var Emit_1 = require("../emit/Emit");
+var LudoGame_1 = require("../game/LudoGame");
+var checksum = require("checksum");
 var log = ConfigLog4j_1.factory.getLogger("model.Scheduler");
+var emit = Emit_1.Emit.getInstance();
 var Scheduler = (function () {
-    function Scheduler(dice) {
+    function Scheduler(dice, socket, signal, gameId) {
         this.players = [];
         this.sequenceNumber = 0;
         this.schedule = new Collections.Queue();
         this.allPieces = new Collections.Dictionary();
         this.dice = dice;
+        this.socket = socket;
+        this.gameId = gameId;
+        this.signal = signal;
     }
     Scheduler.prototype.getNextPlayer = function () {
         var player = this.schedule.peek();
         if (player.previousDoubleSix === false) {
-            this.dice.consumeDice();
+            if (emit.getEmit()) {
+                this.changePlayer(player);
+            }
+            this.dice.consumeWithoutEmission();
             player = this.schedule.dequeue();
             player.unselectAllPiece();
             player.turn = false;
@@ -22,6 +32,8 @@ var Scheduler = (function () {
             player = this.schedule.peek();
             player.selectAllPiece();
             player.turn = true;
+            var currentplayer = this.players.pop();
+            this.players.unshift(currentplayer);
         }
         else {
             // Returning same player. Set value back to false
@@ -91,6 +103,14 @@ var Scheduler = (function () {
         }
         return enemyPerimeter;
     };
+    Scheduler.prototype.updatePlayers = function (ludoplayer) {
+        for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
+            var player = _a[_i];
+            if (ludoplayer.playerId === player.playerId) {
+                player.updateLudoPieces(ludoplayer.pieces);
+            }
+        }
+    };
     Scheduler.prototype.addPerimetersToPool = function (perimeters, playerId) {
         if (perimeters.length > 0) {
             for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
@@ -99,6 +119,25 @@ var Scheduler = (function () {
                     player.addPerimetersToPool(perimeters);
                 }
             }
+        }
+    };
+    Scheduler.prototype.changePlayer = function (player) {
+        // log.debug("PlayerColor: " + player.getColorTypes().join());
+        this.signal.dispatch("changePlayerLocal", this.gameId);
+        this.socket.emit("changePlayer", this.gameId);
+    };
+    Scheduler.prototype.compareCheckSum = function (check_sum_from_server) {
+        var ludogame = new LudoGame_1.LudoGame(this.players, this.dice, this.gameId);
+        var check_sum_from_client = "";
+        for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
+            var lp = _a[_i];
+            check_sum_from_client = check_sum_from_client + "#" + (checksum(JSON.stringify(lp.pieces)));
+        }
+        if (check_sum_from_client !== check_sum_from_server) {
+            log.debug("Client: " + check_sum_from_client + " NOT EQUAL Server: " + check_sum_from_server);
+        }
+        else {
+            log.debug("Checksum is good");
         }
     };
     return Scheduler;

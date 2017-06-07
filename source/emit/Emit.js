@@ -23,6 +23,12 @@ var Emit = (function () {
     Emit.prototype.getEnableSocket = function () {
         return this.enableSocket;
     };
+    Emit.prototype.setScheduler = function (scheduler) {
+        this.scheduler = scheduler;
+    };
+    Emit.prototype.getPieceByUniqueId = function (uniqueId) {
+        return this.scheduler.getPieceByUniqueId(uniqueId);
+    };
     Emit.emitInstance = new Emit();
     return Emit;
 }());

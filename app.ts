@@ -70,7 +70,7 @@ class Server {
 
         router.post("/setup", (req: any, res, next) => {
             if (req.session.gameId) {
-                this.ludo.getExistingGame(req.session.gameId, (ludogame) => {
+                this.ludo.getExistingGame(req.session.gameId, (ludogame: any) => {
                     if (req.session.playerTurn === true) {
                         ludogame.playerTurn = true;
                     }
@@ -85,7 +85,7 @@ class Server {
         router.post("/join", (req, res, next) => {
             let gameId = req.body.gameId;
             if (gameId) {
-                this.ludo.getExistingGame(gameId, (ludogame) => {
+                this.ludo.getExistingGame(gameId, (ludogame: any) => {
                     console.log("Created Game " + ludogame.gameId + " was Found");
                     res.send(ludogame);
                 });
@@ -113,7 +113,7 @@ class Server {
         this.io.use(sharedSession(this.session, {autoSave: true}));
     }
 
-    private  normalizePort(val): number {
+    private  normalizePort(val: any): number {
         let port = parseInt(val, 10);
         if (isNaN(port)) {
             return val;

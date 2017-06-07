@@ -123,9 +123,6 @@ var Rules = (function () {
             log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
         }
         if (playerActivePieces === activePieces && playerHomePieces === homePieces && playerOnwayoutPieces === onWayOutPieces && playerExitPieces === exitedPieces) {
-            log.debug("MATCH: " + this.schedule.players.length);
-            log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
-            log.debug("active: " + playerActivePieces + " home: " + playerHomePieces + " onwayOut: " + playerOnwayoutPieces + " exited: " + playerExitPieces);
         }
         else {
             log.debug("MISMATCH!!!!!!!!!: " + +this.schedule.players.length);
@@ -138,6 +135,29 @@ var Rules = (function () {
         log.debug("<Home> RulePool: " + this.homeMove.rulesPool.length + " ActiveRoolPool " + this.homeMove.activeRulePool.length);
         log.debug("<OnWayOut> RulePool: " + this.onWayOutMove.rulesPool.length + " ActiveRulePool " + this.onWayOutMove.activeRulePool.length);
         log.debug("----------------------------------------------------------------------");
+    };
+    Rules.prototype.updateBoards = function (ludopieces) {
+        for (var _i = 0, ludopieces_1 = ludopieces; _i < ludopieces_1.length; _i++) {
+            var piece = ludopieces_1[_i];
+            switch (piece.state) {
+                case States_1.States.AtHome: {
+                    this.homeMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States_1.States.Active: {
+                    this.activeMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States_1.States.onWayOut: {
+                    this.onWayOutMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States_1.States.Exited: {
+                    this.exitedMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+            }
+        }
     };
     Rules.prototype.decodeActiveMove = function (move) {
         if (move.action === Actions_1.Actions.DO_NOTHING) {

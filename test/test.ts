@@ -1,7 +1,7 @@
 import {Rule} from "../source/rules/Rule";
 import {Actions} from "../source/enums/Actions";
 import {expect} from "chai";
-
+/*
 describe("Rule Class", () => {
     it("should default to default", () => {
         const result = new Rule();
@@ -20,3 +20,4 @@ describe("Rule Class", () => {
         expect(result.pieceId).to.equal("");
     });
 });
+*/

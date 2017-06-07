@@ -21,6 +21,7 @@ var Piece = (function (_super) {
     // public tips: Phasertips;
     function Piece(game, x, y, imageId, color, playerId, uniqueId, startPosition, signal, socket, gameId) {
         _super.call(this, game, x, y, imageId);
+        this.collidingPiece = null;
         this.isMoving = false;
         this.color = color;
         this.playerId = playerId;
@@ -69,7 +70,10 @@ var Piece = (function (_super) {
     };
     Piece.prototype.onCompleteMovement = function () {
         if (this.collidingPiece !== null) {
-            this.collidingPiece.moveToHome();
+            var piece = emit.getPieceByUniqueId(this.collidingPiece);
+            if (piece) {
+                piece.moveToHome();
+            }
             this.collidingPiece = null;
         }
         if (this.isExited()) {
@@ -139,6 +143,7 @@ var Piece = (function (_super) {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
         if (emit.getEmit() === true && this.isSelected() && emit.getEnableSocket()) {
             this.emitPiece.setParameters(this);
+            this.signal.dispatch("selectActivePieceLocal", this.emitPiece);
             this.socket.emit("selectActivePiece", this.emitPiece);
         }
     };
@@ -148,7 +153,7 @@ var Piece = (function (_super) {
      * @param uniqueId
      */
     Piece.prototype.unsetActivePiece = function () {
-        this.signal.dispatch("unselect", this.uniqueId, this.playerId);
+        // this.signal.dispatch("unselect", this.uniqueId, this.playerId);
         this.frame = 0;
     };
     Piece.prototype.select = function () {

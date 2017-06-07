@@ -10,6 +10,7 @@ import {RuleEnforcer} from "../rules/RuleEnforcer";
 import {Move} from "../rules/Move";
 import {LudoPiece} from "../game/LudoPiece";
 
+
 const log = factory.getLogger("model.RegularPlayer");
 export class RegularPlayer extends Player {
     constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,

@@ -1,9 +1,11 @@
-
+import {Scheduler} from "../rules/Scheduler";
+import {Piece} from "../entities/Piece";
 export class Emit {
 
     private static emitInstance: Emit = new Emit();
     private emit = false;
     private enableSocket = true;
+    private scheduler: Scheduler;
 
     public static getInstance(): Emit {
         return Emit.emitInstance;
@@ -23,6 +25,14 @@ export class Emit {
 
     public getEnableSocket(): boolean {
         return this.enableSocket;
+    }
+
+    public setScheduler(scheduler: Scheduler): void {
+        this.scheduler = scheduler;
+    }
+
+    public getPieceByUniqueId(uniqueId: string): Piece {
+        return this.scheduler.getPieceByUniqueId(uniqueId);
     }
 
     constructor() {

@@ -4,14 +4,18 @@ var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var EmitDie_1 = require("../emit/EmitDie");
 var EmitPiece_1 = require("../emit/EmitPiece");
 var Emit_1 = require("../emit/Emit");
+var Paths = require("../entities/Paths");
 var emit = Emit_1.Emit.getInstance();
 var log = ConfigLog4j_1.factory.getLogger("model.RuleEnforcer");
 var RuleEnforcer = (function () {
     function RuleEnforcer(signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard, gameId, socket, currentPossibleMovements) {
         this.rollCounter = 0;
         this.emitRollCounter = 0;
+        this.emitDie = new EmitDie_1.EmitDie();
         this.emitDice = [];
         this.emitPiece = new EmitPiece_1.EmitPiece();
+        this.activepath = new Paths.ActivePath();
+        this.onwayoutpath = new Paths.OnWayOutPaths();
         this.signal = signal;
         this.scheduler = scheduler;
         this.dice = dice;
@@ -21,7 +25,7 @@ var RuleEnforcer = (function () {
         this.rule = new Rules_1.Rules(this.signal, scheduler, dice, activeboard, homeboard, onWayOutBoard, exitedBoard);
         this.signal.add(this.endOfDiceRoll, this, 0, "endOfDieRoll");
         this.signal.add(this.onCompletePieceMovement, this, 0, "completeMovement");
-        this.emitDie = new EmitDie_1.EmitDie();
+        this.signal.add(this.setStateChange, this, 0, "setStateChange");
         this.emitDie.gameId = gameId;
         if (emit.getEnableSocket()) {
             this.setSocketHandlers();
@@ -31,19 +35,27 @@ var RuleEnforcer = (function () {
         this.rollCounter = rollCounter;
     };
     RuleEnforcer.prototype.endOfDiceRoll = function (listener) {
+        var _this = this;
         if (listener === "endOfDieRoll") {
             ++this.rollCounter;
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
-                this.currentPossibleMovements.resetMoves();
-                this.generateAllPossibleMoves();
-                var currentPlayer = this.scheduler.getCurrentPlayer();
-                if (this.dice.rolledDoubleSix()) {
-                    currentPlayer.previousDoubleSix = true;
-                }
-                if (currentPlayer.isAI) {
-                    this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
-                }
+                this.generateAllPossibleMoves(function (moveIsEmpty) {
+                    if (moveIsEmpty) {
+                        setTimeout(function () { return _this.handleEmptyPossibleMovements(); }, 1000);
+                    }
+                    else {
+                        var currentPlayer = _this.scheduler.getCurrentPlayer();
+                        if (_this.dice.rolledDoubleSix()) {
+                            currentPlayer.previousDoubleSix = true;
+                        }
+                        if (currentPlayer.isAI) {
+                            if (emit.getEmit()) {
+                                _this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, _this.currentPossibleMovements);
+                            }
+                        }
+                    }
+                });
             }
         }
     };
@@ -53,16 +65,11 @@ var RuleEnforcer = (function () {
      * @param piece
      */
     RuleEnforcer.prototype.generatePieceMovement = function (dieIds, piece) {
-        // Send player move
-        if (emit.getEmit() === true && emit.getEnableSocket()) {
-            this.emitPiece.setParameters(piece);
-            this.emitPiece.diceUniqueIds = dieIds;
-            this.socket.emit("pieceMovement", this.emitPiece, function (message) {
-                log.debug("pieceMovement: " + message);
-            });
-        }
-        //
+        var _this = this;
         var pieceMovement = this.rule.generatePieceMovement(dieIds, piece);
+        if (emit.getEmit() && emit.getEnableSocket()) {
+            this.emitAIPieceMovement(pieceMovement);
+        }
         var canPlay = false;
         var possibleMovements = this.currentPossibleMovements.getPieceMoves(piece.state);
         var currentPlayer = this.scheduler.getCurrentPlayer();
@@ -83,8 +90,12 @@ var RuleEnforcer = (function () {
                             var backToHomePiece = this.scheduler.getPieceByUniqueId(id);
                             if (backToHomePiece !== null) {
                                 backToHomePiece.setAtHome();
-                                piece.collidingPiece = backToHomePiece;
-                                piece.setExited();
+                                if (emit.getEmit() === true && emit.getEnableSocket()) {
+                                    this.emitPiece.setParameters(backToHomePiece);
+                                    this.signal.dispatch("setBackToHomeLocal", this.emitPiece);
+                                    this.socket.emit("setBackToHome", this.emitPiece);
+                                }
+                                piece.collidingPiece = backToHomePiece.uniqueId;
                             }
                         }
                     }
@@ -101,8 +112,11 @@ var RuleEnforcer = (function () {
             this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
             this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
             this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
-            this.currentPossibleMovements.resetMoves();
-            this.generateAllPossibleMoves();
+            this.generateAllPossibleMoves(function (moveIsEmpty) {
+                if (moveIsEmpty) {
+                    setTimeout(function () { return _this.handleEmptyPossibleMovements(); }, 1000);
+                }
+            });
         }
         else {
             log.debug("Move not found!!!: " + this.rule.decodeMove(pieceMovement));
@@ -113,6 +127,10 @@ var RuleEnforcer = (function () {
         return this.scheduler.getPieceByUniqueId(uniqueId);
     };
     RuleEnforcer.prototype.generateAIPieceMovement = function (piece, aiPieceMovement) {
+        var _this = this;
+        if (emit.getEmit() && emit.getEnableSocket()) {
+            this.emitAIPieceMovement(aiPieceMovement);
+        }
         aiPieceMovement = this.filterConsumeDieValueSixMovement(aiPieceMovement, piece);
         var currentPlayer = this.scheduler.getCurrentPlayer();
         var diceValue = this.addDiceValues(this.dice.getDieValueArrayByUniqueId(aiPieceMovement.diceId));
@@ -127,34 +145,26 @@ var RuleEnforcer = (function () {
                     var backToHomePiece = this.scheduler.getPieceByUniqueId(id);
                     if (backToHomePiece !== null) {
                         backToHomePiece.setAtHome();
-                        piece.collidingPiece = backToHomePiece;
+                        if (emit.getEmit() === true && emit.getEnableSocket()) {
+                            this.emitPiece.setParameters(backToHomePiece);
+                            this.signal.dispatch("setBackToHomeLocal", this.emitPiece);
+                            this.socket.emit("setBackToHome", this.emitPiece);
+                        }
+                        piece.collidingPiece = backToHomePiece.uniqueId;
                     }
                 }
             }
-            var rand = Math.floor(Math.random() * 2) + 1;
-            log.debug("Rand is: " + rand);
-            if (rand === 1) {
-                piece.setActivePiece();
-                setTimeout(function () {
-                    piece.movePiece(path);
-                }, 1000);
-            }
-            else {
-                piece.setActivePiece();
-                setTimeout(function () {
-                    piece.movePiece(path);
-                }, 1000);
-            }
+            piece.movePiece(path);
         }
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
-        this.currentPossibleMovements.resetMoves();
-        this.generateAllPossibleMoves();
+        this.generateAllPossibleMoves(function (moveIsEmpty) {
+            if (moveIsEmpty) {
+                setTimeout(function () { return _this.handleEmptyPossibleMovements(); }, 1000);
+            }
+        });
         return aiPieceMovement;
-    };
-    RuleEnforcer.prototype.selectAIDPiece = function (piece) {
-        piece.setActivePiece();
     };
     RuleEnforcer.prototype.mockPieceCollision = function (uniqueId, index) {
         var id = this.rule.getUniqueIdCollision(uniqueId, index);
@@ -193,7 +203,9 @@ var RuleEnforcer = (function () {
         var nextPlayer = this.scheduler.getNextPlayer();
         if (nextPlayer.isAI) {
             this.dice.setDicePlayerId(nextPlayer.playerId);
-            this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+            if (emit.getEmit() === true) {
+                this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+            }
         }
     };
     RuleEnforcer.prototype.filterConsumeDieValueSixMovement = function (movement, piece) {
@@ -219,45 +231,40 @@ var RuleEnforcer = (function () {
         }
         return movement;
     };
-    RuleEnforcer.prototype.generateAllPossibleMoves = function () {
+    RuleEnforcer.prototype.generateAllPossibleMoves = function (callback) {
         var currentPlayer = this.scheduler.getCurrentPlayer();
         this.currentPossibleMovements.resetMoves();
         this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
         // log.debug("Possible Moves Generated: " + this.currentPossibleMovements.totalNumberOfRules());
         // this.rule.showRulePools();
-        this.analyzeAllPossibleMove(currentPlayer);
+        this.analyzeAllPossibleMove(currentPlayer, function (moveIsEmpty) {
+            callback(moveIsEmpty);
+        });
     };
-    RuleEnforcer.prototype.analyzeAllPossibleMove = function (currentPlayer) {
-        var _this = this;
+    RuleEnforcer.prototype.analyzeAllPossibleMove = function (currentPlayer, callback) {
         /**
          * Corner case for when player can only play one active or home or onwayout piece.
          * This does not necessarily mean that the player has a total of one piece.
         */
-        if (this.currentPossibleMovements.isEmpty()) {
-            setTimeout(function () {
-                _this.handleEmptyPossibleMovements();
-            }, 1000);
+        if (currentPlayer.allPiecesAreAtHome()) {
+            this.currentPossibleMovements = this.filterOnAllPiecesAreAtHome(this.currentPossibleMovements, currentPlayer);
+        }
+        else if (currentPlayer.hasExactlyOneActivePiece()) {
+            this.currentPossibleMovements = this.filterOnHasExactlyOneActivePiece(this.currentPossibleMovements, currentPlayer);
+        }
+        else if (!currentPlayer.hasActivePieces() && currentPlayer.hasHomePieces() &&
+            this.dice.rolledAtLeastOneSix() && currentPlayer.hasOnWayOutPieces()) {
+            this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
+        }
+        else if (currentPlayer.hasExactlyOnePieceLeft()) {
+            if (this.moveContainTwoDice(this.currentPossibleMovements.activeMoves)) {
+                this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
+            }
         }
         else {
-            if (currentPlayer.allPiecesAreAtHome()) {
-                this.currentPossibleMovements = this.filterOnAllPiecesAreAtHome(this.currentPossibleMovements, currentPlayer);
-            }
-            else if (currentPlayer.hasExactlyOneActivePiece()) {
-                this.currentPossibleMovements = this.filterOnHasExactlyOneActivePiece(this.currentPossibleMovements, currentPlayer);
-            }
-            else if (!currentPlayer.hasActivePieces() && currentPlayer.hasHomePieces() &&
-                this.dice.rolledAtLeastOneSix() && currentPlayer.hasOnWayOutPieces()) {
-                this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
-            }
-            else if (currentPlayer.hasExactlyOnePieceLeft()) {
-                if (this.moveContainTwoDice(this.currentPossibleMovements.activeMoves)) {
-                    this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
-                }
-            }
-            else {
-            }
         }
         // this.readAllMoves();
+        callback(this.currentPossibleMovements.isEmpty());
     };
     RuleEnforcer.prototype.filterOnHasExactlyOneActivePiece = function (currentPossibleMovements, player) {
         /**
@@ -337,7 +344,7 @@ var RuleEnforcer = (function () {
         return containsTwoDice;
     };
     RuleEnforcer.prototype.filterOnAllPiecesAreAtHome = function (currentPossibleMovements, player) {
-        if (!player.hasActivePieces()) {
+        if (!player.hasActivePieces() && !this.dice.rolledDoubleSix()) {
             currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.homeMoves);
         }
         return currentPossibleMovements;
@@ -450,9 +457,28 @@ var RuleEnforcer = (function () {
             this.currentPossibleMovements.resetMoves();
             this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
             if (!this.currentPossibleMovements.isEmpty()) {
-                this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                if (emit.getEmit()) {
+                    this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                }
             }
         }
+    };
+    RuleEnforcer.prototype.setStateChange = function (listener, piece) {
+        if (listener === "startmovement") {
+            if (emit.getEmit() === true && emit.getEnableSocket()) {
+                this.emitPiece.setParameters(piece);
+                this.signal.dispatch("setStateChangeLocal", this.emitPiece);
+                this.socket.emit("setStateChange", this.emitPiece);
+            }
+        }
+    };
+    RuleEnforcer.prototype.emitPieceMovement = function (movement) {
+        movement.gameId = this.gameId;
+        this.socket.emit("pieceMovement", movement);
+    };
+    RuleEnforcer.prototype.emitAIPieceMovement = function (movement) {
+        movement.gameId = this.gameId;
+        this.socket.emit("aiPieceMovement", movement);
     };
     RuleEnforcer.prototype.setSocketHandlers = function () {
         var _this = this;
@@ -461,35 +487,53 @@ var RuleEnforcer = (function () {
         });
         this.socket.on("emitRollDice", function (die) {
             if (emit.getEmit() === false) {
-                log.debug(" Emit receieved " + JSON.stringify(die));
+                // log.debug( " Emit receieved " + JSON.stringify(die));
                 _this.emitDice.push(die);
                 if (_this.emitDice.length > 1) {
-                    _this.dice.roll(_this.emitDice[0].dieValue, _this.emitDice[1].dieValue);
+                    _this.dice.rollEmitDice(_this.emitDice[0], _this.emitDice[1]);
                     _this.emitDice = [];
                 }
             }
             else {
-                log.debug(" I cannot recieve dice rolled");
             }
         });
         this.socket.on("emitSelectActivePiece", function (emitPiece) {
             if (emit.getEmit() === false) {
                 _this.scheduler.getCurrentPlayer().emitSelectCurrentPiece(emitPiece.uniqueId);
             }
-            log.debug("Select piece: " + emitPiece.uniqueId);
+            // log.debug("Select piece: " + emitPiece.uniqueId);
         });
-        this.socket.on("emitPieceMovement", function (emitPiece) {
+        this.socket.on("emitPieceMovement", function (movement) {
             if (emit.getEmit() === false) {
-                var piece = _this.scheduler.getPieceByUniqueId(emitPiece.uniqueId);
+                var piece = _this.scheduler.getPieceByUniqueId(movement.pieceId);
                 if (piece) {
-                    log.debug("Playing dice values: " + emitPiece.diceUniqueIds.join());
-                    _this.generatePieceMovement(emitPiece.diceUniqueIds, piece);
+                    var diceUniqueIds = movement.diceId.split("#");
+                    // log.debug("Playing dice values: " + diceUniqueIds.join());
+                    _this.generatePieceMovement(diceUniqueIds, piece);
                 }
                 else {
-                    log.debug("Error finding piece: " + emitPiece.uniqueId);
+                    log.debug("Error finding piece: " + movement.pieceId);
                 }
             }
-            log.debug("Play movement on : " + emitPiece.uniqueId);
+            // log.debug("Play movement on : " + movement.pieceId);
+        });
+        this.socket.on("emitAIPieceMovement", function (movement) {
+            if (emit.getEmit() === false) {
+                var piece = _this.scheduler.getPieceByUniqueId(movement.pieceId);
+                if (piece) {
+                    // log.debug("Playing dice values: " + movement.pieceId);
+                    _this.generateAIPieceMovement(piece, movement);
+                }
+                else {
+                    log.debug("Error finding piece: " + movement.pieceId);
+                }
+            }
+            // log.debug("Play movement on : " + movement.pieceId);
+        });
+        this.socket.on("emitChangePlayer", function (ludoplayers) {
+            if (emit.getEmit() === false) {
+                _this.dice.consumeWithoutEmission();
+            }
         });
     };
     return RuleEnforcer;

@@ -135,10 +135,10 @@ export class Ludo {
                 if (player.playerId === emitPiece.playerId) {
                     for (let piece of player.pieces) {
                         if (piece.uniqueId === emitPiece.uniqueId) {
-                            console.log("Piece state Before Peck " + piece.uniqueId + " value: " + piece.state);
+                            // console.log("Piece state Before Peck " + piece.uniqueId + " value: " + piece.state);
                             piece.state = emitPiece.state;
                             piece.currentPosition = piece.homePosition;
-                            console.log("Piece state After Peck " + piece.uniqueId + " value: " + piece.state);
+                            // console.log("Piece state After Peck " + piece.uniqueId + " value: " + piece.state);
                             break;
                         }
                     }
@@ -221,10 +221,6 @@ export class Ludo {
     private changePlayer(gameId: string): void {
         let ludogame = games.getValue(gameId);
         if (ludogame) {
-            // console.log("");
-            for (let players of ludogame.ludoPlayers){
-                // console.log("Change Before " + players.colors.join());
-            }
             let player = ludogame.ludoPlayers.shift();
             ludogame.ludoPlayers.push(player);
             ludogame.ludoDice.dieOne.isConsumed = true;
@@ -234,7 +230,7 @@ export class Ludo {
         }
     }
 
-    private getCheckSum(gameId: string, callback): void {
+    private getCheckSum(gameId: string, callback: any): void {
         let check_sum = "";
         let ludogame = games.getValue(gameId);
         if (ludogame) {

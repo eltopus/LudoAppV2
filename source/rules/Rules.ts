@@ -159,7 +159,7 @@ import {LudoPiece} from "../game/LudoPiece";
            if (totalPieces !== 16) {
             log.debug("Total Pieces mismatch!!! active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
            }else {
-               // log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
+               log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
            }
 
            if (playerActivePieces === activePieces && playerHomePieces === homePieces && playerOnwayoutPieces === onWayOutPieces && playerExitPieces === exitedPieces) {

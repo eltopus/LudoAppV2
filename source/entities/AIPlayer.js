@@ -32,6 +32,9 @@ var AIPlayer = (function (_super) {
                 // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
                 var piece_1 = this.getPieceByUniqueId(bestMove_1.pieceId);
                 setTimeout(function () {
+                    if (piece_1) {
+                        piece_1.setActivePiece();
+                    }
                     _this.ruleEnforcer.generateAIPieceMovement(piece_1, bestMove_1);
                 }, 1000);
             }
@@ -43,9 +46,7 @@ var AIPlayer = (function (_super) {
     AIPlayer.prototype.aiRollDice = function (listener, dice, playerId) {
         var _this = this;
         if (listener === "aiRollDice") {
-            setTimeout(function () {
-                _this.roll(dice, 6, 5);
-            }, 1000);
+            setTimeout(function () { return _this.roll(dice); }, 1000);
         }
     };
     AIPlayer.prototype.bestMovement = function (movements) {

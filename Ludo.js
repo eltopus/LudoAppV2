@@ -117,10 +117,10 @@ var Ludo = (function () {
                     for (var _b = 0, _c = player.pieces; _b < _c.length; _b++) {
                         var piece = _c[_b];
                         if (piece.uniqueId === emitPiece.uniqueId) {
-                            console.log("Piece state Before Peck " + piece.uniqueId + " value: " + piece.state);
+                            // console.log("Piece state Before Peck " + piece.uniqueId + " value: " + piece.state);
                             piece.state = emitPiece.state;
                             piece.currentPosition = piece.homePosition;
-                            console.log("Piece state After Peck " + piece.uniqueId + " value: " + piece.state);
+                            // console.log("Piece state After Peck " + piece.uniqueId + " value: " + piece.state);
                             break;
                         }
                     }
@@ -194,10 +194,6 @@ var Ludo = (function () {
     Ludo.prototype.changePlayer = function (gameId) {
         var ludogame = games.getValue(gameId);
         if (ludogame) {
-            // console.log("");
-            for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
-                var players = _a[_i];
-            }
             var player = ludogame.ludoPlayers.shift();
             ludogame.ludoPlayers.push(player);
             ludogame.ludoDice.dieOne.isConsumed = true;

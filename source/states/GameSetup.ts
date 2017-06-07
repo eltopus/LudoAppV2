@@ -12,6 +12,7 @@ let emit = Emit.getInstance();
 
 const log = factory.getLogger("model.GameSetup");
 let newCreatedPlayers: NewPlayers.NewPlayers = new NewPlayers.NewPlayers();
+let Display: any = Example;
 export class GameSetup extends Phaser.State {
 
     public init() {
@@ -69,11 +70,11 @@ export class GameSetup extends Phaser.State {
                             newCreatedPlayers.hasSavedGame = true;
                             this.startGame();
                         }else {
-                            Example.show("Cannot find game game!!!");
+                            Display.show("Cannot find game game!!!");
                         }
                     },
 			        error: function(){
-			            Example.show("Failed to join game!!!");
+			            Display.show("Failed to join game!!!");
 			        },
                 });
             });
@@ -162,11 +163,11 @@ export class GameSetup extends Phaser.State {
                     log.debug("Show emitter: " + emit.getEmit());
                     this.startGame();
                 }else {
-                    Example.show("Cannot find game game!!!");
+                    Display.show("Cannot find game game!!!");
                 }
             },
 			error: function(){
-			    Example.show("Session does not exists");
+			    Display.show("Session does not exists");
 			},
         });
     }

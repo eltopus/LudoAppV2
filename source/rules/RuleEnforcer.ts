@@ -68,18 +68,22 @@ export class RuleEnforcer {
             ++this.rollCounter;
             if (this.rollCounter === 2) {
                 this.rollCounter = 0;
-                this.currentPossibleMovements.resetMoves();
-                this.generateAllPossibleMoves();
-                let currentPlayer = this.scheduler.getCurrentPlayer();
-                if (this.dice.rolledDoubleSix()) {
-                    currentPlayer.previousDoubleSix = true;
-                }
-                if (currentPlayer.isAI) {
-                    if (emit.getEmit()) {
-                        this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                this.generateAllPossibleMoves((moveIsEmpty: boolean) => {
+                    if (moveIsEmpty) {
+                        setTimeout(() => this.handleEmptyPossibleMovements(), 1000);
+                    }else {
+                        let currentPlayer = this.scheduler.getCurrentPlayer();
+                        if (this.dice.rolledDoubleSix()) {
+                            currentPlayer.previousDoubleSix = true;
+                        }
+                        if (currentPlayer.isAI) {
+                            if (emit.getEmit()) {
+                                this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
+                            }
+                        }
+                        // this.rule.checkBoardConsistencies();
                     }
-                }
-                // this.rule.checkBoardConsistencies();
+                });
             }
         }
     }
@@ -115,9 +119,10 @@ export class RuleEnforcer {
                                 backToHomePiece.setAtHome();
                                 if (emit.getEmit() === true && emit.getEnableSocket()) {
                                     this.emitPiece.setParameters(backToHomePiece);
+                                    this.signal.dispatch("setBackToHomeLocal", this.emitPiece);
                                     this.socket.emit("setBackToHome", this.emitPiece);
                                 }
-                                piece.collidingPiece = backToHomePiece;
+                                piece.collidingPiece = backToHomePiece.uniqueId;
                                 // piece.setExited();
                             }
                         }
@@ -134,8 +139,11 @@ export class RuleEnforcer {
             this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
             this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
             this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
-            this.currentPossibleMovements.resetMoves();
-            this.generateAllPossibleMoves();
+            this.generateAllPossibleMoves((moveIsEmpty: boolean) => {
+                if (moveIsEmpty) {
+                    setTimeout(() => this.handleEmptyPossibleMovements(), 1000);
+                }
+            });
         }else {
             log.debug("Move not found!!!: " + this.rule.decodeMove(pieceMovement));
         }
@@ -167,9 +175,10 @@ export class RuleEnforcer {
                         backToHomePiece.setAtHome();
                         if (emit.getEmit() === true && emit.getEnableSocket()) {
                             this.emitPiece.setParameters(backToHomePiece);
+                            this.signal.dispatch("setBackToHomeLocal", this.emitPiece);
                             this.socket.emit("setBackToHome", this.emitPiece);
                         }
-                        piece.collidingPiece = backToHomePiece;
+                        piece.collidingPiece = backToHomePiece.uniqueId;
                         // piece.setExited();
                     }
                 }
@@ -179,8 +188,11 @@ export class RuleEnforcer {
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.activeMoves);
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.homeMoves);
         this.rule.addSpentMovesBackToPool(this.currentPossibleMovements.onWayOutMoves);
-        this.currentPossibleMovements.resetMoves();
-        this.generateAllPossibleMoves();
+        this.generateAllPossibleMoves((moveIsEmpty: boolean) => {
+                if (moveIsEmpty) {
+                    setTimeout(() => this.handleEmptyPossibleMovements(), 1000);
+                }
+            });
         return aiPieceMovement;
     }
 
@@ -249,39 +261,38 @@ export class RuleEnforcer {
         return movement;
     }
 
-    private generateAllPossibleMoves(): void {
+    private generateAllPossibleMoves(callback: any): void {
         let currentPlayer: Player = this.scheduler.getCurrentPlayer();
         this.currentPossibleMovements.resetMoves();
         this.currentPossibleMovements = this.rule.generateAllPossibleMoves(currentPlayer);
         // log.debug("Possible Moves Generated: " + this.currentPossibleMovements.totalNumberOfRules());
         // this.rule.showRulePools();
-        this.analyzeAllPossibleMove(currentPlayer);
+        this.analyzeAllPossibleMove(currentPlayer, (moveIsEmpty: boolean) => {
+            callback(moveIsEmpty);
+        });
     }
 
-    private analyzeAllPossibleMove(currentPlayer: Player): void {
+    private analyzeAllPossibleMove(currentPlayer: Player, callback: any): void {
         /**
          * Corner case for when player can only play one active or home or onwayout piece.
          * This does not necessarily mean that the player has a total of one piece.
         */
-        if (this.currentPossibleMovements.isEmpty()) {
-            setTimeout(() => this.handleEmptyPossibleMovements(), 1000);
-        }else {
-            if (currentPlayer.allPiecesAreAtHome()) {
-                this.currentPossibleMovements = this.filterOnAllPiecesAreAtHome(this.currentPossibleMovements, currentPlayer);
-            }else if (currentPlayer.hasExactlyOneActivePiece()) {
-                this.currentPossibleMovements = this.filterOnHasExactlyOneActivePiece(this.currentPossibleMovements, currentPlayer);
-            }else if (!currentPlayer.hasActivePieces() && currentPlayer.hasHomePieces() &&
-             this.dice.rolledAtLeastOneSix() && currentPlayer.hasOnWayOutPieces()) {
-                this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
-            }else if (currentPlayer.hasExactlyOnePieceLeft()) {
-                if (this.moveContainTwoDice(this.currentPossibleMovements.activeMoves)) {
-                    this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
-                }
-            }else {
-                // log.debug("NO FILTER LOGIC APPLIED...................................");
+        if (currentPlayer.allPiecesAreAtHome()) {
+            this.currentPossibleMovements = this.filterOnAllPiecesAreAtHome(this.currentPossibleMovements, currentPlayer);
+        }else if (currentPlayer.hasExactlyOneActivePiece()) {
+            this.currentPossibleMovements = this.filterOnHasExactlyOneActivePiece(this.currentPossibleMovements, currentPlayer);
+        }else if (!currentPlayer.hasActivePieces() && currentPlayer.hasHomePieces() &&
+            this.dice.rolledAtLeastOneSix() && currentPlayer.hasOnWayOutPieces()) {
+            this.currentPossibleMovements = this.filterOnNoActiveButHomeAndOnWayOutPieces(this.currentPossibleMovements, currentPlayer);
+        }else if (currentPlayer.hasExactlyOnePieceLeft()) {
+            if (this.moveContainTwoDice(this.currentPossibleMovements.activeMoves)) {
+                this.currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(this.currentPossibleMovements.activeMoves);
             }
+        }else {
+                // log.debug("NO FILTER LOGIC APPLIED...................................");
         }
         // this.readAllMoves();
+        callback(this.currentPossibleMovements.isEmpty());
     }
 
     private filterOnHasExactlyOneActivePiece(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
@@ -486,6 +497,7 @@ export class RuleEnforcer {
         if (listener === "startmovement") {
                 if (emit.getEmit() === true && emit.getEnableSocket()) {
                 this.emitPiece.setParameters(piece);
+                this.signal.dispatch("setStateChangeLocal", this.emitPiece);
                 this.socket.emit("setStateChange", this.emitPiece);
             }
         }

@@ -51,7 +51,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public movement: PieceMovement;
     public speedConstant: number;
     public entryIndex: number;
-    public collidingPiece: Piece;
+    public collidingPiece: string = null;
     public imageId: string;
     public gameId: string;
     public isMoving = false;
@@ -113,7 +113,10 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
 
     public onCompleteMovement(): void {
         if (this.collidingPiece !== null) {
-            this.collidingPiece.moveToHome();
+            let piece = emit.getPieceByUniqueId(this.collidingPiece);
+            if (piece) {
+                piece.moveToHome();
+            }
             this.collidingPiece = null;
         }
         if (this.isExited()) {
@@ -186,6 +189,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
         if (emit.getEmit() === true && this.isSelected() && emit.getEnableSocket()) {
             this.emitPiece.setParameters(this);
+            this.signal.dispatch("selectActivePieceLocal", this.emitPiece);
             this.socket.emit("selectActivePiece", this.emitPiece);
         }
     }
@@ -195,7 +199,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      * @param uniqueId
      */
     public unsetActivePiece(): void {
-        this.signal.dispatch("unselect", this.uniqueId, this.playerId);
+        // this.signal.dispatch("unselect", this.uniqueId, this.playerId);
         this.frame = 0;
     }
 

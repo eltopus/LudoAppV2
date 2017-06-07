@@ -27,7 +27,7 @@ export class EmitPiece {
         this.entryIndex = piece.entryIndex;
         this.gameId = piece.gameId;
         if (piece.collidingPiece !== null) {
-            this.collidingPiece = piece.collidingPiece.uniqueId;
+            this.collidingPiece = piece.collidingPiece;
         }
     }
 }
