@@ -33,9 +33,6 @@ export class Scheduler {
     public getNextPlayer(): Player {
         let player = this.schedule.peek();
         if (player.previousDoubleSix === false) {
-            if (emit.getEmit()) {
-                this.changePlayer(player);
-            }
             this.dice.consumeWithoutEmission();
             player = this.schedule.dequeue();
             player.unselectAllPiece();
@@ -140,11 +137,6 @@ export class Scheduler {
                  }
             }
         }
-    }
-    private changePlayer(player: Player): void {
-        // log.debug("PlayerColor: " + player.getColorTypes().join());
-        this.signal.dispatch("changePlayerLocal", this.gameId);
-        this.socket.emit("changePlayer", this.gameId);
     }
 
     private compareCheckSum(check_sum_from_server: string): void {

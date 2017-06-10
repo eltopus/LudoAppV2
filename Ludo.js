@@ -1,7 +1,7 @@
 "use strict";
 var checksum = require("checksum");
-var typescript_collections_1 = require("typescript-collections");
-var games = new typescript_collections_1.Dictionary();
+var LudoCache_1 = require("./LudoCache");
+var cache = LudoCache_1.LudoCache.getInstance();
 var socket;
 var io;
 var Ludo = (function () {
@@ -29,35 +29,87 @@ var Ludo = (function () {
             console.log("Client disconnected");
         });
     };
-    Ludo.prototype.getExistingGame = function (gameId, callback) {
-        var ludogame = games.getValue(gameId);
+    Ludo.prototype.getExistingGame = function (req, callback) {
+        var ludogame = cache.getValue(req.body.gameId);
+        var playerName = req.body.playerName;
+        this.assignPlayer(ludogame, playerName, function (game) {
+            console.log("Current player: is " + game.currrentPlayerId);
+            callback(game);
+        });
+    };
+    Ludo.prototype.assignPlayer = function (ludogame, playerName, callback) {
+        if (ludogame === null || typeof ludogame === "undefined") {
+        }
+        else {
+            for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
+                var availPlayer = _a[_i];
+                if (availPlayer.isEmpty) {
+                    availPlayer.playerName = playerName;
+                    ludogame.playerId = availPlayer.playerId;
+                    ludogame.availableColors = this.getAvailableColors(availPlayer.colors, ludogame);
+                    availPlayer.isEmpty = false;
+                    break;
+                }
+            }
+        }
         callback(ludogame);
+    };
+    Ludo.prototype.getAvailableColors = function (chosenColors, ludogame) {
+        var availableColors = [];
+        for (var y = 0; y < ludogame.availableColors.length; ++y) {
+            if (!this.containsColor(chosenColors, ludogame.availableColors[y])) {
+                availableColors.push(ludogame.availableColors[y]);
+            }
+        }
+        return availableColors;
+    };
+    Ludo.prototype.containsColor = function (colors, color) {
+        var contains = false;
+        for (var _i = 0, colors_1 = colors; _i < colors_1.length; _i++) {
+            var c = colors_1[_i];
+            if (c === color) {
+                contains = true;
+            }
+        }
+        return contains;
     };
     Ludo.prototype.createGame = function (ludogame, callback) {
         var sock = this;
-        games.setValue(ludogame.gameId, ludogame);
-        sock.join(ludogame.gameId);
         sock.handshake.session.gameId = ludogame.gameId;
-        sock.handshake.session.playerTurn = true;
+        sock.handshake.session.playerId = ludogame.ludoPlayers[0].playerId;
+        sock.playerName = ludogame.ludoPlayers[0].playerName;
+        sock.gameId = ludogame.gameId;
         sock.handshake.session.save();
-        callback({ ok: true, message: ludogame.gameId + " was successfuly created." + sock.id, emit: true });
+        var colors = ludogame.availableColors;
+        var sessionId = sock.handshake.session.id;
+        var message = ludogame.gameId + " was successfuly created with sessionId " + sessionId + " and available colors are " + colors;
+        cache.setValue(ludogame.gameId, ludogame);
+        sock.join(ludogame.gameId);
+        callback({ ok: true, message: message, emit: true });
     };
-    Ludo.prototype.joinExistingGame = function (gameId, callback) {
+    Ludo.prototype.joinExistingGame = function (gameId, playerId, playerName, callback) {
         var sock = this;
-        var ludogame = games.getValue(gameId);
+        var ludogame = cache.getValue(gameId);
+        sock.handshake.session.gameId = gameId;
+        sock.handshake.session.playerId = playerId;
+        sock.gameId = gameId;
+        sock.playerName = playerName;
         var message = "";
+        var ok = false;
+        var sessionId = sock.handshake.session.id;
         if (ludogame) {
-            message = ludogame.gameId + " was successfuly joined.";
-            sock.join(gameId);
-            console.log(message + " " + sock.id);
             sock.handshake.session.gameId = ludogame.gameId;
             sock.handshake.session.save();
+            ok = true;
+            message = ludogame.gameId + " was successfuly created. currentGameId: " + ludogame.currrentPlayerId;
+            sock.join(gameId);
+            sock.to(gameId).emit("updateJoinedPlayer", ludogame);
         }
         else {
             message = gameId + " does not exist!!!.";
             console.log(message + " " + sock.id);
         }
-        callback({ ok: true, message: message + sock.id, emit: false });
+        callback({ ok: ok, message: message, emit: false, currrentPlayerId: ludogame.currrentPlayerId });
     };
     Ludo.prototype.connected = function () {
         console.log("New socket connecting " + " was found " + socket.id);
@@ -66,7 +118,7 @@ var Ludo = (function () {
         var sock = this;
         // console.log("Broadcating roll dice" + sock.id);
         // console.log("----------------------------------------------------------------------------------");
-        var ludogame = games.getValue(die.gameId);
+        var ludogame = cache.getValue(die.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Dice Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.dieValue);
@@ -80,7 +132,7 @@ var Ludo = (function () {
         io.in(die.gameId).emit("emitRollDice", die);
     };
     Ludo.prototype.consumeDie = function (die) {
-        var ludogame = games.getValue(die.gameId);
+        var ludogame = cache.getValue(die.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Consume Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isConsumed);
@@ -94,7 +146,7 @@ var Ludo = (function () {
     };
     Ludo.prototype.selectActivePiece = function (emitPiece) {
         var sock = this;
-        var ludogame = games.getValue(emitPiece.gameId);
+        var ludogame = cache.getValue(emitPiece.gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];
@@ -109,7 +161,7 @@ var Ludo = (function () {
         sock.volatile.to(emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
     };
     Ludo.prototype.setBackToHome = function (emitPiece) {
-        var ludogame = games.getValue(emitPiece.gameId);
+        var ludogame = cache.getValue(emitPiece.gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];
@@ -129,7 +181,7 @@ var Ludo = (function () {
         }
     };
     Ludo.prototype.setStateChange = function (emitPiece) {
-        var ludogame = games.getValue(emitPiece.gameId);
+        var ludogame = cache.getValue(emitPiece.gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];
@@ -161,7 +213,7 @@ var Ludo = (function () {
     };
     Ludo.prototype.selectActiveDie = function (emitDie) {
         var sock = this;
-        var ludogame = games.getValue(emitDie.gameId);
+        var ludogame = cache.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -177,7 +229,7 @@ var Ludo = (function () {
     };
     Ludo.prototype.unselectActiveDie = function (emitDie) {
         var sock = this;
-        var ludogame = games.getValue(emitDie.gameId);
+        var ludogame = cache.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -191,20 +243,27 @@ var Ludo = (function () {
             sock.volatile.to(emitDie.gameId).emit("emitUnselectActiveDie", emitDie);
         }
     };
-    Ludo.prototype.changePlayer = function (gameId) {
-        var ludogame = games.getValue(gameId);
+    Ludo.prototype.changePlayer = function (gameId, nextPlayerId, callback) {
+        var sock = this;
+        var currentPlayerId = sock.handshake.session.playerId;
+        var ludogame = cache.getValue(gameId);
         if (ludogame) {
-            var player = ludogame.ludoPlayers.shift();
-            ludogame.ludoPlayers.push(player);
-            ludogame.ludoDice.dieOne.isConsumed = true;
-            ludogame.ludoDice.dieTwo.isConsumed = true;
-            // console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " + player.colors.join());
-            io.in(gameId).emit("emitChangePlayer", ludogame.ludoPlayers);
+            if (currentPlayerId === ludogame.ludoPlayers[0].playerId && nextPlayerId !== ludogame.ludoPlayers[0].playerId) {
+                var player = ludogame.ludoPlayers.shift();
+                ludogame.ludoPlayers.push(player);
+                ludogame.ludoDice.dieOne.isConsumed = true;
+                ludogame.ludoDice.dieTwo.isConsumed = true;
+                ludogame.currrentPlayerId = nextPlayerId;
+                console.log("Current Player ID: " + ludogame.currrentPlayerId);
+            }
+            else {
+            }
         }
+        callback(nextPlayerId);
     };
     Ludo.prototype.getCheckSum = function (gameId, callback) {
         var check_sum = "";
-        var ludogame = games.getValue(gameId);
+        var ludogame = cache.getValue(gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];

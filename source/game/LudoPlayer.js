@@ -4,6 +4,7 @@ var LudoPlayer = (function () {
     function LudoPlayer(player) {
         this.pieces = [];
         this.currentSelectedPiece = null;
+        this.isEmpty = true;
         this.name = player.name;
         this.playerId = player.playerId;
         this.turn = player.turn;
@@ -12,6 +13,7 @@ var LudoPlayer = (function () {
         this.isAI = player.isAI;
         this.colors = player.getColorTypes();
         this.sequenceNumber = player.sequenceNumber;
+        this.playerName = player.playerName;
         if (player.currentSelectedPiece !== null) {
             this.currentSelectedPiece = player.currentSelectedPiece.uniqueId;
         }

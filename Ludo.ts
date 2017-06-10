@@ -5,8 +5,9 @@ import {Dictionary} from "typescript-collections";
 import {EmitPiece} from "./source/emit/EmitPiece";
 import {EmitDie} from "./source/emit/EmitDie";
 import {Move} from "./source/rules/Move";
+import {LudoCache} from "./LudoCache";
 
-let games = new Dictionary<String, LudoGame>();
+let cache = LudoCache.getInstance();
 let socket: SocketIO.Socket;
 let io: SocketIO.Server;
 export class Ludo {
@@ -35,36 +36,89 @@ export class Ludo {
     }
 
 
-    public getExistingGame(gameId: string, callback: any): void {
-        let ludogame = games.getValue(gameId);
+    public getExistingGame(req: any, callback: any): void {
+        let ludogame = cache.getValue(req.body.gameId);
+        let playerName = req.body.playerName;
+        this.assignPlayer(ludogame, playerName, (game: any) => {
+            console.log("Current player: is " + game.currrentPlayerId);
+            callback(game);
+        });
+    }
+
+    private assignPlayer(ludogame: LudoGame, playerName: string, callback: any): void {
+        if (ludogame === null || typeof ludogame === "undefined") {
+            // do nothing
+        }else {
+            for (let availPlayer of ludogame.ludoPlayers){
+                if (availPlayer.isEmpty) {
+                    availPlayer.playerName = playerName;
+                    ludogame.playerId = availPlayer.playerId;
+                    ludogame.availableColors = this.getAvailableColors(availPlayer.colors, ludogame);
+                    availPlayer.isEmpty = false;
+                    break;
+                }
+            }
+        }
         callback(ludogame);
+    }
+
+    private getAvailableColors(chosenColors: string[], ludogame: LudoGame): string[] {
+        let availableColors: string[] = [];
+        for (let y = 0; y <  ludogame.availableColors.length; ++y) {
+            if (!this.containsColor(chosenColors, ludogame.availableColors[y])) {
+                availableColors.push(ludogame.availableColors[y]);
+            }
+        }
+        return availableColors;
+    }
+
+    private containsColor(colors: string[], color: string): boolean {
+        let contains = false;
+        for (let c of colors){
+            if (c === color) {
+                contains = true;
+            }
+        }
+        return contains;
     }
 
     private createGame(ludogame: LudoGame, callback: any) {
         let sock: any = this;
-        games.setValue(ludogame.gameId, ludogame);
-        sock.join(ludogame.gameId);
         sock.handshake.session.gameId = ludogame.gameId;
-        sock.handshake.session.playerTurn = true;
+        sock.handshake.session.playerId = ludogame.ludoPlayers[0].playerId;
+        sock.playerName = ludogame.ludoPlayers[0].playerName;
+        sock.gameId = ludogame.gameId;
         sock.handshake.session.save();
-        callback({ok: true, message: ludogame.gameId + " was successfuly created." + sock.id, emit: true});
+        let colors = ludogame.availableColors;
+        let sessionId = sock.handshake.session.id;
+        let message = `${ludogame.gameId} was successfuly created with sessionId ${sessionId} and available colors are ${colors}`;
+        cache.setValue(ludogame.gameId, ludogame);
+        sock.join(ludogame.gameId);
+        callback({ok: true, message: message, emit: true});
     }
 
-    private joinExistingGame(gameId: string, callback: any): void {
+    private joinExistingGame(gameId: string, playerId: string, playerName: string, callback: any): void {
         let sock: any = this;
-        let ludogame = games.getValue(gameId);
+        let ludogame = cache.getValue(gameId);
+        sock.handshake.session.gameId = gameId;
+        sock.handshake.session.playerId = playerId;
+        sock.gameId = gameId;
+        sock.playerName = playerName;
         let message = "";
+        let ok = false;
+        let sessionId = sock.handshake.session.id;
         if (ludogame) {
-            message = ludogame.gameId + " was successfuly joined.";
-            sock.join(gameId);
-            console.log(message + " " + sock.id);
             sock.handshake.session.gameId = ludogame.gameId;
             sock.handshake.session.save();
+            ok = true;
+            message = `${ludogame.gameId} was successfuly created. currentGameId: ${ludogame.currrentPlayerId}`;
+            sock.join(gameId);
+            sock.to(gameId).emit("updateJoinedPlayer", ludogame);
         }else {
             message = gameId + " does not exist!!!.";
             console.log(message + " " + sock.id);
         }
-        callback({ok: true, message: message + sock.id, emit: false});
+        callback({ok: ok, message: message, emit: false, currrentPlayerId: ludogame.currrentPlayerId});
 
     }
 
@@ -76,7 +130,7 @@ export class Ludo {
         let sock: any = this;
         // console.log("Broadcating roll dice" + sock.id);
         // console.log("----------------------------------------------------------------------------------");
-        let ludogame = games.getValue(die.gameId);
+        let ludogame = cache.getValue(die.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Dice Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.dieValue);
@@ -94,7 +148,7 @@ export class Ludo {
     }
 
     private consumeDie(die: EmitDie): void {
-        let ludogame = games.getValue(die.gameId);
+        let ludogame = cache.getValue(die.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Consume Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isConsumed);
@@ -114,7 +168,7 @@ export class Ludo {
 
     private selectActivePiece(emitPiece: EmitPiece): void {
         let sock: any  = this;
-        let ludogame = games.getValue(emitPiece.gameId);
+        let ludogame = cache.getValue(emitPiece.gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 if (player.playerId === emitPiece.playerId) {
@@ -129,7 +183,7 @@ export class Ludo {
     }
 
     private setBackToHome(emitPiece: EmitPiece): void {
-        let ludogame = games.getValue(emitPiece.gameId);
+        let ludogame = cache.getValue(emitPiece.gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 if (player.playerId === emitPiece.playerId) {
@@ -148,7 +202,7 @@ export class Ludo {
     }
 
     private setStateChange(emitPiece: EmitPiece): void {
-        let ludogame = games.getValue(emitPiece.gameId);
+        let ludogame = cache.getValue(emitPiece.gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 if (player.playerId === emitPiece.playerId) {
@@ -182,7 +236,7 @@ export class Ludo {
 
     private selectActiveDie(emitDie: EmitDie): void {
         let sock: any = this;
-        let ludogame = games.getValue(emitDie.gameId);
+        let ludogame = cache.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -201,7 +255,7 @@ export class Ludo {
 
     private unselectActiveDie(emitDie: EmitDie): void {
         let sock: any = this;
-        let ludogame = games.getValue(emitDie.gameId);
+        let ludogame = cache.getValue(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -218,21 +272,28 @@ export class Ludo {
         }
     }
 
-    private changePlayer(gameId: string): void {
-        let ludogame = games.getValue(gameId);
+    private changePlayer(gameId: string, nextPlayerId: string, callback: any): void {
+        let sock: any = this;
+        let currentPlayerId = sock.handshake.session.playerId;
+        let ludogame: LudoGame = cache.getValue(gameId);
         if (ludogame) {
-            let player = ludogame.ludoPlayers.shift();
-            ludogame.ludoPlayers.push(player);
-            ludogame.ludoDice.dieOne.isConsumed = true;
-            ludogame.ludoDice.dieTwo.isConsumed = true;
-            // console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " + player.colors.join());
-            io.in(gameId).emit("emitChangePlayer", ludogame.ludoPlayers);
+            if (currentPlayerId === ludogame.ludoPlayers[0].playerId && nextPlayerId !== ludogame.ludoPlayers[0].playerId) {
+                let player = ludogame.ludoPlayers.shift();
+                ludogame.ludoPlayers.push(player);
+                ludogame.ludoDice.dieOne.isConsumed = true;
+                ludogame.ludoDice.dieTwo.isConsumed = true;
+                ludogame.currrentPlayerId = nextPlayerId;
+                console.log("Current Player ID: " + ludogame.currrentPlayerId);
+            }else {
+                // console.log("I am not the current player: " + currentPlayerId + " " + ludogame.currrentPlayerId);
+            }
         }
+        callback(nextPlayerId);
     }
 
     private getCheckSum(gameId: string, callback: any): void {
         let check_sum = "";
-        let ludogame = games.getValue(gameId);
+        let ludogame = cache.getValue(gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 check_sum = check_sum + "#" + (checksum(JSON.stringify(player.pieces)));

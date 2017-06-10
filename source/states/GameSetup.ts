@@ -57,17 +57,21 @@ export class GameSetup extends Phaser.State {
         });
 
         $("#joinGameBtn").parent().click(() => {
-            let playerName: string = $("#joinPlayerName").val();
-            let  gameId: string = $("#gameCode").val();
+            let playerName: string = $("#joinPlayerName").val().trim().toUpperCase();
+            let  gameId: string = $("#gameCode").val().trim();
+            if (playerName.length === 0) {
+                playerName = "_NAME 1";
+            }
             $.ajax({
 			        type: "POST",
 			        url: "join",
 			        // tslint:disable-next-line:object-literal-sort-keys
-			        data: {gameId : gameId.toLowerCase().trim()},
+			        data: {gameId : gameId.toLowerCase(), playerName: playerName},
 			        success: (ludogame) => {
 			        	if (ludogame.gameId) {
 			        		newCreatedPlayers.ludogame = ludogame;
                             newCreatedPlayers.hasSavedGame = true;
+                            emit.setCurrentPlayerId(ludogame.playerId);
                             this.startGame();
                         }else {
                             Display.show("Cannot find game game!!!");
@@ -80,73 +84,74 @@ export class GameSetup extends Phaser.State {
             });
 
          $("#createBtn").parent().click(() => {
-            let playerName: string = $("#playerName").val();
+            let playerName: string = $("#playerName").val().trim().toUpperCase();
             if (playerName.length === 0) {
-                playerName = "DEFAULT_NAME 1";
+                playerName = "DEFAULT";
             }
-            log.debug("PlayerName: " + playerName);
+
             switch (newCreatedPlayers.playerMode) {
                 case PlayerMode.AiTwoPlayer: {
-                    let regularPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer(playerName, [ColorType.Red, ColorType.Blue], false);
+                    let regularPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red, ColorType.Blue], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer);
-                    let aiPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER", [ColorType.Yellow, ColorType.Green], true);
+                    let aiPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer);
                     break;
                 }
                 case PlayerMode.AiFourPlayer: {
-                    let regularPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer(playerName, [ColorType.Red], false);
+                    let regularPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer);
-                    let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 1", [ColorType.Blue], true);
+                    let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Blue], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer1);
-                    let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 2", [ColorType.Yellow], true);
+                    let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer2);
-                    let aiPlayer3: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 3", [ColorType.Green], true);
+                    let aiPlayer3: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer3);
                     break;
                 }
                 case PlayerMode.RegularTwoPlayer: {
-                    let regularPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer(playerName, [ColorType.Red, ColorType.Blue], false);
+                    let regularPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red, ColorType.Blue], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer1);
-                    let regularPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("DEFAULT_NAME 2", [ColorType.Yellow, ColorType.Green], false);
+                    let regularPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer2);
                     break;
                 }
                 case PlayerMode.RegularFourPlayer: {
-                    let regularPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer(playerName, [ColorType.Red], false);
+                    let regularPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer1);
-                    let regularPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("DEFAULT_NAME 2", [ColorType.Blue], false);
+                    let regularPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Blue], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer2);
-                    let regularPlayer3: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("DEFAULT_NAME 3", [ColorType.Yellow], false);
+                    let regularPlayer3: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer3);
-                    let regularPlayer4: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("DEFAULT_NAME 4", [ColorType.Green], false);
+                    let regularPlayer4: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Green], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer4);
                     break;
                 }
                 case PlayerMode.AiTwoPlayerAiVsAi: {
-                    let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 1", [ColorType.Red, ColorType.Blue], true);
+                    let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red, ColorType.Blue], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer1);
-                    let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 2", [ColorType.Yellow, ColorType.Green], true);
+                    let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer2);
                     break;
                 }
                 case PlayerMode.AiFourPlayerAiVsAi: {
-                    let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 1", [ColorType.Red], true);
+                    let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer1);
-                    let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 2", [ColorType.Blue], true);
+                    let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Blue], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer2);
-                    let aiPlayer3: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 3", [ColorType.Yellow], true);
+                    let aiPlayer3: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer3);
-                    let aiPlayer4: NewPlayers.NewPlayer = new NewPlayers.NewPlayer("AI PLAYER 4", [ColorType.Green], true);
+                    let aiPlayer4: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer4);
                     break;
                 }
             }
             emit.setEmit(true);
             newCreatedPlayers.isCreator = true;
+            newCreatedPlayers.playerName = playerName;
             this.startGame();
          });
 
-         this.checkExistingSession();
+         // this.checkExistingSession();
 
     }
 
@@ -159,7 +164,7 @@ export class GameSetup extends Phaser.State {
 			    if (ludogame.gameId) {
 			        newCreatedPlayers.ludogame = ludogame;
                     newCreatedPlayers.hasSavedGame = true;
-                    emit.setEmit(newCreatedPlayers.ludogame.playerTurn);
+                    emit.checkPlayerId(ludogame.currrentPlayerId);
                     log.debug("Show emitter: " + emit.getEmit());
                     this.startGame();
                 }else {

@@ -21,9 +21,6 @@ var Scheduler = (function () {
     Scheduler.prototype.getNextPlayer = function () {
         var player = this.schedule.peek();
         if (player.previousDoubleSix === false) {
-            if (emit.getEmit()) {
-                this.changePlayer(player);
-            }
             this.dice.consumeWithoutEmission();
             player = this.schedule.dequeue();
             player.unselectAllPiece();
@@ -120,11 +117,6 @@ var Scheduler = (function () {
                 }
             }
         }
-    };
-    Scheduler.prototype.changePlayer = function (player) {
-        // log.debug("PlayerColor: " + player.getColorTypes().join());
-        this.signal.dispatch("changePlayerLocal", this.gameId);
-        this.socket.emit("changePlayer", this.gameId);
     };
     Scheduler.prototype.compareCheckSum = function (check_sum_from_server) {
         var ludogame = new LudoGame_1.LudoGame(this.players, this.dice, this.gameId);

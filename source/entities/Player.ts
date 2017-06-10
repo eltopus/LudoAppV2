@@ -14,6 +14,7 @@ const log = factory.getLogger("model.Player");
 export abstract class Player extends PieceFactory {
     public name: string;
     public playerId: string;
+    public playerName: string;
     public turn: boolean;
     public pieces: Piece[] = [];
     public signal: Phaser.Signal;
@@ -24,12 +25,12 @@ export abstract class Player extends PieceFactory {
     public sequenceNumber = 0;
     private perimeters: Perimeters;
     private socket: any;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
+    constructor(game: Phaser.Game, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, playerName: string,
      socket: any, gameId: string, ludoPieces: LudoPiece[],
      previousDoubleSix?: boolean) {
         super(game);
-        this.name = name;
         this.playerId = playerId;
+        this.playerName = playerName;
         this.turn = turn;
         this.pieces = new Array<Piece>();
         this.signal = signal;

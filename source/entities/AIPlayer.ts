@@ -23,10 +23,10 @@ export class AIPlayer extends Player {
     private ruleEnforcer: RuleEnforcer = null;
     private logic: AIBrainBox;
     private strategy: AIStrategy;
-    constructor(game: Phaser.Game, name: string, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal,
+    constructor(game: Phaser.Game, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, playerName: string,
     socket: any, gameId: string, ludoPiece?: LudoPiece[],
      ruleEnforcer?: RuleEnforcer, previousDoubleSix?: boolean) {
-        super(game, name, playerId, turn, colorTypes, signal, socket, gameId, ludoPiece, previousDoubleSix);
+        super(game, playerId, turn, colorTypes, signal, playerName, socket, gameId, ludoPiece, previousDoubleSix);
         this.isAI = true;
         this.ruleEnforcer = ruleEnforcer;
         this.signal.add(this.aiRollDice, this, 0, "aiRollDice");

@@ -6,6 +6,7 @@ import {Player} from "../entities/Player";
 export class LudoPlayer {
     public name: string;
     public playerId: string;
+    public playerName: string;
     public turn: boolean;
     public pieces: LudoPiece[] = [];
     public currentSelectedPiece: string = null;
@@ -14,6 +15,7 @@ export class LudoPlayer {
     public isAI: boolean;
     public sequenceNumber: number;
     public colors: string[];
+    public isEmpty = true;
 
     constructor(player: Player) {
         this.name = player.name;
@@ -24,6 +26,7 @@ export class LudoPlayer {
         this.isAI = player.isAI;
         this.colors = player.getColorTypes();
         this.sequenceNumber = player.sequenceNumber;
+        this.playerName = player.playerName;
         if (player.currentSelectedPiece !== null) {
             this.currentSelectedPiece = player.currentSelectedPiece.uniqueId;
         }

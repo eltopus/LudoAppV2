@@ -70,10 +70,7 @@ class Server {
 
         router.post("/setup", (req: any, res, next) => {
             if (req.session.gameId) {
-                this.ludo.getExistingGame(req.session.gameId, (ludogame: any) => {
-                    if (req.session.playerTurn === true) {
-                        ludogame.playerTurn = true;
-                    }
+                this.ludo.getExistingGame(req, (ludogame: any) => {
                     res.send(ludogame);
                 });
             }else {
@@ -83,15 +80,14 @@ class Server {
         });
 
         router.post("/join", (req, res, next) => {
-            let gameId = req.body.gameId;
-            if (gameId) {
-                this.ludo.getExistingGame(gameId, (ludogame: any) => {
+            if (req.body.gameId) {
+                this.ludo.getExistingGame(req, (ludogame: any) => {
                     console.log("Created Game " + ludogame.gameId + " was Found");
                     res.send(ludogame);
                 });
             }else {
                 console.log("Game id NOT found.....");
-                res.send({message: "This is a mess"});
+                res.send({message: `Error!!! ${req.body.gameId} cannot be found!`});
             }
         });
 

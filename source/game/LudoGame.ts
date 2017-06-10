@@ -13,6 +13,9 @@ export class LudoGame {
     public ludoDice: LudoDice;
     public gameId: string;
     public playerTurn = false;
+    public availableColors = ["RED", "BLUE", "YELLOW", "GREEN"];
+    public currrentPlayerId = "";
+    public playerId = "";
 
     constructor(players: Player[], dice: Dice, gameId: string) {
         for (let player of players){

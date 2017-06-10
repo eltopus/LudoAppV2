@@ -27,12 +27,14 @@ import {LudoPlayer} from "../game/LudoPlayer";
 import {NewPlayers} from "../entities/NewPlayers";
 import {Emit} from "../emit/Emit";
 import {LocalGame} from "../game/LocalGame";
+import {Dictionary} from "typescript-collections";
 import * as $ from "jquery";
 import * as cio from "socket.io-client";
 
 const log = factory.getLogger("model.Game");
 
 let emit = Emit.getInstance();
+let Display = Example;
 export class Game extends Phaser.State {
     public dice: Dice;
     public signal: Phaser.Signal;
@@ -45,14 +47,17 @@ export class Game extends Phaser.State {
     private socket: any = null;
     private isCreator = false;
     private localGame: LocalGame;
+    private currentPlayerName: string;
+    private playerNames = new Dictionary<String, any>();
 
     public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
-        this.isCreator = newPlayers.isCreator;
         if (this.newPlayers.hasSavedGame) {
             this.gameId = newPlayers.ludogame.gameId;
         }else {
+            this.isCreator = newPlayers.isCreator;
             this.gameId = this.generateGameId(5);
+            this.currentPlayerName = this.newPlayers.playerName;
         }
     }
 
@@ -124,10 +129,9 @@ export class Game extends Phaser.State {
                     this.players.push(player);
                 }
             }
-            this.gameId = this.newPlayers.ludogame.gameId;
+            this.setSocketHandlers();
             this.displayGameId(this.newPlayers.ludogame.gameId);
-            this.joinExistingGame(this.newPlayers.ludogame.gameId);
-            this.waitUntilGameStarts();
+            this.joinExistingGame();
 
         }else {
             if (emit.getEnableSocket()) {
@@ -148,8 +152,8 @@ export class Game extends Phaser.State {
                     homeboard.addPieceToHomeBoard(piece);
                 }
             }
+            this.setSocketHandlers();
             this.createGame();
-            this.waitUntilGameStarts();
         }
 
 
@@ -177,8 +181,9 @@ export class Game extends Phaser.State {
     }
 
     private displayGameId(gameId: string): void {
-        let gameIdDisplay = this.game.add.text(0, 0, gameId, {font: "30px Revalia", fill: "#F70C0C", boundsAlignH: "center", boundsAlignV: "middle"});
-        gameIdDisplay.setTextBounds(720, 290, 175, 30);
+        let gameIdText = this.game.add.text(0, 0, gameId, {font: "30px Revalia", fill: "#00ffff", boundsAlignH: "center", boundsAlignV: "middle"});
+        gameIdText.setTextBounds(720, 290, 175, 30);
+        emit.setGameIdText(gameIdText);
     }
 
     private setActivePieceParameters(piece: Piece, index: number, state: States, board: Board): void {
@@ -196,9 +201,11 @@ export class Game extends Phaser.State {
     }
 
     private waitUntilGameStarts(): void {
+
         // this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
-        log.debug(" Emit is " + emit.getEmit());
+        // log.debug(" Emit is " + emit.getEmit());
         if (this.scheduler.getCurrentPlayer().isAI) {
+            log.debug("Hey I am AI " + emit.getEmit());
             if (this.dice.bothDiceConsumed() ) {
                 if (emit.getEmit()) {
                     this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
@@ -226,39 +233,72 @@ export class Game extends Phaser.State {
     }
 
     private createGame(): void {
-        let ludoGame = new LudoGame(this.players, this.dice, this.gameId);
-        this.displayGameId(ludoGame.gameId);
-        this.localGame.setLudoGame(ludoGame);
+        let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+        // first player is always the creator's player
+        ludogame.ludoPlayers[0].playerName = this.currentPlayerName;
+        ludogame.ludoPlayers[0].isEmpty = false;
+        ludogame.availableColors = this.getAvailableColors(ludogame.ludoPlayers[0].colors, ludogame);
+        emit.setCurrentPlayerId(ludogame.ludoPlayers[0].playerId);
+        ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
+        this.displayGameId(ludogame.gameId);
         if (emit.getEnableSocket()) {
-            this.socket.emit("createGame", ludoGame, (data: any) => {
+            this.socket.emit("createGame", ludogame, (data: any) => {
                 if (data.ok) {
                     emit.setEmit(data.emit);
-                    log.debug(data.message + " " + emit.getEmit());
+                    // Display.show(data.message);
+                    this.displayNames(ludogame);
+                    this.waitForPlayers(ludogame);
+                    log.debug(data.message + " playerId: " + emit.getCurrentPlayerId());
+                    this.waitUntilGameStarts();
                 }
             });
         }
     }
 
-    private joinExistingGame(gameId: string): void {
+    private joinExistingGame(): void {
         if (emit.getEnableSocket()) {
-            this.socket.emit("joinExistingGame", gameId, (data: any) => {
+            log.debug(" playerId before : " + emit.getCurrentPlayerId());
+            this.socket.emit("joinExistingGame", this.gameId, emit.getCurrentPlayerId(), this.currentPlayerName, (data: any) => {
                 if (data.ok) {
-                    log.debug(data.message + " " + emit.getEmit());
+                    Display.show(data.message);
+                    emit.checkPlayerId(data.currrentPlayerId);
+                    this.displayNames(this.newPlayers.ludogame);
+                    this.waitForPlayers(this.newPlayers.ludogame);
+                    log.debug(data.message + " playerId: " + emit.getCurrentPlayerId());
+                    this.waitUntilGameStarts();
                 }
             });
         }
+    }
+
+    private getAvailableColors(chosenColors: string[], ludogame: LudoGame): string[] {
+        let availableColors: string[] = [];
+        for (let y = 0; y <  ludogame.availableColors.length; ++y) {
+            if (!this.containsColor(chosenColors, ludogame.availableColors[y])) {
+                availableColors.push(ludogame.availableColors[y]);
+            }
+        }
+        return availableColors;
+    }
+
+    private containsColor(colors: string[], color: string): boolean {
+        let contains = false;
+        for (let c of colors){
+            if (c === color) {
+                contains = true;
+            }
+        }
+        return contains;
     }
 
     private createNewPlayers(newPlayers: NewPlayers): Player[] {
         let players: Player[] = [];
         for (let newPlayer of newPlayers.newPlayers){
             if (newPlayer.isAI) {
-                let aiPlayer = new AIPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal,
-                 this.socket, this.gameId, null, this.enforcer);
+                let aiPlayer = new AIPlayer(this.game, UUID.UUID(), true, newPlayer.color, this.signal, "", this.socket, this.gameId, null, this.enforcer);
                 players.push(aiPlayer);
             }else {
-                let regularPlayer = new RegularPlayer(this.game, newPlayer.playerName, UUID.UUID(), true, newPlayer.color, this.signal, this.socket,
-                 this.gameId, null, this.enforcer);
+                let regularPlayer = new RegularPlayer(this.game, UUID.UUID(), true, newPlayer.color, this.signal, "", this.socket, this.gameId, null, this.enforcer);
                 players.push(regularPlayer);
             }
         }
@@ -268,12 +308,12 @@ export class Game extends Phaser.State {
     private createExistingPlayer(ludoPlayer: LudoPlayer): Player {
         let player: Player = null;
         if (ludoPlayer.isAI) {
-            player = new AIPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
+            player = new AIPlayer(this.game, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
+            this.signal, ludoPlayer.playerName, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
         }else {
-            player = new RegularPlayer(this.game, ludoPlayer.name, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
+            player = new RegularPlayer(this.game, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
+            this.signal, ludoPlayer.playerName, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
         }
         return player;
@@ -290,4 +330,105 @@ export class Game extends Phaser.State {
     private generateGameId(length: number): string {
         return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
     }
+
+    private displayNames(ludogame: LudoGame): void {
+        let players = ludogame.ludoPlayers;
+        for (let player of players) {
+            for (let color of player.colors){
+                switch (color) {
+                    case "RED": {
+                        let playerNameObj = this.displayPlayerName(70, 30, player.playerName);
+                        this.playerNames.setValue("RED", playerNameObj);
+                        break;
+                    }
+                    case "BLUE": {
+                        let playerNameObj = this.displayPlayerName(650, 30, player.playerName);
+                        this.playerNames.setValue("BLUE", playerNameObj);
+                        break;
+                    }
+                    case "YELLOW": {
+                        let playerNameObj = this.displayPlayerName(650, 700, player.playerName);
+                        this.playerNames.setValue("YELLOW", playerNameObj);
+                        break;
+                    }
+                    case "GREEN": {
+                        let playerNameObj = this.displayPlayerName(70, 700, player.playerName);
+                        this.playerNames.setValue("GREEN", playerNameObj);
+                        break;
+                    }
+                    default:
+                    break;
+                }
+            }
+        }
+        this.localGame.setLudoGame(ludogame);
+    }
+
+    private displayPlayerName(x: number, y: number, playerName: string): any {
+
+        let playerNameText = this.game.add.text(x, y, playerName, {});
+        playerNameText.anchor.setTo(0.5);
+		playerNameText.font = "Revalia";
+		playerNameText.fontSize = 20;
+	    let grd = playerNameText.context.createLinearGradient(0, 0, 0, playerNameText.canvas.height);
+		grd.addColorStop(0, "#8ED6FF");
+		grd.addColorStop(1, "#004CB3");
+		playerNameText.fill = grd;
+        playerNameText.align = "center";
+		playerNameText.stroke = "#000000";
+		playerNameText.strokeThickness = 2;
+		playerNameText.setShadow(5, 5, "rgba(0,0,0,0.5)", 5);
+        playerNameText.inputEnabled = true;
+		playerNameText.input.enableDrag();
+        return playerNameText;
+    }
+
+    private setSocketHandlers(): void {
+        this.socket.on("updateJoinedPlayer", (ludogame: any) => {
+            this.displayNames(ludogame);
+        });
+    }
+
+    private waitForPlayers(ludogame: LudoGame): void {
+        /*
+        bootbox.dialog({
+					message: '<div class="row">'+
+                        '<div class="col-sm-6 col-sm-offset-3 form-box">'+
+                            '<div class="form-bottom contact-form">' +
+			                    '<form role="form">' +
+			                    	'<div class="form-group">' +
+			                        	'<textarea id="player0" class="form-control" placeholder="Waiting..."></textarea>' +
+			                        '</div>' +
+			                        '<div class="form-group">' +
+			                        	'<textarea id="player1" class="form-control" placeholder="Waiting..."></textarea>' +
+			                        '</div>' +
+                                    '<div class="form-group">' +
+			                        	'<textarea id="player2" class="form-control" placeholder="Waiting..."></textarea>' +
+			                        '</div>' +
+                                    '<div class="form-group">' +
+			                        	'<textarea id="player3" class="form-control" placeholder="Waiting..."></textarea>' +
+			                        '</div>' +
+			                    '</form>' +
+		                    '</div>' +
+                        '</div>' +
+                    '</div>',
+                    // tslint:disable-next-line:object-literal-sort-keys
+					buttons: {
+						success: {
+                            className: "btn-success",
+							label: "SEND MESSAGE",
+							// tslint:disable-next-line:object-literal-sort-keys
+							callback: () => {
+                                this.waitUntilGameStarts();
+                                bootbox.hideAll();
+							},
+						},
+					},
+                });
+
+                for (let x = 0; x < ludogame.ludoPlayers.length; x++) {
+                    $("#player" + x).val(ludogame.ludoPlayers[x].playerName);
+                }
+                */
+        }
 }

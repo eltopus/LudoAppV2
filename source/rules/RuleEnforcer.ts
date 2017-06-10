@@ -229,12 +229,20 @@ export class RuleEnforcer {
 
     public handleEmptyPossibleMovements(): void {
         let nextPlayer = this.scheduler.getNextPlayer();
-        if (nextPlayer.isAI) {
-            this.dice.setDicePlayerId(nextPlayer.playerId);
-            if (emit.getEmit() === true) {
+        this.emitChangePlayer(nextPlayer);
+    }
+
+    public emitChangePlayer(nextPlayer: Player): void {
+        emit.setEmit(false);
+        this.socket.emit("changePlayer", this.gameId, nextPlayer.playerId, (currentplayerId: string) => {
+            emit.checkPlayerId(currentplayerId);
+            log.debug("After ChangePlayerId: " + emit.getCurrentPlayerId() + " nextPlayerId: " + currentplayerId + " emit: " + emit.getEmit());
+            if (nextPlayer.isAI && emit.getEmit()) {
+                this.dice.setDicePlayerId(nextPlayer.playerId);
                 this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
             }
-        }
+        });
+
     }
 
      public filterConsumeDieValueSixMovement(movement: Move, piece: Piece): Move {
@@ -566,16 +574,11 @@ export class RuleEnforcer {
         });
 
 
-        this.socket.on("emitChangePlayer", (ludoplayers: LudoPlayer[]) => {
+        this.socket.on("emitChangePlayer", (currentPlayerIds: any) => {
             if (emit.getEmit() === false) {
                 this.dice.consumeWithoutEmission();
-                /*
-                for (let ludoplayer of ludoplayers){
-                    this.scheduler.updatePlayers(ludoplayer);
-                    this.rule.updateBoards(ludoplayer.pieces);
-                }
-                */
             }
+            log.debug("EmitChangePlayerId " + currentPlayerIds);
         });
     }
 }

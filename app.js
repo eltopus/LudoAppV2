@@ -54,10 +54,7 @@ var Server = (function () {
         });
         router.post("/setup", function (req, res, next) {
             if (req.session.gameId) {
-                _this.ludo.getExistingGame(req.session.gameId, function (ludogame) {
-                    if (req.session.playerTurn === true) {
-                        ludogame.playerTurn = true;
-                    }
+                _this.ludo.getExistingGame(req, function (ludogame) {
                     res.send(ludogame);
                 });
             }
@@ -67,16 +64,15 @@ var Server = (function () {
             }
         });
         router.post("/join", function (req, res, next) {
-            var gameId = req.body.gameId;
-            if (gameId) {
-                _this.ludo.getExistingGame(gameId, function (ludogame) {
+            if (req.body.gameId) {
+                _this.ludo.getExistingGame(req, function (ludogame) {
                     console.log("Created Game " + ludogame.gameId + " was Found");
                     res.send(ludogame);
                 });
             }
             else {
                 console.log("Game id NOT found.....");
-                res.send({ message: "This is a mess" });
+                res.send({ message: "Error!!! " + req.body.gameId + " cannot be found!" });
             }
         });
         this.app.use("/", router);

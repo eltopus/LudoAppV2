@@ -11,14 +11,14 @@ var Perimeters_1 = require("./Perimeters");
 var log = ConfigLog4j_1.factory.getLogger("model.Player");
 var Player = (function (_super) {
     __extends(Player, _super);
-    function Player(game, name, playerId, turn, colorTypes, signal, socket, gameId, ludoPieces, previousDoubleSix) {
+    function Player(game, playerId, turn, colorTypes, signal, playerName, socket, gameId, ludoPieces, previousDoubleSix) {
         _super.call(this, game);
         this.pieces = [];
         this.previousDoubleSix = false;
         this.isAI = false;
         this.sequenceNumber = 0;
-        this.name = name;
         this.playerId = playerId;
+        this.playerName = playerName;
         this.turn = turn;
         this.pieces = new Array();
         this.signal = signal;
