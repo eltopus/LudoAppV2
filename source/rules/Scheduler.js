@@ -119,6 +119,19 @@ var Scheduler = (function () {
         }
         return playerName;
     };
+    Scheduler.prototype.getIndexTotal = function () {
+        var indexTotal = 0;
+        for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
+            var player = _a[_i];
+            for (var _b = 0, _c = player.pieces; _b < _c.length; _b++) {
+                var piece = _c[_b];
+                if (piece.isActive()) {
+                    indexTotal += piece.index;
+                }
+            }
+        }
+        return indexTotal;
+    };
     Scheduler.prototype.addPerimetersToPool = function (perimeters, playerId) {
         if (perimeters.length > 0) {
             for (var _i = 0, _a = this.players; _i < _a.length; _i++) {

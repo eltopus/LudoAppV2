@@ -19,6 +19,7 @@ import {EmitDie} from "../emit/EmitDie";
 import {EmitPiece} from "../emit/EmitPiece";
 import {Emit} from "../emit/Emit";
 import {LudoPlayer} from "../game/LudoPlayer";
+import {LudoGame} from "../game/LudoGame";
 import * as Paths from "../entities/Paths";
 
 let emit = Emit.getInstance();
@@ -236,12 +237,34 @@ export class RuleEnforcer {
 
     public emitChangePlayer(nextPlayer: Player): void {
         emit.setEmit(false);
-        this.socket.emit("changePlayer", this.gameId, nextPlayer.playerId, (currentplayerId: string) => {
+        this.socket.emit("changePlayer", this.gameId, nextPlayer.playerId, (currentplayerId: string, indexTotal: number) => {
             emit.checkPlayerId(currentplayerId);
-            log.debug("After ChangePlayerId: " + emit.getCurrentPlayerId() + " nextPlayerId: " + currentplayerId + " emit: " + emit.getEmit());
-            if (nextPlayer.isAI && emit.getEmit()) {
-                this.dice.setDicePlayerId(nextPlayer.playerId);
-                this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+            let gameIndexTotal = this.scheduler.getIndexTotal();
+            if (indexTotal !== gameIndexTotal) {
+                if (emit.getEmit() === true) {
+                    Display.show("Synchronizing game with sever " + indexTotal + "<-> " + gameIndexTotal + " gameId: " + this.gameId);
+                    this.socket.emit("updateGame", this.gameId, (ludogame: LudoGame) => {
+                        log.debug(JSON.stringify(ludogame));
+                        if (ludogame.gameId) {
+                            for (let player of ludogame.ludoPlayers){
+                                log.debug("Updating... " + player.playerName);
+                                this.scheduler.updatePlayers(player);
+                            }
+                        }
+                        if (nextPlayer.isAI) {
+                            this.dice.setDicePlayerId(nextPlayer.playerId);
+                            this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+                        }
+                    });
+                }else {
+                    Display.show("Game is out of sync with server " + indexTotal + "<-> " + gameIndexTotal);
+                }
+            }else {
+                // log.debug("After ChangePlayerId: " + emit.getCurrentPlayerId() + " nextPlayerId: " + currentplayerId + " emit: " + emit.getEmit());
+                if (nextPlayer.isAI && emit.getEmit()) {
+                    this.dice.setDicePlayerId(nextPlayer.playerId);
+                    this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
+                }
             }
         });
 
@@ -580,7 +603,6 @@ export class RuleEnforcer {
             if (emit.getEmit() === false) {
                 this.dice.consumeWithoutEmission();
             }
-            log.debug("EmitChangePlayerId " + currentPlayerIds);
         });
 
         this.socket.on("disconnectedPlayerId", (disconnectedPlayerId: string) => {

@@ -127,6 +127,11 @@ class Server {
             console.log("ON Connection Connected client on port %s.", this.port);
             this.ludo.initLudo(this.io, socket);
         });
+
+        this.io.on("reconnect", (sock: any) => {
+            console.log("ON Reconnected client on port %s.", this.port);
+            console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
+        });
     }
 }
 let server = Server.bootstrap();

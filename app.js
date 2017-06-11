@@ -106,6 +106,10 @@ var Server = (function () {
             console.log("ON Connection Connected client on port %s.", _this.port);
             _this.ludo.initLudo(_this.io, socket);
         });
+        this.io.on("reconnect", function (sock) {
+            console.log("ON Reconnected client on port %s.", _this.port);
+            console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
+        });
     };
     Server.PORT = 3000;
     return Server;

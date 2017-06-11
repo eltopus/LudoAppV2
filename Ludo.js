@@ -1,6 +1,7 @@
 "use strict";
 var checksum = require("checksum");
 var LudoCache_1 = require("./LudoCache");
+var States_1 = require("./source/enums/States");
 var cache = LudoCache_1.LudoCache.getInstance();
 var socket;
 var io;
@@ -26,6 +27,7 @@ var Ludo = (function () {
         socket.on("changePlayer", this.changePlayer);
         socket.on("getCheckSum", this.getCheckSum);
         socket.on("disconnect", this.disconnectionHandler);
+        socket.on("updateGame", this.updateGame);
     };
     Ludo.prototype.getExistingGame = function (req, callback) {
         var ludogame = cache.getValue(req.body.gameId);
@@ -340,6 +342,7 @@ var Ludo = (function () {
         var sock = this;
         var currentPlayerId = sock.handshake.session.playerId;
         var ludogame = cache.getValue(gameId);
+        var indexTotal = 0;
         if (ludogame) {
             if (currentPlayerId === ludogame.ludoPlayers[0].playerId && nextPlayerId !== ludogame.ludoPlayers[0].playerId) {
                 var player = ludogame.ludoPlayers.shift();
@@ -347,12 +350,20 @@ var Ludo = (function () {
                 ludogame.ludoDice.dieOne.isConsumed = true;
                 ludogame.ludoDice.dieTwo.isConsumed = true;
                 ludogame.currrentPlayerId = nextPlayerId;
-                console.log("Current Player ID: " + ludogame.currrentPlayerId);
             }
             else {
             }
+            for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
+                var player = _a[_i];
+                for (var _b = 0, _c = player.pieces; _b < _c.length; _b++) {
+                    var piece = _c[_b];
+                    if (piece.state === States_1.States.Active) {
+                        indexTotal += piece.index;
+                    }
+                }
+            }
         }
-        callback(nextPlayerId);
+        callback(nextPlayerId, indexTotal);
     };
     Ludo.prototype.getCheckSum = function (gameId, callback) {
         var check_sum = "";
@@ -364,6 +375,11 @@ var Ludo = (function () {
             }
         }
         callback(check_sum);
+    };
+    Ludo.prototype.updateGame = function (gameId, callback) {
+        var ludogame = cache.getValue(gameId);
+        console.log(" Updating player... " + gameId + " LudoGame: " + ludogame.gameId);
+        callback(ludogame);
     };
     return Ludo;
 }());

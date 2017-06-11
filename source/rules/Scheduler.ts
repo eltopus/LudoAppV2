@@ -140,6 +140,18 @@ export class Scheduler {
         return playerName;
     }
 
+    public getIndexTotal(): number {
+        let indexTotal = 0;
+        for (let player of this.players) {
+            for (let piece of player.pieces){
+                if (piece.isActive()) {
+                    indexTotal += piece.index;
+                }
+            }
+        }
+        return indexTotal;
+    }
+
     public addPerimetersToPool(perimeters: Perimeter[], playerId: string): void {
         if (perimeters.length > 0) {
              for (let player of this.players){

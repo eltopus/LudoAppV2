@@ -6,6 +6,7 @@ import {EmitPiece} from "./source/emit/EmitPiece";
 import {EmitDie} from "./source/emit/EmitDie";
 import {Move} from "./source/rules/Move";
 import {LudoCache} from "./LudoCache";
+import {States} from "./source/enums/States";
 
 let cache = LudoCache.getInstance();
 let socket: SocketIO.Socket;
@@ -31,6 +32,7 @@ export class Ludo {
         socket.on("changePlayer", this.changePlayer);
         socket.on("getCheckSum", this.getCheckSum);
         socket.on("disconnect", this.disconnectionHandler);
+        socket.on("updateGame", this.updateGame);
     }
 
 
@@ -369,6 +371,7 @@ export class Ludo {
         let sock: any = this;
         let currentPlayerId = sock.handshake.session.playerId;
         let ludogame: LudoGame = cache.getValue(gameId);
+        let indexTotal = 0;
         if (ludogame) {
             if (currentPlayerId === ludogame.ludoPlayers[0].playerId && nextPlayerId !== ludogame.ludoPlayers[0].playerId) {
                 let player = ludogame.ludoPlayers.shift();
@@ -376,12 +379,20 @@ export class Ludo {
                 ludogame.ludoDice.dieOne.isConsumed = true;
                 ludogame.ludoDice.dieTwo.isConsumed = true;
                 ludogame.currrentPlayerId = nextPlayerId;
-                console.log("Current Player ID: " + ludogame.currrentPlayerId);
+                // console.log("Current Player ID: " + ludogame.currrentPlayerId);
             }else {
                 // console.log("I am not the current player: " + currentPlayerId + " " + ludogame.currrentPlayerId);
             }
+
+            for (let player of ludogame.ludoPlayers) {
+                for (let piece of player.pieces){
+                    if (piece.state === States.Active) {
+                        indexTotal += piece.index;
+                    }
+                }
+            }
         }
-        callback(nextPlayerId);
+        callback(nextPlayerId, indexTotal);
     }
 
     private getCheckSum(gameId: string, callback: any): void {
@@ -393,6 +404,11 @@ export class Ludo {
             }
         }
         callback(check_sum);
+    }
+
+    private updateGame(gameId: string, callback): void {
+        let ludogame = cache.getValue(gameId);
+        callback(ludogame);
     }
 
 }
