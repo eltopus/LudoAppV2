@@ -67,14 +67,19 @@ export class GameSetup extends Phaser.State {
 			        url: "join",
 			        // tslint:disable-next-line:object-literal-sort-keys
 			        data: {gameId : gameId.toLowerCase(), playerName: playerName},
-			        success: (ludogame) => {
-			        	if (ludogame.gameId) {
-			        		newCreatedPlayers.ludogame = ludogame;
+			        success: (ludogame: any) => {
+                        // Expecting callback({ok: ok, updatedludogame: updatedludogame, message: message});
+			        	if (ludogame.ok) {
+			        		newCreatedPlayers.ludogame = ludogame.updatedludogame;
                             newCreatedPlayers.hasSavedGame = true;
-                            emit.setCurrentPlayerId(ludogame.playerId);
+                            emit.setCurrentPlayerId(ludogame.updatedludogame.playerId);
                             this.startGame();
                         }else {
-                            Display.show("Cannot find game game!!!");
+                            if (ludogame.availablePlayerNames.length > 0) {
+                                Display.show("Message: " + ludogame.availablePlayerNames.join());
+                            }else {
+                                Display.show("Message: " + ludogame.message);
+                            }
                         }
                     },
 			        error: function(){
@@ -151,24 +156,24 @@ export class GameSetup extends Phaser.State {
             this.startGame();
          });
 
-         // this.checkExistingSession();
+         this.checkExistingSession();
 
     }
 
     public checkExistingSession(): void {
         $.ajax({
             type: "POST",
-			url: "setup",
+			url: "refresh",
 			// tslint:disable-next-line:object-literal-sort-keys
 			success: (ludogame) => {
-			    if (ludogame.gameId) {
-			        newCreatedPlayers.ludogame = ludogame;
+                // Expecting callback({ok: ok, // Expecting callback({ok: ok, updatedludogame: updatedludogame, message: message});: updatedludogame, message: message});
+			    if (ludogame.ok) {
+			        newCreatedPlayers.ludogame = ludogame.updatedludogame;
                     newCreatedPlayers.hasSavedGame = true;
-                    emit.checkPlayerId(ludogame.currrentPlayerId);
-                    log.debug("Show emitter: " + emit.getEmit());
+                    emit.setCurrentPlayerId(ludogame.updatedludogame.playerId);
                     this.startGame();
                 }else {
-                    Display.show("Cannot find game game!!!");
+                    Display.show(ludogame.message);
                 }
             },
 			error: function(){

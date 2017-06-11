@@ -8,6 +8,7 @@ import {Dice} from "./Dice";
 import {Perimeters} from "./Perimeters";
 import {Perimeter} from "./Perimeters";
 import {LudoPiece} from "../game/LudoPiece";
+import {LudoPlayer} from "../game/LudoPlayer";
 
 const log = factory.getLogger("model.Player");
 
@@ -417,6 +418,14 @@ export abstract class Player extends PieceFactory {
     public updateLudoPieces(ludopieces: LudoPiece[]): void {
        for (let piece of this.pieces) {
             piece.updateLudoPieces(ludopieces);
+        }
+    }
+
+    public updatePlayerName(ludoplayers: LudoPlayer[]): void {
+        for (let ludoplayer of ludoplayers){
+            if (ludoplayer.playerId === this.playerId) {
+                this.playerName = ludoplayer.playerName;
+            }
         }
     }
 

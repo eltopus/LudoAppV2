@@ -30,36 +30,128 @@ export class Ludo {
         socket.on("setStateChange", this.setStateChange);
         socket.on("changePlayer", this.changePlayer);
         socket.on("getCheckSum", this.getCheckSum);
-        socket.on("disconnect", () => {
-                console.log("Client disconnected");
-        });
+        socket.on("disconnect", this.disconnectionHandler);
     }
 
 
     public getExistingGame(req: any, callback: any): void {
         let ludogame = cache.getValue(req.body.gameId);
-        let playerName = req.body.playerName;
-        this.assignPlayer(ludogame, playerName, (game: any) => {
-            console.log("Current player: is " + game.currrentPlayerId);
-            callback(game);
+        let ok = false;
+        // callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames});
+        this.assignPlayer(ludogame, req, (updatedludogame: any) => {
+            if (updatedludogame.foundGame === true) {
+                let playerMode = 0;
+                for (let ludoplayer of updatedludogame.ludogame.ludoPlayers) {
+                    if (ludoplayer.isEmpty) {
+                        ++playerMode;
+                    }
+                }
+                if (playerMode === 0) {
+                    updatedludogame.ludogame.inProgress = true;
+                    console.log("Ludo game is in progress....");
+                }
+                ok = true;
+            }
+            callback({ok: ok, updatedludogame: updatedludogame.ludogame, message: updatedludogame.message, availablePlayerNames: updatedludogame.availablePlayerNames});
         });
     }
 
-    private assignPlayer(ludogame: LudoGame, playerName: string, callback: any): void {
+    public getRefreshGame(req: any, callback: any): void {
+        let ludogame = cache.getValue(req.session.gameId);
+        let ok = false;
+        let message = "";
+        this.assignRefreshPlayer(ludogame, req, (updatedludogame: LudoGame) => {
+            if (updatedludogame) {
+                ok = true;
+            }else {
+                message = `Error! ${req.session.gameId} cannot be found!`;
+            }
+            callback({ok: ok, updatedludogame: updatedludogame, message: message});
+        });
+    }
+
+    private assignRefreshPlayer(ludogame: LudoGame, req: any, callback: any): void {
         if (ludogame === null || typeof ludogame === "undefined") {
             // do nothing
         }else {
-            for (let availPlayer of ludogame.ludoPlayers){
-                if (availPlayer.isEmpty) {
-                    availPlayer.playerName = playerName;
-                    ludogame.playerId = availPlayer.playerId;
-                    ludogame.availableColors = this.getAvailableColors(availPlayer.colors, ludogame);
-                    availPlayer.isEmpty = false;
+            ludogame.playerId = req.session.playerId;
+        }
+        callback(ludogame);
+    }
+
+    private disconnectionHandler(): void {
+        let sock: any = this;
+        let ludogame = cache.getValue(sock.gameId);
+        if (ludogame) {
+            for (let disconnectedPlayer of ludogame.ludoPlayers){
+                if (disconnectedPlayer.playerId === sock.playerId) {
+                    disconnectedPlayer.isEmpty = true;
                     break;
                 }
             }
         }
-        callback(ludogame);
+        console.log("Playername: " + sock.playerName + " has diconnected");
+        io.in(sock.gameId).emit("disconnectedPlayerId", sock.playerId);
+    }
+
+    private unassignPlayer(ludogame: LudoGame, playerId: string, callback: any): void {
+        if (ludogame === null || typeof ludogame === "undefined") {
+            // do nothing
+        }else {
+            for (let disconnectedPlayer of ludogame.ludoPlayers){
+                if (disconnectedPlayer.playerId === playerId) {
+                    disconnectedPlayer.isEmpty = true;
+                    break;
+                }
+            }
+        }
+        callback(playerId);
+    }
+
+    private assignPlayer(ludogame: LudoGame, req: any, callback: any): void {
+        let foundGame = false;
+        let availablePlayerNames: string[] = [];
+        let message = `Cannot join ${req.body.gameId} because it is CANNOT be found!`;
+        if (ludogame === null || typeof ludogame === "undefined") {
+            //
+        }else {
+            let playerName = req.body.playerName;
+            if (ludogame.inProgress) {
+                for (let availPlayer of ludogame.ludoPlayers){
+                    if (availPlayer.isEmpty === true) {
+                        if (playerName === availPlayer.playerName) {
+                            ludogame.playerId = availPlayer.playerId;
+                            availPlayer.isEmpty = false;
+                            req.session.playerName = playerName;
+                            req.session.gameId = ludogame.gameId;
+                            req.session.playerId = availPlayer.playerId;
+                            foundGame = true;
+                            break;
+                        }
+                        availablePlayerNames.push(availPlayer.playerName);
+                    }
+                }
+                if (availablePlayerNames.length === 0) {
+                    message = `Cannot join ${req.body.gameId} because it is full`;
+                }
+
+             }else {
+                for (let availPlayer of ludogame.ludoPlayers){
+                    if (availPlayer.isEmpty) {
+                        availPlayer.playerName = playerName;
+                        ludogame.playerId = availPlayer.playerId;
+                        ludogame.availableColors = this.getAvailableColors(availPlayer.colors, ludogame);
+                        availPlayer.isEmpty = false;
+                        req.session.playerName = playerName;
+                        req.session.gameId = ludogame.gameId;
+                        req.session.playerId = availPlayer.playerId;
+                        foundGame = true;
+                        break;
+                    }
+                }
+            }
+        }
+        callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames, message: message});
     }
 
     private getAvailableColors(chosenColors: string[], ludogame: LudoGame): string[] {
@@ -86,37 +178,38 @@ export class Ludo {
         let sock: any = this;
         sock.handshake.session.gameId = ludogame.gameId;
         sock.handshake.session.playerId = ludogame.ludoPlayers[0].playerId;
+        sock.handshake.session.playerName = ludogame.ludoPlayers[0].playerName;
+
         sock.playerName = ludogame.ludoPlayers[0].playerName;
         sock.gameId = ludogame.gameId;
+        sock.playerId = ludogame.ludoPlayers[0].playerId;
         sock.handshake.session.save();
         let colors = ludogame.availableColors;
         let sessionId = sock.handshake.session.id;
         let message = `${ludogame.gameId} was successfuly created with sessionId ${sessionId} and available colors are ${colors}`;
+        ludogame.ludoPlayers[0].isEmpty = false;
         cache.setValue(ludogame.gameId, ludogame);
         sock.join(ludogame.gameId);
         callback({ok: true, message: message, emit: true});
     }
 
-    private joinExistingGame(gameId: string, playerId: string, playerName: string, callback: any): void {
+    private joinExistingGame(callback: any): void {
         let sock: any = this;
-        let ludogame = cache.getValue(gameId);
-        sock.handshake.session.gameId = gameId;
-        sock.handshake.session.playerId = playerId;
-        sock.gameId = gameId;
-        sock.playerName = playerName;
+        console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
+        let ludogame = cache.getValue(sock.handshake.session.gameId);
         let message = "";
         let ok = false;
         let sessionId = sock.handshake.session.id;
         if (ludogame) {
-            sock.handshake.session.gameId = ludogame.gameId;
-            sock.handshake.session.save();
+            sock.gameId = sock.handshake.session.gameId;
+            sock.playerName = sock.handshake.session.playerName;
+            sock.playerId = sock.handshake.session.playerId;
             ok = true;
             message = `${ludogame.gameId} was successfuly created. currentGameId: ${ludogame.currrentPlayerId}`;
-            sock.join(gameId);
-            sock.to(gameId).emit("updateJoinedPlayer", ludogame);
+            sock.join(sock.handshake.session.gameId);
+            sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
         }else {
-            message = gameId + " does not exist!!!.";
-            console.log(message + " " + sock.id);
+            message = sock.handshake.session.gameId + " does not exist!!!.";
         }
         callback({ok: ok, message: message, emit: false, currrentPlayerId: ludogame.currrentPlayerId});
 

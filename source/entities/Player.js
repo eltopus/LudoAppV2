@@ -410,6 +410,14 @@ var Player = (function (_super) {
             piece.updateLudoPieces(ludopieces);
         }
     };
+    Player.prototype.updatePlayerName = function (ludoplayers) {
+        for (var _i = 0, ludoplayers_1 = ludoplayers; _i < ludoplayers_1.length; _i++) {
+            var ludoplayer = ludoplayers_1[_i];
+            if (ludoplayer.playerId === this.playerId) {
+                this.playerName = ludoplayer.playerName;
+            }
+        }
+    };
     return Player;
 }(PieceFactory_1.PieceFactory));
 exports.Player = Player;

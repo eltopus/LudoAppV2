@@ -52,27 +52,24 @@ var Server = (function () {
         router.get("/", function (req, res, next) {
             res.sendFile(path.join(__dirname + "/views/index.html"));
         });
-        router.post("/setup", function (req, res, next) {
+        router.post("/refresh", function (req, res, next) {
             if (req.session.gameId) {
-                _this.ludo.getExistingGame(req, function (ludogame) {
+                _this.ludo.getRefreshGame(req, function (ludogame) {
                     res.send(ludogame);
                 });
             }
             else {
-                console.log("Game id NOT found.....");
-                res.send({ message: "This is a mess" });
+                res.send({ message: "This condition for gameId " + req.session.gameId + " should never be needed!" });
             }
         });
         router.post("/join", function (req, res, next) {
             if (req.body.gameId) {
                 _this.ludo.getExistingGame(req, function (ludogame) {
-                    console.log("Created Game " + ludogame.gameId + " was Found");
                     res.send(ludogame);
                 });
             }
             else {
-                console.log("Game id NOT found.....");
-                res.send({ message: "Error!!! " + req.body.gameId + " cannot be found!" });
+                res.send({ message: "This condition for gameId " + req.body.gameId + " should never be needed!" });
             }
         });
         this.app.use("/", router);

@@ -54,10 +54,12 @@ export class Game extends Phaser.State {
         this.newPlayers = newPlayers;
         if (this.newPlayers.hasSavedGame) {
             this.gameId = newPlayers.ludogame.gameId;
+            this.playerMode = newPlayers.ludogame.playerMode;
         }else {
             this.isCreator = newPlayers.isCreator;
             this.gameId = this.generateGameId(5);
             this.currentPlayerName = this.newPlayers.playerName;
+            this.playerMode = newPlayers.playerMode;
         }
     }
 
@@ -236,10 +238,10 @@ export class Game extends Phaser.State {
         let ludogame = new LudoGame(this.players, this.dice, this.gameId);
         // first player is always the creator's player
         ludogame.ludoPlayers[0].playerName = this.currentPlayerName;
-        ludogame.ludoPlayers[0].isEmpty = false;
         ludogame.availableColors = this.getAvailableColors(ludogame.ludoPlayers[0].colors, ludogame);
         emit.setCurrentPlayerId(ludogame.ludoPlayers[0].playerId);
         ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
+        ludogame.playerMode = this.getPlayerMode();
         this.displayGameId(ludogame.gameId);
         if (emit.getEnableSocket()) {
             this.socket.emit("createGame", ludogame, (data: any) => {
@@ -256,9 +258,10 @@ export class Game extends Phaser.State {
     }
 
     private joinExistingGame(): void {
+        this.currentPlayerName = this.scheduler.getPlayerName(emit.getCurrentPlayerId());
         if (emit.getEnableSocket()) {
             log.debug(" playerId before : " + emit.getCurrentPlayerId());
-            this.socket.emit("joinExistingGame", this.gameId, emit.getCurrentPlayerId(), this.currentPlayerName, (data: any) => {
+            this.socket.emit("joinExistingGame", (data: any) => {
                 if (data.ok) {
                     Display.show(data.message);
                     emit.checkPlayerId(data.currrentPlayerId);
@@ -332,8 +335,7 @@ export class Game extends Phaser.State {
     }
 
     private displayNames(ludogame: LudoGame): void {
-        let players = ludogame.ludoPlayers;
-        for (let player of players) {
+        for (let player of ludogame.ludoPlayers) {
             for (let color of player.colors){
                 switch (color) {
                     case "RED": {
@@ -362,6 +364,13 @@ export class Game extends Phaser.State {
             }
         }
         this.localGame.setLudoGame(ludogame);
+        this.updatePlayername(ludogame.ludoPlayers);
+    }
+
+    private updatePlayername(ludoplayers: LudoPlayer[]): void {
+        for (let player of this.players) {
+            player.updatePlayerName(ludoplayers);
+        }
     }
 
     private displayPlayerName(x: number, y: number, playerName: string): any {
@@ -384,9 +393,20 @@ export class Game extends Phaser.State {
     }
 
     private setSocketHandlers(): void {
-        this.socket.on("updateJoinedPlayer", (ludogame: any) => {
+        this.socket.on("updateJoinedPlayer", (ludogame: any, playerName: string) => {
+            Display.show(`${playerName} has joined game`);
             this.displayNames(ludogame);
         });
+    }
+
+    private getPlayerMode(): number {
+        let mode = 0;
+        if (this.playerMode === PlayerMode.AiFourPlayer || this.playerMode === PlayerMode.AiFourPlayerAiVsAi || this.playerMode === PlayerMode.RegularFourPlayer) {
+            mode = 4;
+        }else if (this.playerMode === PlayerMode.AiTwoPlayer || this.playerMode === PlayerMode.AiTwoPlayerAiVsAi || this.playerMode === PlayerMode.RegularTwoPlayer) {
+            mode = 2;
+        }
+        return mode;
     }
 
     private waitForPlayers(ludogame: LudoGame): void {

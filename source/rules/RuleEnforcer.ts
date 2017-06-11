@@ -22,6 +22,7 @@ import {LudoPlayer} from "../game/LudoPlayer";
 import * as Paths from "../entities/Paths";
 
 let emit = Emit.getInstance();
+let Display = Example;
 const log = factory.getLogger("model.RuleEnforcer");
 
 export class RuleEnforcer {
@@ -95,14 +96,14 @@ export class RuleEnforcer {
      */
     public generatePieceMovement(dieIds: string[], piece: Piece): Move {
         let pieceMovement = this.rule.generatePieceMovement(dieIds, piece);
-        if (emit.getEmit() && emit.getEnableSocket()) {
-            this.emitAIPieceMovement(pieceMovement);
-        }
         let canPlay = false;
         let possibleMovements = this.currentPossibleMovements.getPieceMoves(piece.state);
         let currentPlayer = this.scheduler.getCurrentPlayer();
         for (let movement of possibleMovements) {
             if (movement.compare(pieceMovement)) {
+                if (emit.getEmit() && emit.getEnableSocket()) {
+                    this.emitAIPieceMovement(pieceMovement);
+                }
                 canPlay = true;
                 movement = this.filterConsumeDieValueSixMovement(movement, piece);
                 let diceValue = this.addDiceValues(this.dice.getDieValueArrayByUniqueId(movement.diceId));
@@ -146,6 +147,7 @@ export class RuleEnforcer {
             });
         }else {
             log.debug("Move not found!!!: " + this.rule.decodeMove(pieceMovement));
+            Display.show("Illegal Move!!! Please try again");
         }
         return pieceMovement;
     }
@@ -580,5 +582,18 @@ export class RuleEnforcer {
             }
             log.debug("EmitChangePlayerId " + currentPlayerIds);
         });
+
+        this.socket.on("disconnectedPlayerId", (disconnectedPlayerId: string) => {
+            log.debug("EmitChangePlayerId " + disconnectedPlayerId);
+            let playerName = this.scheduler.getPlayerName(disconnectedPlayerId);
+            Display.show(`PlayerName ${playerName} + " has disconnected...`);
+        });
+
+        this.socket.on("connectedPlayerId", (disconnectedPlayerId: string) => {
+            log.debug("EmitChangePlayerId " + disconnectedPlayerId);
+            let playerName = this.scheduler.getPlayerName(disconnectedPlayerId);
+            Display.show(`PlayerName ${playerName} + " has disconnected...`);
+        });
+
     }
 }

@@ -8,6 +8,8 @@ var LudoGame = (function () {
         this.availableColors = ["RED", "BLUE", "YELLOW", "GREEN"];
         this.currrentPlayerId = "";
         this.playerId = "";
+        this.inProgress = false;
+        this.playerMode = null;
         for (var _i = 0, players_1 = players; _i < players_1.length; _i++) {
             var player = players_1[_i];
             var ludoPlayer = new LudoPlayer_1.LudoPlayer(player);

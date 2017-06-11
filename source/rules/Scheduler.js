@@ -108,6 +108,17 @@ var Scheduler = (function () {
             }
         }
     };
+    Scheduler.prototype.getPlayerName = function (playerId) {
+        var playerName = "";
+        for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
+            var player = _a[_i];
+            if (player.playerId === playerId) {
+                playerName = player.playerName;
+                break;
+            }
+        }
+        return playerName;
+    };
     Scheduler.prototype.addPerimetersToPool = function (perimeters, playerId) {
         if (perimeters.length > 0) {
             for (var _i = 0, _a = this.players; _i < _a.length; _i++) {

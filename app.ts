@@ -68,26 +68,23 @@ class Server {
             res.sendFile(path.join(__dirname + "/views/index.html"));
         });
 
-        router.post("/setup", (req: any, res, next) => {
+        router.post("/refresh", (req: any, res, next) => {
             if (req.session.gameId) {
-                this.ludo.getExistingGame(req, (ludogame: any) => {
+                this.ludo.getRefreshGame(req, (ludogame: any) => {
                     res.send(ludogame);
                 });
             }else {
-                console.log("Game id NOT found.....");
-                res.send({message: "This is a mess"});
+                res.send({message: `This condition for gameId ${req.session.gameId} should never be needed!`});
             }
         });
 
         router.post("/join", (req, res, next) => {
             if (req.body.gameId) {
                 this.ludo.getExistingGame(req, (ludogame: any) => {
-                    console.log("Created Game " + ludogame.gameId + " was Found");
                     res.send(ludogame);
                 });
             }else {
-                console.log("Game id NOT found.....");
-                res.send({message: `Error!!! ${req.body.gameId} cannot be found!`});
+                res.send({message: `This condition for gameId ${req.body.gameId} should never be needed!`});
             }
         });
 

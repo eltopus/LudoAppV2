@@ -16,6 +16,8 @@ export class LudoGame {
     public availableColors = ["RED", "BLUE", "YELLOW", "GREEN"];
     public currrentPlayerId = "";
     public playerId = "";
+    public inProgress = false;
+    public playerMode: number = null;
 
     constructor(players: Player[], dice: Dice, gameId: string) {
         for (let player of players){

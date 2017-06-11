@@ -129,6 +129,17 @@ export class Scheduler {
         }
     }
 
+    public getPlayerName(playerId: string): string {
+        let playerName = "";
+        for (let player of this.players){
+            if (player.playerId === playerId) {
+                playerName = player.playerName;
+                break;
+            }
+        }
+        return playerName;
+    }
+
     public addPerimetersToPool(perimeters: Perimeter[], playerId: string): void {
         if (perimeters.length > 0) {
              for (let player of this.players){
