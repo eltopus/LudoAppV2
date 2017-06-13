@@ -144,7 +144,7 @@ export class Scheduler {
         let indexTotal = 0;
         for (let player of this.players) {
             for (let piece of player.pieces){
-                if (piece.isActive()) {
+                if (piece.isActive() || piece.isAtHome() || piece.isOnWayOut()) {
                     indexTotal += piece.index;
                 }
             }

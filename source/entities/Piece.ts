@@ -115,6 +115,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         if (this.collidingPiece !== null) {
             let piece = emit.getPieceByUniqueId(this.collidingPiece);
             if (piece) {
+                this.game.camera.shake(0.01, 100, true, Phaser.Camera.SHAKE_BOTH, true);
                 piece.moveToHome();
             }
             this.collidingPiece = null;

@@ -67,7 +67,7 @@ export class AIPlayer extends Player {
             let piece = this.ruleEnforcer.scheduler.getPieceByUniqueId(movement.pieceId);
             bestMove = this.findPeckMove(movement, piece, bestMove);
             if (bestMove !== null) {
-                log.debug("USING PECK MOVE!!!!!!!!!!!!!!!!");
+                // log.debug("USING PECK MOVE!!!!!!!!!!!!!!!!");
                 break;
             }
         }

@@ -21,7 +21,7 @@ import {Emit} from "../emit/Emit";
 import {LudoPlayer} from "../game/LudoPlayer";
 import {LudoGame} from "../game/LudoGame";
 import * as Paths from "../entities/Paths";
-
+declare var Example: any;
 let emit = Emit.getInstance();
 let Display = Example;
 const log = factory.getLogger("model.RuleEnforcer");
@@ -83,7 +83,7 @@ export class RuleEnforcer {
                                 this.signal.dispatch("aiPlayerMovement", currentPlayer.playerId, this.currentPossibleMovements);
                             }
                         }
-                        // this.rule.checkBoardConsistencies();
+                        this.rule.checkBoardConsistencies();
                     }
                 });
             }
@@ -121,11 +121,14 @@ export class RuleEnforcer {
                                 backToHomePiece.setAtHome();
                                 if (emit.getEmit() === true && emit.getEnableSocket()) {
                                     this.emitPiece.setParameters(backToHomePiece);
+                                    this.emitPiece.index = -1;
                                     this.signal.dispatch("setBackToHomeLocal", this.emitPiece);
                                     this.socket.emit("setBackToHome", this.emitPiece);
                                 }
                                 piece.collidingPiece = backToHomePiece.uniqueId;
-                                // piece.setExited();
+                                if (emit.getPeckAndStay() === false) {
+                                    piece.setExited();
+                                }
                             }
                         }
                     }
@@ -178,11 +181,14 @@ export class RuleEnforcer {
                         backToHomePiece.setAtHome();
                         if (emit.getEmit() === true && emit.getEnableSocket()) {
                             this.emitPiece.setParameters(backToHomePiece);
+                            this.emitPiece.index = -1;
                             this.signal.dispatch("setBackToHomeLocal", this.emitPiece);
                             this.socket.emit("setBackToHome", this.emitPiece);
                         }
                         piece.collidingPiece = backToHomePiece.uniqueId;
-                        // piece.setExited();
+                        if (emit.getPeckAndStay() === false) {
+                            piece.setExited();
+                        }
                     }
                 }
             }
@@ -237,27 +243,29 @@ export class RuleEnforcer {
 
     public emitChangePlayer(nextPlayer: Player): void {
         emit.setEmit(false);
-        this.socket.emit("changePlayer", this.gameId, nextPlayer.playerId, (currentplayerId: string, indexTotal: number) => {
+        this.socket.emit("changePlayer", this.gameId, nextPlayer.playerId, (currentplayerId: string, serverIndexTotal: number) => {
             emit.checkPlayerId(currentplayerId);
-            let gameIndexTotal = this.scheduler.getIndexTotal();
-            if (indexTotal !== gameIndexTotal) {
-                if (emit.getEmit() === true) {
-                    Display.show("Synchronizing game with sever " + indexTotal + "<-> " + gameIndexTotal + " gameId: " + this.gameId);
+            let clientIndexTotal = this.scheduler.getIndexTotal();
+            if (clientIndexTotal !== serverIndexTotal) {
+                if (emit.getEmit() === true || emit.isAdmin()) {
+                    Display.show(`Synchronizing with server... ${clientIndexTotal} not equal ${serverIndexTotal}`);
+                    log.debug(`Synchronizing with server... ${clientIndexTotal} not equal ${serverIndexTotal}`);
                     this.socket.emit("updateGame", this.gameId, (ludogame: LudoGame) => {
-                        log.debug(JSON.stringify(ludogame));
+                        // log.debug(JSON.stringify(ludogame));
                         if (ludogame.gameId) {
-                            for (let player of ludogame.ludoPlayers){
-                                log.debug("Updating... " + player.playerName);
+                            for (let player of ludogame.ludoPlayers) {
                                 this.scheduler.updatePlayers(player);
+                                this.rule.updateBoards(player.pieces);
                             }
                         }
-                        if (nextPlayer.isAI) {
+                        if (nextPlayer.isAI && emit.isAdmin() === false) {
                             this.dice.setDicePlayerId(nextPlayer.playerId);
                             this.signal.dispatch("aiRollDice", this.dice, nextPlayer.playerId);
                         }
                     });
                 }else {
-                    Display.show("Game is out of sync with server " + indexTotal + "<-> " + gameIndexTotal);
+                    Display.show(`Game out of synch.. ${clientIndexTotal} not equal ${serverIndexTotal}`);
+                    log.debug(`Game out of synch.. ${clientIndexTotal} not equal ${serverIndexTotal}`);
                 }
             }else {
                 // log.debug("After ChangePlayerId: " + emit.getCurrentPlayerId() + " nextPlayerId: " + currentplayerId + " emit: " + emit.getEmit());

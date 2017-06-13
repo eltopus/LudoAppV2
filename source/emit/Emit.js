@@ -6,7 +6,48 @@ var Emit = (function () {
     function Emit() {
         this.emit = false;
         this.enableSocket = true;
+        this.peckAndStay = true;
         this.emitDice = new EmitDie_1.EmitDie();
+        this.opts = {
+            lines: 13 // The number of lines to draw
+            ,
+            length: 28 // The length of each line
+            ,
+            width: 14 // The line thickness
+            ,
+            radius: 42 // The radius of the inner circle
+            ,
+            scale: 1 // Scales overall size of the spinner
+            ,
+            corners: 1 // Corner roundness (0..1)
+            ,
+            color: "#000" // #rgb or #rrggbb or array of colors
+            ,
+            opacity: 0.25 // Opacity of the lines
+            ,
+            rotate: 0 // The rotation offset
+            ,
+            direction: 1 // 1: clockwise, -1: counterclockwise
+            ,
+            speed: 1 // Rounds per second
+            ,
+            trail: 60 // Afterglow percentage
+            ,
+            fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+            ,
+            zIndex: 2e9 // The z-index (defaults to 2000000000)
+            ,
+            className: "spinner" // The CSS class to assign to the spinner
+            ,
+            top: "50%" // Top position relative to parent
+            ,
+            left: "39%" // Left position relative to parent
+            ,
+            shadow: false // Whether to render a shadow
+            ,
+            hwaccel: false
+        };
+        this.spinner = new Spinner(this.opts).spin();
         if (Emit.emitInstance) {
             throw new Error("Error: Instantiation failed: Use SingletonDemo.getInstance() instead of new.");
         }
@@ -14,6 +55,13 @@ var Emit = (function () {
     }
     Emit.getInstance = function () {
         return Emit.emitInstance;
+    };
+    Emit.prototype.startSpinner = function () {
+        var target = document.getElementById("spin");
+        this.spinner.spin(target);
+    };
+    Emit.prototype.stopSpinner = function () {
+        this.spinner.stop();
     };
     Emit.prototype.setGameIdText = function (gameIdText) {
         this.gameIdText = gameIdText;
@@ -41,6 +89,12 @@ var Emit = (function () {
     };
     Emit.prototype.setEmit = function (emit) {
         this.emit = emit;
+    };
+    Emit.prototype.getPeckAndStay = function () {
+        return this.peckAndStay;
+    };
+    Emit.prototype.setPeckAndStay = function (peckAndStay) {
+        this.peckAndStay = peckAndStay;
     };
     Emit.prototype.getEmit = function () {
         return this.emit;

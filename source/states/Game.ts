@@ -30,6 +30,7 @@ import {LocalGame} from "../game/LocalGame";
 import {Dictionary} from "typescript-collections";
 import * as $ from "jquery";
 import * as cio from "socket.io-client";
+declare var Example: any;
 
 const log = factory.getLogger("model.Game");
 
@@ -158,13 +159,15 @@ export class Game extends Phaser.State {
             this.createGame();
         }
 
-
     }
 
     public rollDice(): void {
+        emit.stopSpinner();
         this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
         this.enforcer.scheduler.getCurrentPlayer().roll(this.dice);
         // log.debug(" Emiiter show me: " + emit.getEmit());
+        // this.game.camera.flash(0xff0000, 1000);
+
     }
 
     public playDice(): void {

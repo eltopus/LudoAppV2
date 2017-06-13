@@ -69,10 +69,13 @@ export class GameSetup extends Phaser.State {
 			        data: {gameId : gameId.toLowerCase(), playerName: playerName},
 			        success: (ludogame: any) => {
                         // Expecting callback({ok: ok, updatedludogame: updatedludogame, message: message});
-			        	if (ludogame.ok) {
+			        	if (ludogame.ok === true || ludogame.admin === true) {
 			        		newCreatedPlayers.ludogame = ludogame.updatedludogame;
                             newCreatedPlayers.hasSavedGame = true;
                             emit.setCurrentPlayerId(ludogame.updatedludogame.playerId);
+                            if (ludogame.admin === true) {
+                                Display.show("Message: " + ludogame.message);
+                            }
                             this.startGame();
                         }else {
                             if (ludogame.availablePlayerNames.length > 0) {

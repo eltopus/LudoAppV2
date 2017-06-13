@@ -4,11 +4,13 @@ import {EmitDie} from "../emit/EmitDie";
 import {factory} from "../logging/ConfigLog4j";
 
 const log = factory.getLogger("model.Emit");
+declare var Spinner: any;
 export class Emit {
 
     private static emitInstance: Emit = new Emit();
     private emit = false;
     private enableSocket = true;
+    private peckAndStay =  true;
     private scheduler: Scheduler;
     private sessionId: string;
     private currentPlayerId: string;
@@ -16,9 +18,40 @@ export class Emit {
     private signal: Phaser.Signal;
     private emitDice: EmitDie = new EmitDie();
     private gameIdText: any;
+    private opts = {
+        lines: 13 // The number of lines to draw
+        , length: 28 // The length of each line
+        , width: 14 // The line thickness
+        , radius: 42 // The radius of the inner circle
+        , scale: 1 // Scales overall size of the spinner
+        , corners: 1 // Corner roundness (0..1)
+        , color: "#000" // #rgb or #rrggbb or array of colors
+        , opacity: 0.25 // Opacity of the lines
+        , rotate: 0 // The rotation offset
+        , direction: 1 // 1: clockwise, -1: counterclockwise
+        , speed: 1 // Rounds per second
+        , trail: 60 // Afterglow percentage
+        , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+        , zIndex: 2e9 // The z-index (defaults to 2000000000)
+        , className: "spinner" // The CSS class to assign to the spinner
+        , top: "50%" // Top position relative to parent
+        , left: "39%" // Left position relative to parent
+        , shadow: false // Whether to render a shadow
+        , hwaccel: false, // Whether to use hardware acceleration
+    };
+    private spinner = new Spinner(this.opts).spin();
 
     public static getInstance(): Emit {
         return Emit.emitInstance;
+    }
+
+    public startSpinner(): void {
+        let target = document.getElementById("spin");
+        this.spinner.spin(target);
+    }
+
+    public stopSpinner(): void {
+        this.spinner.stop();
     }
 
     public setGameIdText(gameIdText: any): void {
@@ -54,6 +87,14 @@ export class Emit {
 
     public setEmit(emit: boolean): void {
         this.emit = emit;
+    }
+
+    public getPeckAndStay(): boolean {
+        return this.peckAndStay;
+    }
+
+    public setPeckAndStay(peckAndStay: boolean): void {
+        this.peckAndStay = peckAndStay;
     }
 
     public getEmit(): boolean {
@@ -96,6 +137,10 @@ export class Emit {
             this.gameIdText.fill = "#F70C0C";
             log.debug("Setting emit to " + this.emit);
         }
+    }
+
+    public isAdmin(): boolean {
+        return this.currentPlayerId === "SOMETHING COMPLETELY RANDOM";
     }
 
     constructor() {

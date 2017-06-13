@@ -18,7 +18,7 @@ export class LudoGame {
     public playerId = "";
     public inProgress = false;
     public playerMode: number = null;
-    public indexTotal = -1;
+    public indexTotal = 0;
 
     constructor(players: Player[], dice: Dice, gameId: string) {
         for (let player of players){

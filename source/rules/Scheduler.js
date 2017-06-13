@@ -125,7 +125,7 @@ var Scheduler = (function () {
             var player = _a[_i];
             for (var _b = 0, _c = player.pieces; _b < _c.length; _b++) {
                 var piece = _c[_b];
-                if (piece.isActive()) {
+                if (piece.isActive() || piece.isAtHome() || piece.isOnWayOut()) {
                     indexTotal += piece.index;
                 }
             }

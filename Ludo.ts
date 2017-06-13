@@ -41,7 +41,7 @@ export class Ludo {
         let ok = false;
         // callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames});
         this.assignPlayer(ludogame, req, (updatedludogame: any) => {
-            if (updatedludogame.foundGame === true) {
+            if (updatedludogame.foundGame === true && updatedludogame.admin === false) {
                 let playerMode = 0;
                 for (let ludoplayer of updatedludogame.ludogame.ludoPlayers) {
                     if (ludoplayer.isEmpty) {
@@ -54,7 +54,8 @@ export class Ludo {
                 }
                 ok = true;
             }
-            callback({ok: ok, updatedludogame: updatedludogame.ludogame, message: updatedludogame.message, availablePlayerNames: updatedludogame.availablePlayerNames});
+            // tslint:disable-next-line:max-line-length
+            callback({ok: ok, updatedludogame: updatedludogame.ludogame, message: updatedludogame.message, availablePlayerNames: updatedludogame.availablePlayerNames, admin: updatedludogame.admin});
         });
     }
 
@@ -73,52 +74,41 @@ export class Ludo {
     }
 
     private assignRefreshPlayer(ludogame: LudoGame, req: any, callback: any): void {
-        if (ludogame === null || typeof ludogame === "undefined") {
-            // do nothing
+        if (ludogame === null || typeof ludogame === "undefined" || req.session.playerName === "ADMIN") {
+            if (ludogame) {
+                ludogame.playerId = "SOMETHING COMPLETELY RANDOM";
+            }
         }else {
             ludogame.playerId = req.session.playerId;
+             for (let availPlayer of ludogame.ludoPlayers){
+                    if (availPlayer.playerId === req.session.playerId) {
+                        availPlayer.isEmpty = false;
+                        break;
+                    }
+                }
         }
         callback(ludogame);
     }
 
-    private disconnectionHandler(): void {
-        let sock: any = this;
-        let ludogame = cache.getValue(sock.gameId);
-        if (ludogame) {
-            for (let disconnectedPlayer of ludogame.ludoPlayers){
-                if (disconnectedPlayer.playerId === sock.playerId) {
-                    disconnectedPlayer.isEmpty = true;
-                    break;
-                }
-            }
-        }
-        console.log("Playername: " + sock.playerName + " has diconnected");
-        io.in(sock.gameId).emit("disconnectedPlayerId", sock.playerId);
-    }
-
-    private unassignPlayer(ludogame: LudoGame, playerId: string, callback: any): void {
-        if (ludogame === null || typeof ludogame === "undefined") {
-            // do nothing
-        }else {
-            for (let disconnectedPlayer of ludogame.ludoPlayers){
-                if (disconnectedPlayer.playerId === playerId) {
-                    disconnectedPlayer.isEmpty = true;
-                    break;
-                }
-            }
-        }
-        callback(playerId);
-    }
-
     private assignPlayer(ludogame: LudoGame, req: any, callback: any): void {
         let foundGame = false;
+        let admin = false;
         let availablePlayerNames: string[] = [];
         let message = `Cannot join ${req.body.gameId} because it is CANNOT be found!`;
-        if (ludogame === null || typeof ludogame === "undefined") {
-            //
+        if (ludogame === null || typeof ludogame === "undefined" || req.body.playerName === "ADMIN") {
+            if (ludogame) {
+                foundGame = true;
+                admin = true;
+                ludogame.playerId = "SOMETHING COMPLETELY RANDOM";
+                req.session.playerName = req.body.playerName;
+                req.session.gameId = ludogame.gameId;
+                req.session.playerId = ludogame.playerId;
+                message = `You are joining ${req.body.gameId} as a view only player`;
+                console.log("Admin is joining the game.....");
+            }
         }else {
             let playerName = req.body.playerName;
-            if (ludogame.inProgress) {
+            if (ludogame.inProgress === true) {
                 for (let availPlayer of ludogame.ludoPlayers){
                     if (availPlayer.isEmpty === true) {
                         if (playerName === availPlayer.playerName) {
@@ -153,7 +143,36 @@ export class Ludo {
                 }
             }
         }
-        callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames, message: message});
+        callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames, message: message, admin: admin});
+    }
+
+    private disconnectionHandler(): void {
+        let sock: any = this;
+        let ludogame = cache.getValue(sock.gameId);
+        if (ludogame) {
+            for (let disconnectedPlayer of ludogame.ludoPlayers){
+                if (disconnectedPlayer.playerId === sock.playerId) {
+                    disconnectedPlayer.isEmpty = true;
+                    break;
+                }
+            }
+        }
+        console.log("Playername: " + sock.playerName + " has diconnected");
+        io.in(sock.gameId).emit("disconnectedPlayerId", sock.playerId);
+    }
+
+    private unassignPlayer(ludogame: LudoGame, playerId: string, callback: any): void {
+        if (ludogame === null || typeof ludogame === "undefined") {
+            // do nothing
+        }else {
+            for (let disconnectedPlayer of ludogame.ludoPlayers){
+                if (disconnectedPlayer.playerId === playerId) {
+                    disconnectedPlayer.isEmpty = true;
+                    break;
+                }
+            }
+        }
+        callback(playerId);
     }
 
     private getAvailableColors(chosenColors: string[], ludogame: LudoGame): string[] {
@@ -207,9 +226,11 @@ export class Ludo {
             sock.playerName = sock.handshake.session.playerName;
             sock.playerId = sock.handshake.session.playerId;
             ok = true;
-            message = `${ludogame.gameId} was successfuly created. currentGameId: ${ludogame.currrentPlayerId}`;
+            message = `${ludogame.gameId} was successfuly joined....`;
             sock.join(sock.handshake.session.gameId);
-            sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
+            if (sock.handshake.session.playerName !== "ADMIN") {
+                sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
+            }
         }else {
             message = sock.handshake.session.gameId + " does not exist!!!.";
         }
@@ -284,8 +305,9 @@ export class Ludo {
                 if (player.playerId === emitPiece.playerId) {
                     for (let piece of player.pieces) {
                         if (piece.uniqueId === emitPiece.uniqueId) {
-                            // console.log("Piece state Before Peck " + piece.uniqueId + " value: " + piece.state);
+                            // console.log("Piece state Before Peck " + emitPiece.uniqueId + " value: " + emitPiece.state + " index: " + emitPiece.state);
                             piece.state = emitPiece.state;
+                            piece.index = emitPiece.index;
                             piece.currentPosition = piece.homePosition;
                             // console.log("Piece state After Peck " + piece.uniqueId + " value: " + piece.state);
                             break;
@@ -386,7 +408,7 @@ export class Ludo {
 
             for (let player of ludogame.ludoPlayers) {
                 for (let piece of player.pieces){
-                    if (piece.state === States.Active) {
+                    if (piece.state === States.Active || piece.state === States.AtHome || piece.state === States.onWayOut) {
                         indexTotal += piece.index;
                     }
                 }
@@ -406,7 +428,7 @@ export class Ludo {
         callback(check_sum);
     }
 
-    private updateGame(gameId: string, callback): void {
+    private updateGame(gameId: string, callback: any): void {
         let ludogame = cache.getValue(gameId);
         callback(ludogame);
     }

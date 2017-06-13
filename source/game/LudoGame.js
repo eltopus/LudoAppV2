@@ -10,7 +10,7 @@ var LudoGame = (function () {
         this.playerId = "";
         this.inProgress = false;
         this.playerMode = null;
-        this.indexTotal = -1;
+        this.indexTotal = 0;
         for (var _i = 0, players_1 = players; _i < players_1.length; _i++) {
             var player = players_1[_i];
             var ludoPlayer = new LudoPlayer_1.LudoPlayer(player);

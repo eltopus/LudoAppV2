@@ -72,6 +72,7 @@ var Piece = (function (_super) {
         if (this.collidingPiece !== null) {
             var piece = emit.getPieceByUniqueId(this.collidingPiece);
             if (piece) {
+                this.game.camera.shake(0.01, 100, true, Phaser.Camera.SHAKE_BOTH, true);
                 piece.moveToHome();
             }
             this.collidingPiece = null;
