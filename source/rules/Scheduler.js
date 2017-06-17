@@ -10,7 +10,6 @@ var emit = Emit_1.Emit.getInstance();
 var Scheduler = (function () {
     function Scheduler(dice, socket, signal, gameId) {
         this.players = [];
-        this.sequenceNumber = 0;
         this.schedule = new Collections.Queue();
         this.allPieces = new Collections.Dictionary();
         this.dice = dice;
@@ -41,14 +40,10 @@ var Scheduler = (function () {
     Scheduler.prototype.enqueue = function (player) {
         if (this.schedule.isEmpty()) {
             player.selectAllPiece();
-            player.sequenceNumber = this.sequenceNumber;
-            ++this.sequenceNumber;
             this.schedule.enqueue(player);
         }
         else {
             player.unselectAllPiece();
-            player.sequenceNumber = this.sequenceNumber;
-            ++this.sequenceNumber;
             this.schedule.enqueue(player);
         }
         for (var _i = 0, _a = player.pieces; _i < _a.length; _i++) {
@@ -56,6 +51,15 @@ var Scheduler = (function () {
             this.allPieces.setValue(piece.uniqueId, piece);
         }
         this.players.push(player);
+    };
+    Scheduler.prototype.resetScheduler = function () {
+        for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
+            var player = _a[_i];
+            player.resetPlayer();
+        }
+        this.players = [];
+        this.schedule.clear();
+        this.allPieces.clear();
     };
     Scheduler.prototype.getPieceByUniqueId = function (uniqueId) {
         return this.allPieces.getValue(uniqueId);
@@ -100,11 +104,13 @@ var Scheduler = (function () {
         }
         return enemyPerimeter;
     };
-    Scheduler.prototype.updatePlayers = function (ludoplayer) {
-        for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
-            var player = _a[_i];
-            if (ludoplayer.playerId === player.playerId) {
-                player.updateLudoPieces(ludoplayer.pieces);
+    Scheduler.prototype.updatePieces = function (ludopieces) {
+        for (var _i = 0, ludopieces_1 = ludopieces; _i < ludopieces_1.length; _i++) {
+            var ludopiece = ludopieces_1[_i];
+            var piece = this.allPieces.getValue(ludopiece.uniqueId);
+            if (piece && piece.isExited() === false && piece.uniqueId === ludopiece.uniqueId) {
+                // log.debug("Updating..." + piece.uniqueId);
+                piece.updateLudoPiece(ludopiece);
             }
         }
     };
@@ -119,19 +125,6 @@ var Scheduler = (function () {
         }
         return playerName;
     };
-    Scheduler.prototype.getIndexTotal = function () {
-        var indexTotal = 0;
-        for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
-            var player = _a[_i];
-            for (var _b = 0, _c = player.pieces; _b < _c.length; _b++) {
-                var piece = _c[_b];
-                if (piece.isActive() || piece.isAtHome() || piece.isOnWayOut()) {
-                    indexTotal += piece.index;
-                }
-            }
-        }
-        return indexTotal;
-    };
     Scheduler.prototype.addPerimetersToPool = function (perimeters, playerId) {
         if (perimeters.length > 0) {
             for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
@@ -141,6 +134,17 @@ var Scheduler = (function () {
                 }
             }
         }
+    };
+    Scheduler.prototype.weHaveAWinningPlayer = function () {
+        var winningPlayer = false;
+        for (var _i = 0, _a = this.players; _i < _a.length; _i++) {
+            var player = _a[_i];
+            if (player.wins()) {
+                winningPlayer = true;
+                break;
+            }
+        }
+        return winningPlayer;
     };
     Scheduler.prototype.compareCheckSum = function (check_sum_from_server) {
         var ludogame = new LudoGame_1.LudoGame(this.players, this.dice, this.gameId);

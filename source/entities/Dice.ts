@@ -175,4 +175,9 @@ export class Dice {
     public hasSameDiceValues(): boolean {
         return (this.dieOne.getValue() === this.dieTwo.getValue());
     }
+
+    public resetDice(): void {
+        this.dieOne.resetDie();
+        this.dieTwo.resetDie();
+    }
 }

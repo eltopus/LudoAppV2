@@ -9,10 +9,11 @@ import * as $ from "jquery";
 import {Emit} from "../emit/Emit";
 
 let emit = Emit.getInstance();
-
 const log = factory.getLogger("model.GameSetup");
 let newCreatedPlayers: NewPlayers.NewPlayers = new NewPlayers.NewPlayers();
 let Display: any = Example;
+let signal = new Phaser.Signal();
+let creator = false;
 export class GameSetup extends Phaser.State {
 
     public init() {
@@ -155,6 +156,7 @@ export class GameSetup extends Phaser.State {
             }
             emit.setEmit(true);
             newCreatedPlayers.isCreator = true;
+            creator = true;
             newCreatedPlayers.playerName = playerName;
             this.startGame();
          });
@@ -189,7 +191,7 @@ export class GameSetup extends Phaser.State {
         if (newCreatedPlayers.ludogame) {
             // log.debug("-+++- Ludo game" + JSON.stringify(newCreatedPlayers.ludogame));
         }
-        this.game.state.start("Game", true, false, newCreatedPlayers);
+        this.game.state.start("Game", true, false, newCreatedPlayers, signal);
     }
 
 }

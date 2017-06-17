@@ -1,33 +1,33 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 /// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
 import { UUID } from "angular2-uuid";
-import {Piece} from "../entities/Piece";
-import {AIPlayer} from "../entities/AIPlayer";
-import {Player} from "../entities/Player";
-import {RegularPlayer} from "../entities/RegularPlayer";
-import {ColorType} from "../enums/ColorType";
-import {ActiveBoard} from "../entities/ActiveBoard";
-import {HomeBoard} from "../entities/HomeBoard";
-import {OnWayOutBoard} from "../entities/OnWayOutBoard";
-import {ExitedBoard} from "../entities/ExitedBoard";
-import {AllPossibleMoves} from "../rules/AllPossibleMoves";
-import {Dice} from "../entities/Dice";
-import {Rules} from "../rules/Rules";
-import {factory} from "../logging/ConfigLog4j";
-import {Scheduler} from "../rules/Scheduler";
-import {RuleEnforcer} from "../rules/RuleEnforcer";
+import { Piece } from "../entities/Piece";
+import { AIPlayer } from "../entities/AIPlayer";
+import { Player } from "../entities/Player";
+import { RegularPlayer } from "../entities/RegularPlayer";
+import { ColorType } from "../enums/ColorType";
+import { ActiveBoard } from "../entities/ActiveBoard";
+import { HomeBoard } from "../entities/HomeBoard";
+import { OnWayOutBoard } from "../entities/OnWayOutBoard";
+import { ExitedBoard } from "../entities/ExitedBoard";
+import { AllPossibleMoves } from "../rules/AllPossibleMoves";
+import { Dice } from "../entities/Dice";
+import { Rules } from "../rules/Rules";
+import { factory } from "../logging/ConfigLog4j";
+import { Scheduler } from "../rules/Scheduler";
+import { RuleEnforcer } from "../rules/RuleEnforcer";
 import * as Paths from "../entities/Paths";
-import {States} from "../enums/States";
-import {PlayerMode} from "../enums/PlayerMode";
-import {Board} from "../entities/Board";
-import {PiecePosition} from "../entities/PiecePosition";
-import {Move} from "../rules/Move";
-import {LudoGame} from "../game/LudoGame";
-import {LudoPlayer} from "../game/LudoPlayer";
-import {NewPlayers} from "../entities/NewPlayers";
-import {Emit} from "../emit/Emit";
-import {LocalGame} from "../game/LocalGame";
-import {Dictionary} from "typescript-collections";
+import { States } from "../enums/States";
+import { PlayerMode } from "../enums/PlayerMode";
+import { Board } from "../entities/Board";
+import { PiecePosition } from "../entities/PiecePosition";
+import { Move } from "../rules/Move";
+import { LudoGame } from "../game/LudoGame";
+import { LudoPlayer } from "../game/LudoPlayer";
+import { NewPlayers } from "../entities/NewPlayers";
+import { Emit } from "../emit/Emit";
+import { LocalGame } from "../game/LocalGame";
+import { Dictionary } from "typescript-collections";
 import * as $ from "jquery";
 import * as cio from "socket.io-client";
 declare var Example: any;
@@ -51,23 +51,25 @@ export class Game extends Phaser.State {
     private currentPlayerName: string;
     private playerNames = new Dictionary<String, any>();
 
-    public init(newPlayers: NewPlayers) {
+    public init(newPlayers: NewPlayers, signal: Phaser.Signal) {
         this.newPlayers = newPlayers;
+        this.signal = signal;
         if (this.newPlayers.hasSavedGame) {
             this.gameId = newPlayers.ludogame.gameId;
             this.playerMode = newPlayers.ludogame.playerMode;
-        }else {
-            this.isCreator = newPlayers.isCreator;
+            this.setCreator(newPlayers.ludogame.creatorPlayerId);
+        } else {
             this.gameId = this.generateGameId(5);
             this.currentPlayerName = this.newPlayers.playerName;
             this.playerMode = newPlayers.playerMode;
+            this.isCreator = true;
         }
     }
 
     public create() {
 
         let board = this.add.sprite(0, 0, "board");
-        this.signal = new Phaser.Signal();
+        this.signal.add(this.resaveGame, this, 0);
         this.localGame = new LocalGame(this.signal);
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
@@ -100,7 +102,9 @@ export class Game extends Phaser.State {
             if (emit.getEnableSocket()) {
                 this.socket = cio();
             }
-            this.localGame.setLudoGame(this.newPlayers.ludogame);
+            if (emit.getEnableSocket() === false) {
+                this.localGame.setLudoGame(this.newPlayers.ludogame);
+            }
             let dieOneUUID = this.newPlayers.ludogame.ludoDice.dieOne.uniqueId;
             let dieTwoUUID = this.newPlayers.ludogame.ludoDice.dieTwo.uniqueId;
             this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID, this.socket, this.newPlayers.ludogame.gameId);
@@ -109,12 +113,14 @@ export class Game extends Phaser.State {
             this.scheduler = new Scheduler(this.dice, this.socket, this.signal, this.newPlayers.ludogame.gameId);
             emit.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
-            onWayOutBoard, exitedBoard, this.newPlayers.ludogame.gameId, this.socket, currentPossibleMovements);
-            for (let ludoPlayer of this.newPlayers.ludogame.ludoPlayers){
+                onWayOutBoard, exitedBoard, this.newPlayers.ludogame.gameId, this.socket, currentPossibleMovements);
+            this.enforcer.isCreator = this.isCreator;
+            let players: Player[] = [];
+            for (let ludoPlayer of this.newPlayers.ludogame.ludoPlayers) {
                 if (ludoPlayer !== null && typeof ludoPlayer !== "undefined") {
                     let player = this.createExistingPlayer(ludoPlayer);
                     this.scheduler.enqueue(player);
-                    for (let piece of player.pieces){
+                    for (let piece of player.pieces) {
                         if (piece.isAtHome()) {
                             homeboard.addPieceToHomeBoard(piece);
                         }
@@ -129,14 +135,19 @@ export class Game extends Phaser.State {
                             exitedBoard.addPieceToActiveBoard(piece);
                         }
                     }
-                    this.players.push(player);
+                    players.push(player);
+                    this.enforcer.setPlayers(player);
                 }
             }
+            this.players = players;
             this.setSocketHandlers();
             this.displayGameId(this.newPlayers.ludogame.gameId);
             this.joinExistingGame();
+            for (let player of this.players) {
+                log.debug("PlayerName Color " + player.getColorTypes() + " sequenceNumber " + player.sequenceNumber);
+            }
 
-        }else {
+        } else {
             if (emit.getEnableSocket()) {
                 this.socket = cio();
             }
@@ -146,28 +157,45 @@ export class Game extends Phaser.State {
             this.scheduler = new Scheduler(this.dice, this.socket, this.signal, this.gameId);
             emit.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
-            onWayOutBoard, exitedBoard, this.gameId, this.socket, currentPossibleMovements);
-            let players: Player[] = this.createNewPlayers(this.newPlayers);
-            for (let player of players) {
+                onWayOutBoard, exitedBoard, this.gameId, this.socket, currentPossibleMovements);
+            this.enforcer.isCreator = this.isCreator;
+            this.players = this.createNewPlayers(this.newPlayers);
+            let sequenceNumber = 0;
+            for (let player of this.players) {
+                player.sequenceNumber = sequenceNumber;
+                ++sequenceNumber;
                 this.scheduler.enqueue(player);
-                this.players.push(player);
-                for (let piece of player.pieces){
+                for (let piece of player.pieces) {
                     homeboard.addPieceToHomeBoard(piece);
                 }
             }
+            this.enforcer.players = this.players;
             this.setSocketHandlers();
             this.createGame();
+            /*
+            if (this.isCreator) {
+                let playerOne = this.scheduler.getCurrentPlayer();
+                for (let x = 1; x < playerOne.pieces.length; x++) {
+                    homeboard.removePieceFromHomeBoard(playerOne.pieces[x]);
+                    exitedBoard.addPieceToActiveBoard(playerOne.pieces[x]);
+                    playerOne.pieces[x].setExited();
+                    playerOne.pieces[x].visible = false;
+                }
+                let p1 = playerOne.pieces[0];
+                homeboard.removePieceFromHomeBoard(p1);
+                // this.setActivePieceParameters(p1, 19, States.Active, activeboard);
+                this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
+                this.saveGame();
+            }
+            */
         }
+
+        log.debug(" Iscreator is " + this.isCreator);
 
     }
 
     public rollDice(): void {
-        emit.stopSpinner();
-        this.dice.setDicePlayerId(this.enforcer.scheduler.getCurrentPlayer().playerId);
         this.enforcer.scheduler.getCurrentPlayer().roll(this.dice);
-        // log.debug(" Emiiter show me: " + emit.getEmit());
-        // this.game.camera.flash(0xff0000, 1000);
-
     }
 
     public playDice(): void {
@@ -176,7 +204,7 @@ export class Game extends Phaser.State {
 
         if (player.currentSelectedPiece !== null && (this.dice.dieOne.isSelected() || this.dice.dieTwo.isSelected())) {
             this.enforcer.generatePieceMovement(dieIds, player.currentSelectedPiece);
-        }else {
+        } else {
             log.debug("No die selected or no piece selected");
         }
     }
@@ -186,7 +214,7 @@ export class Game extends Phaser.State {
     }
 
     private displayGameId(gameId: string): void {
-        let gameIdText = this.game.add.text(0, 0, gameId, {font: "30px Revalia", fill: "#00ffff", boundsAlignH: "center", boundsAlignV: "middle"});
+        let gameIdText = this.game.add.text(0, 0, gameId, { font: "30px Revalia", fill: "#00ffff", boundsAlignH: "center", boundsAlignV: "middle" });
         gameIdText.setTextBounds(720, 290, 175, 30);
         emit.setGameIdText(gameIdText);
     }
@@ -211,15 +239,15 @@ export class Game extends Phaser.State {
         // log.debug(" Emit is " + emit.getEmit());
         if (this.scheduler.getCurrentPlayer().isAI) {
             log.debug("Hey I am AI " + emit.getEmit());
-            if (this.dice.bothDiceConsumed() ) {
+            if (this.dice.bothDiceConsumed()) {
                 if (emit.getEmit()) {
                     this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
                 }
-            }else {
+            } else {
                 this.enforcer.setRollCounter(1);
                 this.enforcer.endOfDiceRoll("endOfDieRoll");
             }
-        }else if (this.scheduler.getCurrentPlayer().isAI === false && this.dice.bothDiceConsumed() === false) {
+        } else if (this.scheduler.getCurrentPlayer().isAI === false && this.dice.bothDiceConsumed() === false) {
             this.enforcer.setRollCounter(1);
             this.enforcer.endOfDiceRoll("endOfDieRoll");
         }
@@ -232,18 +260,44 @@ export class Game extends Phaser.State {
     }
 
     private saveGame(): void {
-        let ludoGame = new LudoGame(this.players, this.dice, this.gameId);
-        log.debug(JSON.stringify(ludoGame, null, "\t"));
-        log.debug(JSON.stringify(ludoGame));
+        let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+        log.debug(JSON.stringify(ludogame, null, "\t"));
+        ludogame.ludoPlayers[0].playerName = this.currentPlayerName;
+        ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
+        ludogame.ludoPlayers[0].isEmpty = false;
+        this.socket.emit("saveGame", ludogame, (data: any) => {
+            log.debug(" I saved....");
+        });
+    }
+
+    private resaveGame(listener: string): void {
+        if (listener === "resaveGame" && this.isCreator === true) {
+            let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+            ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
+            for (let ludoplayer of ludogame.ludoPlayers) {
+                ludoplayer.isEmpty = false;
+            }
+            emit.setEmit(true);
+            // log.debug(JSON.stringify(ludogame, null, "\t"));
+            this.socket.emit("saveGame", ludogame, (data: any) => {
+                log.debug(" I resaved....");
+                let currentPlayer = this.scheduler.getCurrentPlayer();
+                if (currentPlayer.isAI && emit.getEmit()) {
+                    this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
+                }
+            });
+        }
     }
 
     private createGame(): void {
         let ludogame = new LudoGame(this.players, this.dice, this.gameId);
         // first player is always the creator's player
         ludogame.ludoPlayers[0].playerName = this.currentPlayerName;
+        ludogame.ludoPlayers[0].sequenceNumber = 0;
         ludogame.availableColors = this.getAvailableColors(ludogame.ludoPlayers[0].colors, ludogame);
         emit.setCurrentPlayerId(ludogame.ludoPlayers[0].playerId);
         ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
+        ludogame.creatorPlayerId = ludogame.ludoPlayers[0].playerId;
         ludogame.playerMode = this.getPlayerMode();
         this.displayGameId(ludogame.gameId);
         if (emit.getEnableSocket()) {
@@ -279,7 +333,7 @@ export class Game extends Phaser.State {
 
     private getAvailableColors(chosenColors: string[], ludogame: LudoGame): string[] {
         let availableColors: string[] = [];
-        for (let y = 0; y <  ludogame.availableColors.length; ++y) {
+        for (let y = 0; y < ludogame.availableColors.length; ++y) {
             if (!this.containsColor(chosenColors, ludogame.availableColors[y])) {
                 availableColors.push(ludogame.availableColors[y]);
             }
@@ -289,7 +343,7 @@ export class Game extends Phaser.State {
 
     private containsColor(colors: string[], color: string): boolean {
         let contains = false;
-        for (let c of colors){
+        for (let c of colors) {
             if (c === color) {
                 contains = true;
             }
@@ -299,11 +353,11 @@ export class Game extends Phaser.State {
 
     private createNewPlayers(newPlayers: NewPlayers): Player[] {
         let players: Player[] = [];
-        for (let newPlayer of newPlayers.newPlayers){
+        for (let newPlayer of newPlayers.newPlayers) {
             if (newPlayer.isAI) {
                 let aiPlayer = new AIPlayer(this.game, UUID.UUID(), true, newPlayer.color, this.signal, "", this.socket, this.gameId, null, this.enforcer);
                 players.push(aiPlayer);
-            }else {
+            } else {
                 let regularPlayer = new RegularPlayer(this.game, UUID.UUID(), true, newPlayer.color, this.signal, "", this.socket, this.gameId, null, this.enforcer);
                 players.push(regularPlayer);
             }
@@ -312,23 +366,25 @@ export class Game extends Phaser.State {
     }
 
     private createExistingPlayer(ludoPlayer: LudoPlayer): Player {
-        let player: Player = null;
         if (ludoPlayer.isAI) {
-            player = new AIPlayer(this.game, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, ludoPlayer.playerName, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
+            let player = new AIPlayer(this.game, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
+                this.signal, ludoPlayer.playerName, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
-        }else {
-            player = new RegularPlayer(this.game, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
-            this.signal, ludoPlayer.playerName, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
+            player.sequenceNumber = ludoPlayer.sequenceNumber;
+            return player;
+        } else {
+            let player = new RegularPlayer(this.game, ludoPlayer.playerId, ludoPlayer.turn, ludoPlayer.colorTypes,
+                this.signal, ludoPlayer.playerName, this.socket, this.gameId, ludoPlayer.pieces, this.enforcer);
             player.setSelectedPieceByUniqueId(ludoPlayer.currentSelectedPiece);
+            player.sequenceNumber = ludoPlayer.sequenceNumber;
+            return player;
         }
-        return player;
     }
 
     private fullScreen(): void {
         if (this.scale.isFullScreen) {
             this.scale.stopFullScreen();
-        }else {
+        } else {
             this.scale.startFullScreen(false);
         }
     }
@@ -339,7 +395,7 @@ export class Game extends Phaser.State {
 
     private displayNames(ludogame: LudoGame): void {
         for (let player of ludogame.ludoPlayers) {
-            for (let color of player.colors){
+            for (let color of player.colors) {
                 switch (color) {
                     case "RED": {
                         let playerNameObj = this.displayPlayerName(70, 30, player.playerName);
@@ -362,11 +418,13 @@ export class Game extends Phaser.State {
                         break;
                     }
                     default:
-                    break;
+                        break;
                 }
             }
         }
-        this.localGame.setLudoGame(ludogame);
+        if (emit.getEnableSocket() === false) {
+            this.localGame.setLudoGame(ludogame);
+        }
         this.updatePlayername(ludogame.ludoPlayers);
     }
 
@@ -380,18 +438,18 @@ export class Game extends Phaser.State {
 
         let playerNameText = this.game.add.text(x, y, playerName, {});
         playerNameText.anchor.setTo(0.5);
-		playerNameText.font = "Revalia";
-		playerNameText.fontSize = 20;
-	    let grd = playerNameText.context.createLinearGradient(0, 0, 0, playerNameText.canvas.height);
-		grd.addColorStop(0, "#8ED6FF");
-		grd.addColorStop(1, "#004CB3");
-		playerNameText.fill = grd;
+        playerNameText.font = "Revalia";
+        playerNameText.fontSize = 20;
+        let grd = playerNameText.context.createLinearGradient(0, 0, 0, playerNameText.canvas.height);
+        grd.addColorStop(0, "#8ED6FF");
+        grd.addColorStop(1, "#004CB3");
+        playerNameText.fill = grd;
         playerNameText.align = "center";
-		playerNameText.stroke = "#000000";
-		playerNameText.strokeThickness = 2;
-		playerNameText.setShadow(5, 5, "rgba(0,0,0,0.5)", 5);
+        playerNameText.stroke = "#000000";
+        playerNameText.strokeThickness = 2;
+        playerNameText.setShadow(5, 5, "rgba(0,0,0,0.5)", 5);
         playerNameText.inputEnabled = true;
-		playerNameText.input.enableDrag();
+        playerNameText.input.enableDrag();
         return playerNameText;
     }
 
@@ -406,10 +464,16 @@ export class Game extends Phaser.State {
         let mode = 0;
         if (this.playerMode === PlayerMode.AiFourPlayer || this.playerMode === PlayerMode.AiFourPlayerAiVsAi || this.playerMode === PlayerMode.RegularFourPlayer) {
             mode = 4;
-        }else if (this.playerMode === PlayerMode.AiTwoPlayer || this.playerMode === PlayerMode.AiTwoPlayerAiVsAi || this.playerMode === PlayerMode.RegularTwoPlayer) {
+        } else if (this.playerMode === PlayerMode.AiTwoPlayer || this.playerMode === PlayerMode.AiTwoPlayerAiVsAi || this.playerMode === PlayerMode.RegularTwoPlayer) {
             mode = 2;
         }
         return mode;
+    }
+
+    private setCreator(creatorPlayerId: string): void {
+        if (emit.isTheCreator(creatorPlayerId)) {
+            this.isCreator = true;
+        }
     }
 
     private waitForPlayers(ludogame: LudoGame): void {
@@ -453,5 +517,5 @@ export class Game extends Phaser.State {
                     $("#player" + x).val(ludogame.ludoPlayers[x].playerName);
                 }
                 */
-        }
+    }
 }

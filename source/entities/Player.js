@@ -218,16 +218,8 @@ var Player = (function (_super) {
             }
         }
     };
-    Player.prototype.pieceBelongsToMe = function (uniqueId) {
-        var belongToMe = false;
-        for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
-            var piece = _a[_i];
-            if (piece.uniqueId === uniqueId) {
-                belongToMe = true;
-                break;
-            }
-        }
-        return belongToMe;
+    Player.prototype.pieceBelongsToMe = function (playerId) {
+        return (this.playerId === playerId);
     };
     Player.prototype.getPieceByUniqueId = function (uniqueId) {
         var matchingPiece = null;
@@ -404,17 +396,50 @@ var Player = (function (_super) {
                 return "";
         }
     };
-    Player.prototype.updateLudoPieces = function (ludopieces) {
-        for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
-            var piece = _a[_i];
-            piece.updateLudoPieces(ludopieces);
-        }
-    };
     Player.prototype.updatePlayerName = function (ludoplayers) {
         for (var _i = 0, ludoplayers_1 = ludoplayers; _i < ludoplayers_1.length; _i++) {
             var ludoplayer = ludoplayers_1[_i];
             if (ludoplayer.playerId === this.playerId) {
                 this.playerName = ludoplayer.playerName;
+            }
+        }
+    };
+    Player.prototype.wins = function () {
+        var playerwins = true;
+        for (var _i = 0, _a = this.pieces; _i < _a.length; _i++) {
+            var piece = _a[_i];
+            if (piece.isExited() === false) {
+                playerwins = false;
+                break;
+            }
+        }
+        return playerwins;
+    };
+    Player.prototype.resetPlayer = function () {
+        this.currentSelectedPiece = null;
+        this.previousDoubleSix = false;
+    };
+    Player.prototype.updateOnRestartLudoPieces = function (ludogame) {
+        for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
+            var ludoplayer = _a[_i];
+            if (ludoplayer.playerId === this.playerId) {
+                for (var _b = 0, _c = this.pieces; _b < _c.length; _b++) {
+                    var piece = _c[_b];
+                    piece.updateOnRestartLudoPieces(ludoplayer.pieces);
+                }
+                break;
+            }
+        }
+    };
+    Player.prototype.updateOnReloadLudoPieces = function (ludogame) {
+        for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
+            var ludoplayer = _a[_i];
+            if (ludoplayer.playerId === this.playerId) {
+                for (var _b = 0, _c = this.pieces; _b < _c.length; _b++) {
+                    var piece = _c[_b];
+                    piece.updateOnReloadLudoPieces(ludoplayer.pieces);
+                }
+                break;
             }
         }
     };

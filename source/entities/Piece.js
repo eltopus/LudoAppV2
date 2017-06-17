@@ -68,21 +68,6 @@ var Piece = (function (_super) {
         var speed = this.getSpeed(path.x.length);
         this.movePieceTo(path, speed);
     };
-    Piece.prototype.onCompleteMovement = function () {
-        if (this.collidingPiece !== null) {
-            var piece = emit.getPieceByUniqueId(this.collidingPiece);
-            if (piece) {
-                this.game.camera.shake(0.01, 100, true, Phaser.Camera.SHAKE_BOTH, true);
-                piece.moveToHome();
-            }
-            this.collidingPiece = null;
-        }
-        if (this.isExited()) {
-            this.visible = false;
-        }
-        this.isMoving = false;
-        this.signal.dispatch("completeMovement", this);
-    };
     /**
      * Moves piece to homePosition
      * Sends backToHome signal to Game and Board child classes
@@ -142,10 +127,13 @@ var Piece = (function (_super) {
      */
     Piece.prototype.setActivePiece = function () {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
-        if (emit.getEmit() === true && this.isSelected() && emit.getEnableSocket()) {
+        if (emit.getEmit() === true && this.isSelected()) {
+            this.emitPiece.setParameters(this);
+            this.socket.emit("selectActivePiece", this.emitPiece);
+        }
+        else if (emit.getEnableSocket() === false && this.isSelected) {
             this.emitPiece.setParameters(this);
             this.signal.dispatch("selectActivePieceLocal", this.emitPiece);
-            this.socket.emit("selectActivePiece", this.emitPiece);
         }
     };
     /**
@@ -154,7 +142,6 @@ var Piece = (function (_super) {
      * @param uniqueId
      */
     Piece.prototype.unsetActivePiece = function () {
-        // this.signal.dispatch("unselect", this.uniqueId, this.playerId);
         this.frame = 0;
     };
     Piece.prototype.select = function () {
@@ -289,24 +276,57 @@ var Piece = (function (_super) {
         }
         return piecePosition;
     };
-    Piece.prototype.updateLudoPieces = function (pieces) {
-        for (var _i = 0, pieces_1 = pieces; _i < pieces_1.length; _i++) {
-            var piece = pieces_1[_i];
-            if (piece.uniqueId === this.uniqueId) {
-                if (!this.isMoving) {
-                    this.x = piece.currentPosition.x;
-                    this.y = piece.currentPosition.y;
-                }
-                this.state = piece.state;
-                this.index = piece.index;
+    Piece.prototype.updateLudoPiece = function (piece) {
+        if (piece.uniqueId === this.uniqueId) {
+            this.x = piece.currentPosition.x;
+            this.y = piece.currentPosition.y;
+            this.state = piece.state;
+            this.index = piece.index;
+        }
+    };
+    Piece.prototype.updateOnRestartLudoPieces = function (ludopieces) {
+        for (var _i = 0, ludopieces_1 = ludopieces; _i < ludopieces_1.length; _i++) {
+            var ludopiece = ludopieces_1[_i];
+            if (ludopiece.uniqueId === this.uniqueId) {
+                this.x = ludopiece.currentPosition.x;
+                this.y = ludopiece.currentPosition.y;
+                this.state = ludopiece.state;
+                this.index = ludopiece.index;
+                this.visible = true;
+                break;
+            }
+        }
+    };
+    Piece.prototype.updateOnReloadLudoPieces = function (ludopieces) {
+        for (var _i = 0, ludopieces_2 = ludopieces; _i < ludopieces_2.length; _i++) {
+            var ludopiece = ludopieces_2[_i];
+            if (ludopiece.uniqueId === this.uniqueId) {
+                this.x = ludopiece.currentPosition.x;
+                this.y = ludopiece.currentPosition.y;
+                this.state = ludopiece.state;
+                this.index = ludopiece.index;
+                break;
             }
         }
     };
     Piece.prototype.onCompleteBackToHomeMovement = function () {
         this.isMoving = false;
     };
+    Piece.prototype.onCompleteMovement = function () {
+        if (this.collidingPiece !== null) {
+            var piece = emit.getPieceByUniqueId(this.collidingPiece);
+            if (piece) {
+                this.game.camera.shake(0.01, 100, true, Phaser.Camera.SHAKE_BOTH, true);
+                piece.moveToHome();
+            }
+            this.collidingPiece = null;
+        }
+        if (this.isExited()) {
+            this.visible = false;
+        }
+        this.signal.dispatch("completeMovement", this);
+    };
     Piece.prototype.movePieceTo = function (path, speed) {
-        this.isMoving = true;
         var tween = this.game.add.tween(this).to(path, 1000, Phaser.Easing.Linear.None, true).interpolation(function (v, k) {
             return Phaser.Math.linearInterpolation(v, k);
         });

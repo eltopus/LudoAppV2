@@ -8,6 +8,7 @@ import {Perimeter} from "../entities/Perimeters";
 import {Emit} from "../emit/Emit";
 import {LudoGame} from "../game/LudoGame";
 import {LudoPlayer} from "../game/LudoPlayer";
+import {LudoPiece} from "../game/LudoPiece";
 import * as checksum from "checksum";
 
 const log = factory.getLogger("model.Scheduler");
@@ -17,7 +18,6 @@ export class Scheduler {
     public allPieces: Collections.Dictionary<String, Piece>;
     public players: Player[] = [];
     private dice: Dice;
-    private sequenceNumber = 0;
     private socket: any;
     private gameId: string;
     private signal: Phaser.Signal;
@@ -60,19 +60,24 @@ export class Scheduler {
     public enqueue(player: Player): void {
         if (this.schedule.isEmpty()) {
             player.selectAllPiece();
-            player.sequenceNumber = this.sequenceNumber;
-            ++this.sequenceNumber;
             this.schedule.enqueue(player);
         }else {
             player.unselectAllPiece();
-            player.sequenceNumber = this.sequenceNumber;
-            ++this.sequenceNumber;
             this.schedule.enqueue(player);
         }
         for (let piece of player.pieces){
             this.allPieces.setValue(piece.uniqueId, piece);
         }
         this.players.push(player);
+    }
+
+    public resetScheduler(): void {
+        for (let player of this.players) {
+            player.resetPlayer();
+        }
+        this.players = [];
+        this.schedule.clear();
+        this.allPieces.clear();
     }
 
     public getPieceByUniqueId(uniqueId: string): Piece {
@@ -121,10 +126,12 @@ export class Scheduler {
         return enemyPerimeter;
     }
 
-    public updatePlayers(ludoplayer: LudoPlayer): void {
-        for (let player of this.players){
-            if (ludoplayer.playerId === player.playerId) {
-                player.updateLudoPieces(ludoplayer.pieces);
+    public updatePieces(ludopieces: LudoPiece[]): void {
+        for (let ludopiece of ludopieces){
+            let piece = this.allPieces.getValue(ludopiece.uniqueId);
+            if (piece && piece.isExited() === false && piece.uniqueId === ludopiece.uniqueId) {
+                // log.debug("Updating..." + piece.uniqueId);
+                piece.updateLudoPiece(ludopiece);
             }
         }
     }
@@ -140,18 +147,6 @@ export class Scheduler {
         return playerName;
     }
 
-    public getIndexTotal(): number {
-        let indexTotal = 0;
-        for (let player of this.players) {
-            for (let piece of player.pieces){
-                if (piece.isActive() || piece.isAtHome() || piece.isOnWayOut()) {
-                    indexTotal += piece.index;
-                }
-            }
-        }
-        return indexTotal;
-    }
-
     public addPerimetersToPool(perimeters: Perimeter[], playerId: string): void {
         if (perimeters.length > 0) {
              for (let player of this.players){
@@ -160,6 +155,17 @@ export class Scheduler {
                  }
             }
         }
+    }
+
+    public weHaveAWinningPlayer(): boolean {
+        let winningPlayer = false;
+        for (let player of this.players){
+            if (player.wins()) {
+                winningPlayer = true;
+                break;
+            }
+        }
+        return winningPlayer;
     }
 
     private compareCheckSum(check_sum_from_server: string): void {

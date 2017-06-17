@@ -10,7 +10,7 @@ export class Emit {
     private static emitInstance: Emit = new Emit();
     private emit = false;
     private enableSocket = true;
-    private peckAndStay =  true;
+    private peckAndStay =  false;
     private scheduler: Scheduler;
     private sessionId: string;
     private currentPlayerId: string;
@@ -131,16 +131,20 @@ export class Emit {
         if (playerId === this.currentPlayerId) {
             this.emit = true;
             this.gameIdText.fill = "#00ffff";
-            log.debug("Setting emit to " + this.emit);
+            // log.debug("Setting emit to " + this.emit);
         }else {
             this.emit = false;
             this.gameIdText.fill = "#F70C0C";
-            log.debug("Setting emit to " + this.emit);
+            // log.debug("Setting emit to " + this.emit);
         }
     }
 
     public isAdmin(): boolean {
         return this.currentPlayerId === "SOMETHING COMPLETELY RANDOM";
+    }
+
+    public isTheCreator(creatorPlayerId: string): boolean {
+        return (this.currentPlayerId === creatorPlayerId);
     }
 
     constructor() {

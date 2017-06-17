@@ -19,6 +19,9 @@ export class LudoGame {
     public inProgress = false;
     public playerMode: number = null;
     public indexTotal = 0;
+    public originalLudoGame = "";
+    public sequenceNumber = 0;
+    public creatorPlayerId = "";
 
     constructor(players: Player[], dice: Dice, gameId: string) {
         for (let player of players){

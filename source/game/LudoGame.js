@@ -11,6 +11,9 @@ var LudoGame = (function () {
         this.inProgress = false;
         this.playerMode = null;
         this.indexTotal = 0;
+        this.originalLudoGame = "";
+        this.sequenceNumber = 0;
+        this.creatorPlayerId = "";
         for (var _i = 0, players_1 = players; _i < players_1.length; _i++) {
             var player = players_1[_i];
             var ludoPlayer = new LudoPlayer_1.LudoPlayer(player);

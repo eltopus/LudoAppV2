@@ -6,7 +6,7 @@ var Emit = (function () {
     function Emit() {
         this.emit = false;
         this.enableSocket = true;
-        this.peckAndStay = true;
+        this.peckAndStay = false;
         this.emitDice = new EmitDie_1.EmitDie();
         this.opts = {
             lines: 13 // The number of lines to draw
@@ -122,13 +122,17 @@ var Emit = (function () {
         if (playerId === this.currentPlayerId) {
             this.emit = true;
             this.gameIdText.fill = "#00ffff";
-            log.debug("Setting emit to " + this.emit);
         }
         else {
             this.emit = false;
             this.gameIdText.fill = "#F70C0C";
-            log.debug("Setting emit to " + this.emit);
         }
+    };
+    Emit.prototype.isAdmin = function () {
+        return this.currentPlayerId === "SOMETHING COMPLETELY RANDOM";
+    };
+    Emit.prototype.isTheCreator = function (creatorPlayerId) {
+        return (this.currentPlayerId === creatorPlayerId);
     };
     Emit.emitInstance = new Emit();
     return Emit;

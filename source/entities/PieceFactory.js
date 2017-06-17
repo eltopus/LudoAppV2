@@ -55,23 +55,6 @@ var PieceFactory = (function () {
             return [];
         }
     };
-    /*
-        this.color = piece.color;
-            this.playerId = piece.playerId;
-            this.uniqueId = piece.uniqueId;
-            this.index = piece.index;
-            this.startIndex = piece.startIndex;
-            this.state = piece.state;
-            this.startPosition = piece.startPosition;
-            this.homePosition = piece.homePosition;
-            this.currentPosition = new PiecePosition(piece.x, piece.y);
-            this.entryIndex = piece.entryIndex;
-            this.imageId = piece.imageId;
-            if (piece.collidingPiece !== null) {
-                this.collidingPiece = new LudoPiece(piece.collidingPiece);
-            }
-        }
-        */
     PieceFactory.prototype.createExistingPieces = function (ludoPieces, signal, socket, gameId) {
         var pieces = [];
         var collidingPieces = [];

@@ -38,6 +38,10 @@ export abstract class AbstractRules {
         return this.board;
     }
 
+    public clearBoard(): void {
+        this.board.clearBoard();
+    }
+
     /**
      * Returns true if one of the dice value is 6
      */

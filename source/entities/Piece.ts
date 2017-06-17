@@ -111,21 +111,6 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.movePieceTo(path, speed);
     }
 
-    public onCompleteMovement(): void {
-        if (this.collidingPiece !== null) {
-            let piece = emit.getPieceByUniqueId(this.collidingPiece);
-            if (piece) {
-                this.game.camera.shake(0.01, 100, true, Phaser.Camera.SHAKE_BOTH, true);
-                piece.moveToHome();
-            }
-            this.collidingPiece = null;
-        }
-        if (this.isExited()) {
-            this.visible = false;
-        }
-        this.isMoving = false;
-        this.signal.dispatch("completeMovement", this);
-    }
     /**
      * Moves piece to homePosition
      * Sends backToHome signal to Game and Board child classes
@@ -137,6 +122,7 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         Phaser.Easing.Linear.None, true);
         tween.onComplete.add(this.onCompleteBackToHomeMovement, this);
     }
+
     public getSpeed(distance: number) {
         return Math.floor(this.speedConstant / distance);
     }
@@ -188,10 +174,12 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      */
     public setActivePiece(): void {
         this.signal.dispatch("select", this.uniqueId, this.playerId);
-        if (emit.getEmit() === true && this.isSelected() && emit.getEnableSocket()) {
+        if (emit.getEmit() === true && this.isSelected()) {
+            this.emitPiece.setParameters(this);
+            this.socket.emit("selectActivePiece", this.emitPiece);
+        }else if (emit.getEnableSocket() === false && this.isSelected) {
             this.emitPiece.setParameters(this);
             this.signal.dispatch("selectActivePieceLocal", this.emitPiece);
-            this.socket.emit("selectActivePiece", this.emitPiece);
         }
     }
     /**
@@ -200,7 +188,6 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      * @param uniqueId
      */
     public unsetActivePiece(): void {
-        // this.signal.dispatch("unselect", this.uniqueId, this.playerId);
         this.frame = 0;
     }
 
@@ -349,15 +336,36 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         return piecePosition;
     }
 
-    public updateLudoPieces(pieces: LudoPiece[]): void {
-        for (let piece of pieces){
-            if (piece.uniqueId === this.uniqueId) {
-                if (!this.isMoving) {
-                    this.x = piece.currentPosition.x;
-                    this.y = piece.currentPosition.y;
-                }
-                this.state = piece.state;
-                this.index = piece.index;
+    public updateLudoPiece(piece: LudoPiece): void {
+        if (piece.uniqueId === this.uniqueId) {
+            this.x = piece.currentPosition.x;
+            this.y = piece.currentPosition.y;
+            this.state = piece.state;
+            this.index = piece.index;
+        }
+    }
+
+    public updateOnRestartLudoPieces(ludopieces: LudoPiece[]) {
+        for (let ludopiece of ludopieces ) {
+            if (ludopiece.uniqueId === this.uniqueId) {
+                this.x = ludopiece.currentPosition.x;
+                this.y = ludopiece.currentPosition.y;
+                this.state = ludopiece.state;
+                this.index = ludopiece.index;
+                this.visible = true;
+                break;
+            }
+        }
+    }
+
+    public updateOnReloadLudoPieces(ludopieces: LudoPiece[]) {
+        for (let ludopiece of ludopieces ) {
+            if (ludopiece.uniqueId === this.uniqueId) {
+                this.x = ludopiece.currentPosition.x;
+                this.y = ludopiece.currentPosition.y;
+                this.state = ludopiece.state;
+                this.index = ludopiece.index;
+                break;
             }
         }
     }
@@ -366,8 +374,22 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.isMoving = false;
     }
 
+     private onCompleteMovement(): void {
+        if (this.collidingPiece !== null) {
+            let piece = emit.getPieceByUniqueId(this.collidingPiece);
+            if (piece) {
+                this.game.camera.shake(0.01, 100, true, Phaser.Camera.SHAKE_BOTH, true);
+                piece.moveToHome();
+            }
+            this.collidingPiece = null;
+        }
+        if (this.isExited()) {
+            this.visible = false;
+        }
+        this.signal.dispatch("completeMovement", this);
+    }
+
     private movePieceTo(path: Path, speed: number): void {
-        this.isMoving = true;
         let tween = this.game.add.tween(this).to(path, 1000,
         Phaser.Easing.Linear.None, true).interpolation(function(v: number[], k: number){
             return Phaser.Math.linearInterpolation(v, k);

@@ -10,6 +10,9 @@ var Board = (function () {
         this.board = new Collections.Dictionary();
         this.signal.add(this.movement, this, 0, "startmovement");
     }
+    Board.prototype.clearBoard = function () {
+        this.board.clear();
+    };
     return Board;
 }());
 exports.Board = Board;

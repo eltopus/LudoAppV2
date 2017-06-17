@@ -89,11 +89,11 @@ export class AIPlayer extends Player {
                             if (colorWithFewerEnemies !== null && colorWithFewerEnemies !== piece.color) {
                                 let anotherPiece = this.sampleHomePieceByColor(colorWithFewerEnemies);
                                 if (anotherPiece !== null) {
-                                    log.debug("Switching Piece to another color");
+                                    // log.debug("Switching Piece to another color");
                                     bestMove.pieceId = anotherPiece.uniqueId;
                                 }
                             }else {
-                                log.debug("No need to Switching Piece to another color");
+                                // log.debug("No need to Switching Piece to another color");
                             }
                             this.ruleEnforcer.scheduler.addPerimetersToPool(perimeters, this.playerId);
                         }
@@ -165,7 +165,7 @@ export class AIPlayer extends Player {
                 }
                 let path = this.logic.constructMockpath(mockPiece, diceValue);
                 if (this.ruleEnforcer.mockPieceCollision(mockPiece.uniqueId, path.newIndex)) {
-                    log.debug("END >>>>>>>>>>>>>>>>MOVE CAN PECK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + path.newIndex);
+                    // log.debug("END >>>>>>>>>>>>>>>>MOVE CAN PECK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + path.newIndex);
                     peckMove = movement;
                 }
             }

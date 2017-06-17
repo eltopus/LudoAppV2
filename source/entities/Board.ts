@@ -16,6 +16,10 @@ export abstract class Board {
         this.board = new Collections.Dictionary<String, Number>();
         this.signal.add(this.movement, this, 0, "startmovement");
     }
+
+    public clearBoard(): void {
+        this.board.clear();
+    }
     public abstract movement(listener: string, piece: Piece): void;
 
 }

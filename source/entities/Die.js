@@ -43,18 +43,24 @@ var Die = (function (_super) {
     Die.prototype.selectActiveDie = function () {
         if (this.alpha === 0.5) {
             this.alpha = 1;
-            if (emit.getEmit() === true && emit.getEnableSocket()) {
+            if (emit.getEmit() === true) {
+                this.emitDice.setParameters(this);
+                this.socket.emit("unselectActiveDie", this.emitDice);
+            }
+            else if (emit.getEnableSocket() === false) {
                 this.emitDice.setParameters(this);
                 this.signal.dispatch("unselectActiveDieLocal", this.emitDice);
-                this.socket.emit("unselectActiveDie", this.emitDice);
             }
         }
         else {
             this.alpha = 0.5;
             if (emit.getEmit() === true && emit.getEnableSocket()) {
                 this.emitDice.setParameters(this);
-                this.signal.dispatch("selectActiveDieLocal", this.emitDice);
                 this.socket.emit("selectActiveDie", this.emitDice);
+            }
+            else if (emit.getEnableSocket() === false) {
+                this.emitDice.setParameters(this);
+                this.signal.dispatch("selectActiveDieLocal", this.emitDice);
             }
         }
     };
@@ -82,10 +88,13 @@ var Die = (function (_super) {
             this.extFrame = this.getFrame(value);
             this.animation.play(20);
         }
-        if (emit.getEmit() === true && emit.getEnableSocket()) {
+        if (emit.getEmit() === true) {
+            this.emitDice.setParameters(this);
+            this.socket.emit("rollDice", this.emitDice);
+        }
+        else if (emit.getEnableSocket() === false) {
             this.emitDice.setParameters(this);
             this.signal.dispatch("endOfDieRollLocal", this.emitDice);
-            this.socket.emit("rollDice", this.emitDice);
         }
     };
     Die.prototype.rollEmitDie = function (emitDieOne, emitDieTwo) {
@@ -98,10 +107,13 @@ var Die = (function (_super) {
     };
     Die.prototype.consume = function () {
         this.frame = 3;
-        if (emit.getEmit() === true && emit.getEnableSocket()) {
+        if (emit.getEmit() === true) {
+            this.emitDice.setParameters(this);
+            this.socket.emit("consumeDie", this.emitDice);
+        }
+        else if (emit.getEnableSocket() === false) {
             this.emitDice.setParameters(this);
             this.signal.dispatch("consumeDieLocal", this.emitDice);
-            this.socket.emit("consumeDie", this.emitDice);
         }
     };
     Die.prototype.consumeWithoutEmission = function () {
@@ -125,6 +137,10 @@ var Die = (function (_super) {
     };
     Die.prototype.equalsValueSix = function () {
         return (this.getValue() === 6);
+    };
+    Die.prototype.resetDie = function () {
+        this.consumeWithoutEmission();
+        this.unSelectActiveDie();
     };
     Die.prototype.getFrame = function (value) {
         switch (value) {
@@ -193,13 +209,13 @@ var Die = (function (_super) {
     Die.prototype.setSocketHandlers = function () {
         var _this = this;
         this.socket.on("emitSelectActiveDie", function (die) {
-            if (emit.getEmit() === false && die.uniqueId === _this.uniqueId) {
+            if (emit.getEmit() === false && die.uniqueId === _this.uniqueId && emit.getEnableSocket() === true) {
                 // log.debug("Select piece: " + die.uniqueId);
                 _this.select();
             }
         });
         this.socket.on("emitUnselectActiveDie", function (die) {
-            if (emit.getEmit() === false && die.uniqueId === _this.uniqueId) {
+            if (emit.getEmit() === false && die.uniqueId === _this.uniqueId && emit.getEnableSocket() === true) {
                 // log.debug("Select piece: " + die.uniqueId);
                 _this.unSelectActiveDie();
             }

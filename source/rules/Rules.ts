@@ -168,8 +168,8 @@ import {LudoPiece} from "../game/LudoPiece";
             // log.debug("active: " + playerActivePieces + " home: " + playerHomePieces + " onwayOut: " + playerOnwayoutPieces + " exited: " + playerExitPieces);
            }else {
             log.debug("MISMATCH!!!!!!!!!: " + + this.schedule.players.length);
-            log.debug("active: " + activePieces + " home: " + homePieces + " onwayOut: " + onWayOutPieces + " exited: " + exitedPieces);
-            log.debug("active: " + playerActivePieces + " home: " + playerHomePieces + " onwayOut: " + playerOnwayoutPieces + " exited: " + playerExitPieces);
+            log.debug("bd active: " + activePieces + " bd home: " + homePieces + " bd onwayOut: " + onWayOutPieces + " bd exited: " + exitedPieces);
+            log.debug("pl active: " + playerActivePieces + " pl home: " + playerHomePieces + " pl onwayOut: " + playerOnwayoutPieces + " pl exited: " + playerExitPieces);
            }
     }
 
@@ -201,6 +201,36 @@ import {LudoPiece} from "../game/LudoPiece";
                 }
             }
         }
+    }
+
+    public updateOnRestartBoards(pieces: Piece[]): void {
+        for (let piece of pieces){
+            switch (piece.state) {
+                case States.AtHome: {
+                    this.homeMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States.Active: {
+                    this.activeMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States.onWayOut: {
+                    this.onWayOutMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+                case States.Exited: {
+                    this.exitedMove.getBoard().board.setValue(piece.uniqueId, piece.index);
+                    break;
+                }
+            }
+        }
+    }
+
+    public clearBoards(): void {
+        this.homeMove.clearBoard();
+        this.activeMove.clearBoard();
+        this.onWayOutMove.clearBoard();
+        this.exitedMove.clearBoard();
     }
 
     private decodeActiveMove(move: Move): string {

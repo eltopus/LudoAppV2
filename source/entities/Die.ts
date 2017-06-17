@@ -52,17 +52,21 @@ export class Die extends Phaser.Sprite {
     public selectActiveDie(): void {
         if (this.alpha === 0.5) {
             this.alpha = 1;
-            if (emit.getEmit() === true && emit.getEnableSocket()) {
+            if (emit.getEmit() === true) {
+                this.emitDice.setParameters(this);
+                this.socket.emit("unselectActiveDie", this.emitDice);
+            }else if (emit.getEnableSocket() === false) {
                 this.emitDice.setParameters(this);
                 this.signal.dispatch("unselectActiveDieLocal", this.emitDice);
-                this.socket.emit("unselectActiveDie", this.emitDice);
             }
         }else {
             this.alpha = 0.5;
             if (emit.getEmit() === true && emit.getEnableSocket()) {
                 this.emitDice.setParameters(this);
-                this.signal.dispatch("selectActiveDieLocal", this.emitDice);
                 this.socket.emit("selectActiveDie", this.emitDice);
+            }else if (emit.getEnableSocket() === false) {
+                this.emitDice.setParameters(this);
+                this.signal.dispatch("selectActiveDieLocal", this.emitDice);
             }
         }
     }
@@ -94,10 +98,12 @@ export class Die extends Phaser.Sprite {
             this.extFrame = this.getFrame(value);
             this.animation.play(20);
         }
-        if (emit.getEmit() === true && emit.getEnableSocket()) {
+        if (emit.getEmit() === true) {
+            this.emitDice.setParameters(this);
+            this.socket.emit("rollDice", this.emitDice);
+        }else if (emit.getEnableSocket() === false) {
             this.emitDice.setParameters(this);
             this.signal.dispatch("endOfDieRollLocal", this.emitDice);
-            this.socket.emit("rollDice", this.emitDice);
         }
     }
 
@@ -112,10 +118,12 @@ export class Die extends Phaser.Sprite {
 
     public consume(): void {
         this.frame = 3;
-        if (emit.getEmit() === true && emit.getEnableSocket()) {
+        if (emit.getEmit() === true) {
+            this.emitDice.setParameters(this);
+            this.socket.emit("consumeDie", this.emitDice);
+        }else if (emit.getEnableSocket() === false) {
             this.emitDice.setParameters(this);
             this.signal.dispatch("consumeDieLocal", this.emitDice);
-            this.socket.emit("consumeDie", this.emitDice);
         }
     }
 
@@ -146,6 +154,11 @@ export class Die extends Phaser.Sprite {
 
     public equalsValueSix(): boolean {
         return (this.getValue() === 6);
+    }
+
+    public resetDie(): void {
+        this.consumeWithoutEmission();
+        this.unSelectActiveDie();
     }
 
     public getFrame(value: number): number {
@@ -218,13 +231,13 @@ export class Die extends Phaser.Sprite {
 
     private setSocketHandlers(): void {
         this.socket.on("emitSelectActiveDie", (die: EmitDie) => {
-            if (emit.getEmit() === false && die.uniqueId === this.uniqueId) {
+            if (emit.getEmit() === false && die.uniqueId === this.uniqueId && emit.getEnableSocket() === true) {
                 // log.debug("Select piece: " + die.uniqueId);
                 this.select();
             }
         });
         this.socket.on("emitUnselectActiveDie", (die: EmitDie) => {
-            if (emit.getEmit() === false && die.uniqueId === this.uniqueId) {
+            if (emit.getEmit() === false && die.uniqueId === this.uniqueId && emit.getEnableSocket() === true) {
                 // log.debug("Select piece: " + die.uniqueId);
                 this.unSelectActiveDie();
             }

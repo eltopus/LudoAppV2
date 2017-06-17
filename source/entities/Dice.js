@@ -157,6 +157,10 @@ var Dice = (function () {
     Dice.prototype.hasSameDiceValues = function () {
         return (this.dieOne.getValue() === this.dieTwo.getValue());
     };
+    Dice.prototype.resetDice = function () {
+        this.dieOne.resetDie();
+        this.dieTwo.resetDie();
+    };
     return Dice;
 }());
 exports.Dice = Dice;

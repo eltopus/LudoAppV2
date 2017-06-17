@@ -9,6 +9,7 @@ import {Perimeters} from "./Perimeters";
 import {Perimeter} from "./Perimeters";
 import {LudoPiece} from "../game/LudoPiece";
 import {LudoPlayer} from "../game/LudoPlayer";
+import {LudoGame} from "../game/LudoGame";
 
 const log = factory.getLogger("model.Player");
 
@@ -230,15 +231,8 @@ export abstract class Player extends PieceFactory {
             }
     }
 
-    public pieceBelongsToMe(uniqueId: string): boolean {
-        let belongToMe = false;
-        for (let piece of this.pieces){
-            if (piece.uniqueId === uniqueId) {
-                belongToMe = true;
-                break;
-            }
-        }
-        return belongToMe;
+    public pieceBelongsToMe(playerId: string): boolean {
+        return (this.playerId === playerId);
     }
 
     public getPieceByUniqueId(uniqueId: string): Piece {
@@ -415,16 +409,48 @@ export abstract class Player extends PieceFactory {
         }
     }
 
-    public updateLudoPieces(ludopieces: LudoPiece[]): void {
-       for (let piece of this.pieces) {
-            piece.updateLudoPieces(ludopieces);
-        }
-    }
-
     public updatePlayerName(ludoplayers: LudoPlayer[]): void {
         for (let ludoplayer of ludoplayers){
             if (ludoplayer.playerId === this.playerId) {
                 this.playerName = ludoplayer.playerName;
+            }
+        }
+    }
+
+    public wins(): boolean {
+        let playerwins = true;
+        for (let piece of this.pieces) {
+            if (piece.isExited() === false) {
+                playerwins = false;
+                break;
+            }
+        }
+        return playerwins;
+    }
+
+    public resetPlayer(): void {
+        this.currentSelectedPiece = null;
+        this.previousDoubleSix = false;
+    }
+
+    public updateOnRestartLudoPieces(ludogame: LudoGame): void {
+        for (let ludoplayer of ludogame.ludoPlayers) {
+            if (ludoplayer.playerId === this.playerId) {
+                for (let piece of this.pieces){
+                    piece.updateOnRestartLudoPieces(ludoplayer.pieces);
+                }
+                break;
+            }
+        }
+    }
+
+    public updateOnReloadLudoPieces(ludogame: LudoGame): void {
+        for (let ludoplayer of ludogame.ludoPlayers) {
+            if (ludoplayer.playerId === this.playerId) {
+                for (let piece of this.pieces){
+                    piece.updateOnReloadLudoPieces(ludoplayer.pieces);
+                }
+                break;
             }
         }
     }

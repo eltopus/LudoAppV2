@@ -1,6 +1,7 @@
 import * as socketIO from "socket.io";
 import * as checksum from "checksum";
 import {LudoGame} from "./source/game/LudoGame";
+import {LudoPlayer} from "./source/game/LudoPlayer";
 import {Dictionary} from "typescript-collections";
 import {EmitPiece} from "./source/emit/EmitPiece";
 import {EmitDie} from "./source/emit/EmitDie";
@@ -33,6 +34,8 @@ export class Ludo {
         socket.on("getCheckSum", this.getCheckSum);
         socket.on("disconnect", this.disconnectionHandler);
         socket.on("updateGame", this.updateGame);
+        socket.on("saveGame", this.saveGame);
+        socket.on("restartGame", this.restartGame);
     }
 
 
@@ -42,16 +45,6 @@ export class Ludo {
         // callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames});
         this.assignPlayer(ludogame, req, (updatedludogame: any) => {
             if (updatedludogame.foundGame === true && updatedludogame.admin === false) {
-                let playerMode = 0;
-                for (let ludoplayer of updatedludogame.ludogame.ludoPlayers) {
-                    if (ludoplayer.isEmpty) {
-                        ++playerMode;
-                    }
-                }
-                if (playerMode === 0) {
-                    updatedludogame.ludogame.inProgress = true;
-                    console.log("Ludo game is in progress....");
-                }
                 ok = true;
             }
             // tslint:disable-next-line:max-line-length
@@ -75,7 +68,7 @@ export class Ludo {
 
     private assignRefreshPlayer(ludogame: LudoGame, req: any, callback: any): void {
         if (ludogame === null || typeof ludogame === "undefined" || req.session.playerName === "ADMIN") {
-            if (ludogame) {
+            if (ludogame && req.session.playerName === "ADMIN") {
                 ludogame.playerId = "SOMETHING COMPLETELY RANDOM";
             }
         }else {
@@ -96,7 +89,7 @@ export class Ludo {
         let availablePlayerNames: string[] = [];
         let message = `Cannot join ${req.body.gameId} because it is CANNOT be found!`;
         if (ludogame === null || typeof ludogame === "undefined" || req.body.playerName === "ADMIN") {
-            if (ludogame) {
+            if (ludogame && req.body.playerName === "ADMIN") {
                 foundGame = true;
                 admin = true;
                 ludogame.playerId = "SOMETHING COMPLETELY RANDOM";
@@ -149,30 +142,19 @@ export class Ludo {
     private disconnectionHandler(): void {
         let sock: any = this;
         let ludogame = cache.getValue(sock.gameId);
-        if (ludogame) {
+        if (ludogame && sock.playerName !== "ADMIN") {
             for (let disconnectedPlayer of ludogame.ludoPlayers){
                 if (disconnectedPlayer.playerId === sock.playerId) {
                     disconnectedPlayer.isEmpty = true;
+                    io.in(sock.gameId).emit("disconnectedPlayerId", sock.playerId);
+                    sock.leave(sock.gameId);
                     break;
                 }
             }
+        }else if (ludogame && sock.playerName === "ADMIN") {
+            sock.leave(sock.gameId);
         }
         console.log("Playername: " + sock.playerName + " has diconnected");
-        io.in(sock.gameId).emit("disconnectedPlayerId", sock.playerId);
-    }
-
-    private unassignPlayer(ludogame: LudoGame, playerId: string, callback: any): void {
-        if (ludogame === null || typeof ludogame === "undefined") {
-            // do nothing
-        }else {
-            for (let disconnectedPlayer of ludogame.ludoPlayers){
-                if (disconnectedPlayer.playerId === playerId) {
-                    disconnectedPlayer.isEmpty = true;
-                    break;
-                }
-            }
-        }
-        callback(playerId);
     }
 
     private getAvailableColors(chosenColors: string[], ludogame: LudoGame): string[] {
@@ -200,7 +182,6 @@ export class Ludo {
         sock.handshake.session.gameId = ludogame.gameId;
         sock.handshake.session.playerId = ludogame.ludoPlayers[0].playerId;
         sock.handshake.session.playerName = ludogame.ludoPlayers[0].playerName;
-
         sock.playerName = ludogame.ludoPlayers[0].playerName;
         sock.gameId = ludogame.gameId;
         sock.playerId = ludogame.ludoPlayers[0].playerId;
@@ -229,6 +210,20 @@ export class Ludo {
             message = `${ludogame.gameId} was successfuly joined....`;
             sock.join(sock.handshake.session.gameId);
             if (sock.handshake.session.playerName !== "ADMIN") {
+                if (ludogame.inProgress === false) {
+                    let playerMode = 0;
+                    for (let ludoplayer of ludogame.ludoPlayers) {
+                        if (ludoplayer.isEmpty === true) {
+                            ++playerMode;
+                        }
+                    }
+                    if (playerMode === 0) {
+                        ludogame.inProgress = true;
+                        console.log("Ludo game is in progress.... Setting value to true " + ludogame.inProgress);
+                    }
+
+                    console.log("In progress  " + ludogame.inProgress + " ori " + ludogame.originalLudoGame + " mode " + playerMode);
+                }
                 sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
             }
         }else {
@@ -260,7 +255,7 @@ export class Ludo {
             }
             // console.log("----------------------------------------------------------------------------------");
         }
-        io.in(die.gameId).emit("emitRollDice", die);
+        sock.broadcast.to(die.gameId).emit("emitRollDice", die);
     }
 
     private consumeDie(die: EmitDie): void {
@@ -342,13 +337,13 @@ export class Ludo {
     }
 
     private pieceMovement(movement: Move): void {
-        // console.log("Emitting Playing  " + movement.diceId + " on: " + movement.pieceId);
-        io.in(movement.gameId).emit("emitPieceMovement", movement);
+        let sock: any = this;
+        sock.broadcast.to(movement.gameId).emit("emitPieceMovement", movement);
     }
 
     private aiPieceMovement(movement: Move): void {
-        // console.log("Emitting AI Playing  " + movement.diceId + " on: " + movement.pieceId);
-        io.in(movement.gameId).emit("emitAIPieceMovement", movement);
+        let sock: any = this;
+        sock.broadcast.to(movement.gameId).emit("emitAIPieceMovement", movement);
     }
 
     private selectActiveDie(emitDie: EmitDie): void {
@@ -430,6 +425,53 @@ export class Ludo {
 
     private updateGame(gameId: string, callback: any): void {
         let ludogame = cache.getValue(gameId);
+        callback(ludogame);
+    }
+
+    private getNumberOfPlayersIn(gameId: string, playerMode: number): number {
+        let ludogame = io.nsps["/"].adapter.rooms[gameId].sockets;
+        return Object.keys(ludogame).length;
+    }
+
+    private saveGame(ludogame: LudoGame, callback: any): void {
+        if (ludogame) {
+            cache.setValue(ludogame.gameId, ludogame);
+        }
+        callback(true);
+    }
+
+    private restartGame(callback: any): void {
+         let sock: any = this;
+         let ludogame = cache.getValue(sock.gameId);
+         if (ludogame) {
+            ludogame.ludoPlayers.sort((a: LudoPlayer, b: LudoPlayer) => {
+                if (a.sequenceNumber < b.sequenceNumber) {
+                    return -1;
+                }
+                if (a.sequenceNumber > b.sequenceNumber) {
+                    return 1;
+                }
+                return 0;
+            });
+
+            for (let player of ludogame.ludoPlayers) {
+                player.previousDoubleSix = false;
+                player.currentSelectedPiece = null;
+                for (let piece of player.pieces) {
+                    piece.currentPosition = piece.homePosition;
+                    piece.index = -1;
+                    piece.state = States.AtHome;
+                    piece.collidingPiece = null;
+                }
+            }
+            ludogame.ludoDice.dieOne.extFrame = 3;
+            ludogame.ludoDice.dieOne.dieValue = 0;
+            ludogame.ludoDice.dieOne.isSelected = false;
+            ludogame.ludoDice.dieTwo.extFrame = 3;
+            ludogame.ludoDice.dieTwo.dieValue = 0;
+            ludogame.ludoDice.dieTwo.isSelected = false;
+        }
+        sock.broadcast.to(sock.gameId).emit("restartGame", ludogame);
         callback(ludogame);
     }
 
