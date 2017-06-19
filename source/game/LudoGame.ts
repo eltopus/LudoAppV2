@@ -1,5 +1,6 @@
 import {ColorType} from "../enums/ColorType";
 import {States} from "../enums/States";
+import {LudoGameStatus} from "../enums/LudoGameStatus";
 import {PiecePosition} from "../entities/PiecePosition";
 import {LudoPiece} from "./LudoPiece";
 import {LudoPlayer} from "./LudoPlayer";
@@ -16,7 +17,7 @@ export class LudoGame {
     public availableColors = ["RED", "BLUE", "YELLOW", "GREEN"];
     public currrentPlayerId = "";
     public playerId = "";
-    public inProgress = false;
+    public status = LudoGameStatus.NEW;
     public playerMode: number = null;
     public indexTotal = 0;
     public originalLudoGame = "";

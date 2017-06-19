@@ -1,4 +1,5 @@
 "use strict";
+var LudoGameStatus_1 = require("../enums/LudoGameStatus");
 var LudoPlayer_1 = require("./LudoPlayer");
 var LudoDice_1 = require("./LudoDice");
 var LudoGame = (function () {
@@ -8,7 +9,7 @@ var LudoGame = (function () {
         this.availableColors = ["RED", "BLUE", "YELLOW", "GREEN"];
         this.currrentPlayerId = "";
         this.playerId = "";
-        this.inProgress = false;
+        this.status = LudoGameStatus_1.LudoGameStatus.NEW;
         this.playerMode = null;
         this.indexTotal = 0;
         this.originalLudoGame = "";

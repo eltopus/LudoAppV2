@@ -1,17 +1,46 @@
 import * as socketIO from "socket.io";
 import * as checksum from "checksum";
+// import * as cache from "memory-cache";
+import * as NodeCache from "node-cache";
+import * as async from "async";
+import * as ioredis from "ioredis";
 import {LudoGame} from "./source/game/LudoGame";
 import {LudoPlayer} from "./source/game/LudoPlayer";
 import {Dictionary} from "typescript-collections";
 import {EmitPiece} from "./source/emit/EmitPiece";
 import {EmitDie} from "./source/emit/EmitDie";
 import {Move} from "./source/rules/Move";
-import {LudoCache} from "./LudoCache";
+import {LudoPersistence} from "./LudoPersistence";
 import {States} from "./source/enums/States";
+import {LudoGameStatus} from "./source/enums/LudoGameStatus";
 
-let cache = LudoCache.getInstance();
+let cache = new NodeCache({stdTTL: 3600, checkperiod: 3800, useClones: false});
+/*
+let redis = new ioredis({
+    family: 4,
+    host: "192.168.5.129",
+    port: 6379,
+});
+
+let ping = function(e) {
+    let result = redis.ping()
+        .then(function(e) {
+            console.log(redis);
+            console.log("Connected!");
+        })
+        .catch(function(e) {
+            console.log("Error:", e);
+        })
+        .finally(function() {
+            redis.quit();
+        });
+};
+*/
+let persistence = LudoPersistence.getInstance();
 let socket: SocketIO.Socket;
 let io: SocketIO.Server;
+const ttlExtension = 1000;
+
 export class Ludo {
 //
     public initLudo(gameio: SocketIO.Server, gamesocket: SocketIO.Socket) {
@@ -35,34 +64,52 @@ export class Ludo {
         socket.on("disconnect", this.disconnectionHandler);
         socket.on("updateGame", this.updateGame);
         socket.on("saveGame", this.saveGame);
+        socket.on("saveLudoGame", this.saveLudoGame);
         socket.on("restartGame", this.restartGame);
+        /*
+        cache.on( "expired", ( key: any, value: any ) => {
+            console.log(`key ${key} has expired and its about to be deleted at ${new Date().toLocaleTimeString()}`);
+        });
+        */
+
+        cache.on( "del", function( gameId: any, ludogame: LudoGame ){
+            console.log(`key ${gameId} has been deleted at ${new Date().toLocaleTimeString()}`);
+            io.to(gameId).emit("message", `Your game session for ${gameId} has timed out`, "TIMEOUT");
+            if (ludogame.status === LudoGameStatus.INPROGRESS) {
+                ludogame.status = LudoGameStatus.SUSPENDED;
+                persistence.setValue(ludogame);
+            }
+        });
     }
 
 
     public getExistingGame(req: any, callback: any): void {
-        let ludogame = cache.getValue(req.body.gameId);
         let ok = false;
-        // callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames});
-        this.assignPlayer(ludogame, req, (updatedludogame: any) => {
+        this.fetchLudoGame(req.body.gameId, (ludogame: any) => {
+            console.log(" I got result back" + ludogame);
+            this.assignPlayer(ludogame, req, (updatedludogame: any) => {
             if (updatedludogame.foundGame === true && updatedludogame.admin === false) {
                 ok = true;
             }
             // tslint:disable-next-line:max-line-length
             callback({ok: ok, updatedludogame: updatedludogame.ludogame, message: updatedludogame.message, availablePlayerNames: updatedludogame.availablePlayerNames, admin: updatedludogame.admin});
+            });
         });
     }
 
     public getRefreshGame(req: any, callback: any): void {
-        let ludogame = cache.getValue(req.session.gameId);
         let ok = false;
         let message = "";
-        this.assignRefreshPlayer(ludogame, req, (updatedludogame: LudoGame) => {
-            if (updatedludogame) {
-                ok = true;
-            }else {
-                message = `Error! ${req.session.gameId} cannot be found!`;
-            }
-            callback({ok: ok, updatedludogame: updatedludogame, message: message});
+        this.fetchLudoGame(req.session.gameId, (ludogame: any) => {
+            console.log(" I got result back" + ludogame);
+            this.assignRefreshPlayer(ludogame, req, (updatedludogame: LudoGame) => {
+                if (updatedludogame) {
+                    ok = true;
+                }else {
+                    message = `Error! ${req.session.gameId} cannot be found!`;
+                }
+                callback({ok: ok, updatedludogame: updatedludogame, message: message});
+            });
         });
     }
 
@@ -101,9 +148,10 @@ export class Ludo {
             }
         }else {
             let playerName = req.body.playerName;
-            if (ludogame.inProgress === true) {
+            if (ludogame.status === LudoGameStatus.INPROGRESS) {
                 for (let availPlayer of ludogame.ludoPlayers){
                     if (availPlayer.isEmpty === true) {
+                        // console.log("Available name " + availPlayer.playerName);
                         if (playerName === availPlayer.playerName) {
                             ludogame.playerId = availPlayer.playerId;
                             availPlayer.isEmpty = false;
@@ -141,7 +189,12 @@ export class Ludo {
 
     private disconnectionHandler(): void {
         let sock: any = this;
-        let ludogame = cache.getValue(sock.gameId);
+        let ludogame;
+        try {
+            ludogame = cache.get(sock.gameId);
+        }catch (err) {
+            console.log("Disconnection error ");
+        }
         if (ludogame && sock.playerName !== "ADMIN") {
             for (let disconnectedPlayer of ludogame.ludoPlayers){
                 if (disconnectedPlayer.playerId === sock.playerId) {
@@ -150,6 +203,12 @@ export class Ludo {
                     sock.leave(sock.gameId);
                     break;
                 }
+            }
+            let clients = io.sockets.adapter.rooms[sock.gameId];
+            let numClients = (typeof clients !== "undefined") ? Object.keys(clients).length : 0;
+            if (numClients === 0 && ludogame.status === LudoGameStatus.INPROGRESS) {
+                console.log("Room is empty! Saving to database..........." + numClients);
+                persistence.setValue(ludogame);
             }
         }else if (ludogame && sock.playerName === "ADMIN") {
             sock.leave(sock.gameId);
@@ -190,7 +249,13 @@ export class Ludo {
         let sessionId = sock.handshake.session.id;
         let message = `${ludogame.gameId} was successfuly created with sessionId ${sessionId} and available colors are ${colors}`;
         ludogame.ludoPlayers[0].isEmpty = false;
-        cache.setValue(ludogame.gameId, ludogame);
+        cache.set(ludogame.gameId, ludogame, (err: any, success: any) => {
+            if ( !err && success ) {
+                console.log(`Game created and saved in cache successfully is ${success} at ${new Date().toLocaleTimeString()}`);
+            }else {
+               console.log(`Game created saved in cache successfully is ${err}`);
+            }
+        });
         sock.join(ludogame.gameId);
         callback({ok: true, message: message, emit: true});
     }
@@ -198,7 +263,7 @@ export class Ludo {
     private joinExistingGame(callback: any): void {
         let sock: any = this;
         console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
-        let ludogame = cache.getValue(sock.handshake.session.gameId);
+        let ludogame = cache.get(sock.handshake.session.gameId);
         let message = "";
         let ok = false;
         let sessionId = sock.handshake.session.id;
@@ -210,7 +275,7 @@ export class Ludo {
             message = `${ludogame.gameId} was successfuly joined....`;
             sock.join(sock.handshake.session.gameId);
             if (sock.handshake.session.playerName !== "ADMIN") {
-                if (ludogame.inProgress === false) {
+                if (ludogame.status === LudoGameStatus.NEW) {
                     let playerMode = 0;
                     for (let ludoplayer of ludogame.ludoPlayers) {
                         if (ludoplayer.isEmpty === true) {
@@ -218,11 +283,17 @@ export class Ludo {
                         }
                     }
                     if (playerMode === 0) {
-                        ludogame.inProgress = true;
-                        console.log("Ludo game is in progress.... Setting value to true " + ludogame.inProgress);
+                        ludogame.status = LudoGameStatus.INPROGRESS;
+                        console.log("Ludo game is in progress.... Setting value to true ");
+                        cache.set(ludogame.gameId, ludogame, (err: any, success: any) => {
+                            if ( !err && success ) {
+                                console.log(`Game ${ludogame.gameId} was successfully jonined at ${new Date().toLocaleTimeString()}`);
+                                persistence.setValue(ludogame);
+                            }else {
+                            console.log(`Game in progress update is saved in cache successfully?  ${err}`);
+                            }
+                        });
                     }
-
-                    console.log("In progress  " + ludogame.inProgress + " ori " + ludogame.originalLudoGame + " mode " + playerMode);
                 }
                 sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
             }
@@ -241,7 +312,12 @@ export class Ludo {
         let sock: any = this;
         // console.log("Broadcating roll dice" + sock.id);
         // console.log("----------------------------------------------------------------------------------");
-        let ludogame = cache.getValue(die.gameId);
+        let ludogame = cache.get(die.gameId);
+        cache.ttl( die.gameId, ttlExtension, function( err: any, changed: any ){
+            if ( !err ) {
+                // console.log( "Roll dice extension" + changed );
+            }
+        });
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Dice Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.dieValue);
@@ -259,7 +335,7 @@ export class Ludo {
     }
 
     private consumeDie(die: EmitDie): void {
-        let ludogame = cache.getValue(die.gameId);
+        let ludogame = cache.get(die.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Consume Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isConsumed);
@@ -279,7 +355,7 @@ export class Ludo {
 
     private selectActivePiece(emitPiece: EmitPiece): void {
         let sock: any  = this;
-        let ludogame = cache.getValue(emitPiece.gameId);
+        let ludogame = cache.get(emitPiece.gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 if (player.playerId === emitPiece.playerId) {
@@ -294,7 +370,7 @@ export class Ludo {
     }
 
     private setBackToHome(emitPiece: EmitPiece): void {
-        let ludogame = cache.getValue(emitPiece.gameId);
+        let ludogame = cache.get(emitPiece.gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 if (player.playerId === emitPiece.playerId) {
@@ -314,7 +390,7 @@ export class Ludo {
     }
 
     private setStateChange(emitPiece: EmitPiece): void {
-        let ludogame = cache.getValue(emitPiece.gameId);
+        let ludogame = cache.get(emitPiece.gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 if (player.playerId === emitPiece.playerId) {
@@ -348,7 +424,7 @@ export class Ludo {
 
     private selectActiveDie(emitDie: EmitDie): void {
         let sock: any = this;
-        let ludogame = cache.getValue(emitDie.gameId);
+        let ludogame = cache.get(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -367,7 +443,7 @@ export class Ludo {
 
     private unselectActiveDie(emitDie: EmitDie): void {
         let sock: any = this;
-        let ludogame = cache.getValue(emitDie.gameId);
+        let ludogame = cache.get(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -387,7 +463,7 @@ export class Ludo {
     private changePlayer(gameId: string, nextPlayerId: string, callback: any): void {
         let sock: any = this;
         let currentPlayerId = sock.handshake.session.playerId;
-        let ludogame: LudoGame = cache.getValue(gameId);
+        let ludogame: LudoGame = cache.get(gameId);
         let indexTotal = 0;
         if (ludogame) {
             if (currentPlayerId === ludogame.ludoPlayers[0].playerId && nextPlayerId !== ludogame.ludoPlayers[0].playerId) {
@@ -414,7 +490,7 @@ export class Ludo {
 
     private getCheckSum(gameId: string, callback: any): void {
         let check_sum = "";
-        let ludogame = cache.getValue(gameId);
+        let ludogame = cache.get(gameId);
         if (ludogame) {
             for (let player of ludogame.ludoPlayers){
                 check_sum = check_sum + "#" + (checksum(JSON.stringify(player.pieces)));
@@ -424,25 +500,42 @@ export class Ludo {
     }
 
     private updateGame(gameId: string, callback: any): void {
-        let ludogame = cache.getValue(gameId);
+        let ludogame = cache.get(gameId);
         callback(ludogame);
     }
 
-    private getNumberOfPlayersIn(gameId: string, playerMode: number): number {
+    private getNumberOfPlayersIn(gameId: string, callback): void {
         let ludogame = io.nsps["/"].adapter.rooms[gameId].sockets;
-        return Object.keys(ludogame).length;
+        callback(Object.keys(ludogame).length);
     }
 
     private saveGame(ludogame: LudoGame, callback: any): void {
         if (ludogame) {
-            cache.setValue(ludogame.gameId, ludogame);
+            cache.set(ludogame.gameId, ludogame, (err: any, success: any) => {
+            if ( !err && success ) {
+                    console.log(`Game is saved in cache successfully? ${success}`);
+                }else {
+                    console.log(`Game is saved in cache successfully?  ${err}`);
+                }
+            });
         }
         callback(true);
     }
 
+    private saveLudoGame(gameId: string, callback: any): void {
+        cache.get(gameId, (err: any, ludogame: any) => {
+            if ( !err ) {
+                if (typeof ludogame !== "undefined" && ludogame !== null && ludogame.status === LudoGameStatus.INPROGRESS) {
+                    persistence.setUpdate(ludogame);
+                }
+            }
+            callback(ludogame);
+        });
+    }
+
     private restartGame(callback: any): void {
          let sock: any = this;
-         let ludogame = cache.getValue(sock.gameId);
+         let ludogame = cache.get(sock.gameId);
          if (ludogame) {
             ludogame.ludoPlayers.sort((a: LudoPlayer, b: LudoPlayer) => {
                 if (a.sequenceNumber < b.sequenceNumber) {
@@ -473,6 +566,57 @@ export class Ludo {
         }
         sock.broadcast.to(sock.gameId).emit("restartGame", ludogame);
         callback(ludogame);
+    }
+
+    private getFromCache(gameId: string, callback: any): void {
+        let ludogame;
+        try {
+            ludogame = cache.get(gameId);
+        }catch (err) {
+            console.log("Getting error " + err);
+        }
+        callback(ludogame);
+    }
+
+    private fetchLudoGame(gameId: string, cb: any): void {
+        async.waterfall([
+            (callback: any) => {
+                this.getFromCache(gameId, (result: any) => {
+                     console.log(" I am getting result from cache " + result);
+                    callback(null, result);
+                });
+            },
+            (result: any, callback: any) => {
+                if (result === null || typeof result === "undefined") {
+                    // console.log(" Result is null I am getting result from mongo " + gameId);
+                    persistence.getValue(gameId, (resultfromdb: any) => {
+                        let ludogame = resultfromdb[0];
+                        if (ludogame) {
+                            for (let player of ludogame.ludoPlayers) {
+                                player.isEmpty = true;
+                            }
+                            // console.log(" I resaving in cache " + ludogame);
+                            cache.set(ludogame.gameId, ludogame, (err: any, success: any) => {
+                            if ( !err && success ) {
+                                console.log(`Game from mongo is saved in cache successfully? ${success}`);
+                            }else {
+                                console.log(`Game from mongo is saved in cache successfully?  ${err}`);
+                            }
+                        });
+                            // redis.set(ludogame.gameId, JSON.stringify(ludogame));
+                        }
+                        console.log(" I am returning result from mongo " + ludogame);
+                        return callback(ludogame);
+                    });
+                }else {
+                    // console.log(" I am returning result from cache " + result + " req" + gameId);
+                    callback(result);
+                }
+            },
+        ], (result: any) => {
+            // console.log(" I am returning frinal result " + result);
+                cb(result);
+            });
     }
 
 }

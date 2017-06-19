@@ -91,7 +91,7 @@ export class Game extends Phaser.State {
         reportBtn.scale.x = 0.3;
         reportBtn.scale.y = 0.3;
         buttonGroup.add(reportBtn);
-        let updateBtn = this.make.button(810, 323, "updateBtn", this.saveGame, this, 2, 1, 0);
+        let updateBtn = this.make.button(810, 323, "updateBtn", this.saveLudoGame, this, 2, 1, 0);
         updateBtn.alpha = 0.5;
         updateBtn.scale.x = 0.6;
         updateBtn.scale.y = 0.6;
@@ -100,7 +100,7 @@ export class Game extends Phaser.State {
 
         if (this.newPlayers.hasSavedGame) {
             if (emit.getEnableSocket()) {
-                this.socket = cio();
+                this.socket = cio({reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 5000, reconnectionAttempts: 5});
             }
             if (emit.getEnableSocket() === false) {
                 this.localGame.setLudoGame(this.newPlayers.ludogame);
@@ -149,7 +149,7 @@ export class Game extends Phaser.State {
 
         } else {
             if (emit.getEnableSocket()) {
-                this.socket = cio();
+                this.socket = cio({reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 5000, reconnectionAttempts: 5});
             }
             let dieOneUUID = UUID.UUID();
             let dieTwoUUID = UUID.UUID();
@@ -268,6 +268,19 @@ export class Game extends Phaser.State {
         this.socket.emit("saveGame", ludogame, (data: any) => {
             log.debug(" I saved....");
         });
+    }
+
+    private saveLudoGame(): void {
+        if (this.isCreator === true) {
+            this.socket.emit("saveLudoGame", this.gameId, (ludogame: LudoGame) => {
+                if (ludogame) {
+                    log.debug(" I saved...." + ludogame.gameId);
+                }
+                Display.show(" I saved...." + ludogame.gameId);
+            });
+        }else {
+            Display.show("You cannot save because you are NOT the creator");
+        }
     }
 
     private resaveGame(listener: string): void {

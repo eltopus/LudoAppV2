@@ -1,10 +1,37 @@
 "use strict";
 var checksum = require("checksum");
-var LudoCache_1 = require("./LudoCache");
+// import * as cache from "memory-cache";
+var NodeCache = require("node-cache");
+var async = require("async");
+var LudoPersistence_1 = require("./LudoPersistence");
 var States_1 = require("./source/enums/States");
-var cache = LudoCache_1.LudoCache.getInstance();
+var LudoGameStatus_1 = require("./source/enums/LudoGameStatus");
+var cache = new NodeCache({ stdTTL: 3600, checkperiod: 3800, useClones: false });
+/*
+let redis = new ioredis({
+    family: 4,
+    host: "192.168.5.129",
+    port: 6379,
+});
+
+let ping = function(e) {
+    let result = redis.ping()
+        .then(function(e) {
+            console.log(redis);
+            console.log("Connected!");
+        })
+        .catch(function(e) {
+            console.log("Error:", e);
+        })
+        .finally(function() {
+            redis.quit();
+        });
+};
+*/
+var persistence = LudoPersistence_1.LudoPersistence.getInstance();
 var socket;
 var io;
+var ttlExtension = 1000;
 var Ludo = (function () {
     function Ludo() {
     }
@@ -29,32 +56,51 @@ var Ludo = (function () {
         socket.on("disconnect", this.disconnectionHandler);
         socket.on("updateGame", this.updateGame);
         socket.on("saveGame", this.saveGame);
+        socket.on("saveLudoGame", this.saveLudoGame);
         socket.on("restartGame", this.restartGame);
+        /*
+        cache.on( "expired", ( key: any, value: any ) => {
+            console.log(`key ${key} has expired and its about to be deleted at ${new Date().toLocaleTimeString()}`);
+        });
+        */
+        cache.on("del", function (gameId, ludogame) {
+            console.log("key " + gameId + " has been deleted at " + new Date().toLocaleTimeString());
+            io.to(gameId).emit("message", "Your game session for " + gameId + " has timed out", "TIMEOUT");
+            if (ludogame.status === LudoGameStatus_1.LudoGameStatus.INPROGRESS) {
+                ludogame.status = LudoGameStatus_1.LudoGameStatus.SUSPENDED;
+                persistence.setValue(ludogame);
+            }
+        });
     };
     Ludo.prototype.getExistingGame = function (req, callback) {
-        var ludogame = cache.getValue(req.body.gameId);
+        var _this = this;
         var ok = false;
-        // callback({ludogame: ludogame, foundGame: foundGame, availablePlayerNames: availablePlayerNames});
-        this.assignPlayer(ludogame, req, function (updatedludogame) {
-            if (updatedludogame.foundGame === true && updatedludogame.admin === false) {
-                ok = true;
-            }
-            // tslint:disable-next-line:max-line-length
-            callback({ ok: ok, updatedludogame: updatedludogame.ludogame, message: updatedludogame.message, availablePlayerNames: updatedludogame.availablePlayerNames, admin: updatedludogame.admin });
+        this.fetchLudoGame(req.body.gameId, function (ludogame) {
+            console.log(" I got result back" + ludogame);
+            _this.assignPlayer(ludogame, req, function (updatedludogame) {
+                if (updatedludogame.foundGame === true && updatedludogame.admin === false) {
+                    ok = true;
+                }
+                // tslint:disable-next-line:max-line-length
+                callback({ ok: ok, updatedludogame: updatedludogame.ludogame, message: updatedludogame.message, availablePlayerNames: updatedludogame.availablePlayerNames, admin: updatedludogame.admin });
+            });
         });
     };
     Ludo.prototype.getRefreshGame = function (req, callback) {
-        var ludogame = cache.getValue(req.session.gameId);
+        var _this = this;
         var ok = false;
         var message = "";
-        this.assignRefreshPlayer(ludogame, req, function (updatedludogame) {
-            if (updatedludogame) {
-                ok = true;
-            }
-            else {
-                message = "Error! " + req.session.gameId + " cannot be found!";
-            }
-            callback({ ok: ok, updatedludogame: updatedludogame, message: message });
+        this.fetchLudoGame(req.session.gameId, function (ludogame) {
+            console.log(" I got result back" + ludogame);
+            _this.assignRefreshPlayer(ludogame, req, function (updatedludogame) {
+                if (updatedludogame) {
+                    ok = true;
+                }
+                else {
+                    message = "Error! " + req.session.gameId + " cannot be found!";
+                }
+                callback({ ok: ok, updatedludogame: updatedludogame, message: message });
+            });
         });
     };
     Ludo.prototype.assignRefreshPlayer = function (ludogame, req, callback) {
@@ -94,10 +140,11 @@ var Ludo = (function () {
         }
         else {
             var playerName = req.body.playerName;
-            if (ludogame.inProgress === true) {
+            if (ludogame.status === LudoGameStatus_1.LudoGameStatus.INPROGRESS) {
                 for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                     var availPlayer = _a[_i];
                     if (availPlayer.isEmpty === true) {
+                        // console.log("Available name " + availPlayer.playerName);
                         if (playerName === availPlayer.playerName) {
                             ludogame.playerId = availPlayer.playerId;
                             availPlayer.isEmpty = false;
@@ -135,7 +182,13 @@ var Ludo = (function () {
     };
     Ludo.prototype.disconnectionHandler = function () {
         var sock = this;
-        var ludogame = cache.getValue(sock.gameId);
+        var ludogame;
+        try {
+            ludogame = cache.get(sock.gameId);
+        }
+        catch (err) {
+            console.log("Disconnection error ");
+        }
         if (ludogame && sock.playerName !== "ADMIN") {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var disconnectedPlayer = _a[_i];
@@ -145,6 +198,12 @@ var Ludo = (function () {
                     sock.leave(sock.gameId);
                     break;
                 }
+            }
+            var clients = io.sockets.adapter.rooms[sock.gameId];
+            var numClients = (typeof clients !== "undefined") ? Object.keys(clients).length : 0;
+            if (numClients === 0 && ludogame.status === LudoGameStatus_1.LudoGameStatus.INPROGRESS) {
+                console.log("Room is empty! Saving to database..........." + numClients);
+                persistence.setValue(ludogame);
             }
         }
         else if (ludogame && sock.playerName === "ADMIN") {
@@ -184,14 +243,21 @@ var Ludo = (function () {
         var sessionId = sock.handshake.session.id;
         var message = ludogame.gameId + " was successfuly created with sessionId " + sessionId + " and available colors are " + colors;
         ludogame.ludoPlayers[0].isEmpty = false;
-        cache.setValue(ludogame.gameId, ludogame);
+        cache.set(ludogame.gameId, ludogame, function (err, success) {
+            if (!err && success) {
+                console.log("Game created and saved in cache successfully is " + success + " at " + new Date().toLocaleTimeString());
+            }
+            else {
+                console.log("Game created saved in cache successfully is " + err);
+            }
+        });
         sock.join(ludogame.gameId);
         callback({ ok: true, message: message, emit: true });
     };
     Ludo.prototype.joinExistingGame = function (callback) {
         var sock = this;
         console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
-        var ludogame = cache.getValue(sock.handshake.session.gameId);
+        var ludogame = cache.get(sock.handshake.session.gameId);
         var message = "";
         var ok = false;
         var sessionId = sock.handshake.session.id;
@@ -203,7 +269,7 @@ var Ludo = (function () {
             message = ludogame.gameId + " was successfuly joined....";
             sock.join(sock.handshake.session.gameId);
             if (sock.handshake.session.playerName !== "ADMIN") {
-                if (ludogame.inProgress === false) {
+                if (ludogame.status === LudoGameStatus_1.LudoGameStatus.NEW) {
                     var playerMode = 0;
                     for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                         var ludoplayer = _a[_i];
@@ -212,10 +278,18 @@ var Ludo = (function () {
                         }
                     }
                     if (playerMode === 0) {
-                        ludogame.inProgress = true;
-                        console.log("Ludo game is in progress.... Setting value to true " + ludogame.inProgress);
+                        ludogame.status = LudoGameStatus_1.LudoGameStatus.INPROGRESS;
+                        console.log("Ludo game is in progress.... Setting value to true ");
+                        cache.set(ludogame.gameId, ludogame, function (err, success) {
+                            if (!err && success) {
+                                console.log("Game " + ludogame.gameId + " was successfully jonined at " + new Date().toLocaleTimeString());
+                                persistence.setValue(ludogame);
+                            }
+                            else {
+                                console.log("Game in progress update is saved in cache successfully?  " + err);
+                            }
+                        });
                     }
-                    console.log("In progress  " + ludogame.inProgress + " ori " + ludogame.originalLudoGame + " mode " + playerMode);
                 }
                 sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
             }
@@ -232,7 +306,11 @@ var Ludo = (function () {
         var sock = this;
         // console.log("Broadcating roll dice" + sock.id);
         // console.log("----------------------------------------------------------------------------------");
-        var ludogame = cache.getValue(die.gameId);
+        var ludogame = cache.get(die.gameId);
+        cache.ttl(die.gameId, ttlExtension, function (err, changed) {
+            if (!err) {
+            }
+        });
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Dice Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.dieValue);
@@ -246,7 +324,7 @@ var Ludo = (function () {
         sock.broadcast.to(die.gameId).emit("emitRollDice", die);
     };
     Ludo.prototype.consumeDie = function (die) {
-        var ludogame = cache.getValue(die.gameId);
+        var ludogame = cache.get(die.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === die.uniqueId) {
                 // console.log("Consume Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isConsumed);
@@ -260,7 +338,7 @@ var Ludo = (function () {
     };
     Ludo.prototype.selectActivePiece = function (emitPiece) {
         var sock = this;
-        var ludogame = cache.getValue(emitPiece.gameId);
+        var ludogame = cache.get(emitPiece.gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];
@@ -275,7 +353,7 @@ var Ludo = (function () {
         sock.volatile.to(emitPiece.gameId).emit("emitSelectActivePiece", emitPiece);
     };
     Ludo.prototype.setBackToHome = function (emitPiece) {
-        var ludogame = cache.getValue(emitPiece.gameId);
+        var ludogame = cache.get(emitPiece.gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];
@@ -296,7 +374,7 @@ var Ludo = (function () {
         }
     };
     Ludo.prototype.setStateChange = function (emitPiece) {
-        var ludogame = cache.getValue(emitPiece.gameId);
+        var ludogame = cache.get(emitPiece.gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];
@@ -328,7 +406,7 @@ var Ludo = (function () {
     };
     Ludo.prototype.selectActiveDie = function (emitDie) {
         var sock = this;
-        var ludogame = cache.getValue(emitDie.gameId);
+        var ludogame = cache.get(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -344,7 +422,7 @@ var Ludo = (function () {
     };
     Ludo.prototype.unselectActiveDie = function (emitDie) {
         var sock = this;
-        var ludogame = cache.getValue(emitDie.gameId);
+        var ludogame = cache.get(emitDie.gameId);
         if (ludogame) {
             if (ludogame.ludoDice.dieOne.uniqueId === emitDie.uniqueId) {
                 // console.log("Select Before " + ludogame.ludoDice.dieOne.uniqueId + " value: " + ludogame.ludoDice.dieOne.isSelected);
@@ -361,7 +439,7 @@ var Ludo = (function () {
     Ludo.prototype.changePlayer = function (gameId, nextPlayerId, callback) {
         var sock = this;
         var currentPlayerId = sock.handshake.session.playerId;
-        var ludogame = cache.getValue(gameId);
+        var ludogame = cache.get(gameId);
         var indexTotal = 0;
         if (ludogame) {
             if (currentPlayerId === ludogame.ludoPlayers[0].playerId && nextPlayerId !== ludogame.ludoPlayers[0].playerId) {
@@ -387,7 +465,7 @@ var Ludo = (function () {
     };
     Ludo.prototype.getCheckSum = function (gameId, callback) {
         var check_sum = "";
-        var ludogame = cache.getValue(gameId);
+        var ludogame = cache.get(gameId);
         if (ludogame) {
             for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
                 var player = _a[_i];
@@ -397,22 +475,39 @@ var Ludo = (function () {
         callback(check_sum);
     };
     Ludo.prototype.updateGame = function (gameId, callback) {
-        var ludogame = cache.getValue(gameId);
+        var ludogame = cache.get(gameId);
         callback(ludogame);
     };
-    Ludo.prototype.getNumberOfPlayersIn = function (gameId, playerMode) {
+    Ludo.prototype.getNumberOfPlayersIn = function (gameId, callback) {
         var ludogame = io.nsps["/"].adapter.rooms[gameId].sockets;
-        return Object.keys(ludogame).length;
+        callback(Object.keys(ludogame).length);
     };
     Ludo.prototype.saveGame = function (ludogame, callback) {
         if (ludogame) {
-            cache.setValue(ludogame.gameId, ludogame);
+            cache.set(ludogame.gameId, ludogame, function (err, success) {
+                if (!err && success) {
+                    console.log("Game is saved in cache successfully? " + success);
+                }
+                else {
+                    console.log("Game is saved in cache successfully?  " + err);
+                }
+            });
         }
         callback(true);
     };
+    Ludo.prototype.saveLudoGame = function (gameId, callback) {
+        cache.get(gameId, function (err, ludogame) {
+            if (!err) {
+                if (typeof ludogame !== "undefined" && ludogame !== null && ludogame.status === LudoGameStatus_1.LudoGameStatus.INPROGRESS) {
+                    persistence.setUpdate(ludogame);
+                }
+            }
+            callback(ludogame);
+        });
+    };
     Ludo.prototype.restartGame = function (callback) {
         var sock = this;
-        var ludogame = cache.getValue(sock.gameId);
+        var ludogame = cache.get(sock.gameId);
         if (ludogame) {
             ludogame.ludoPlayers.sort(function (a, b) {
                 if (a.sequenceNumber < b.sequenceNumber) {
@@ -444,6 +539,59 @@ var Ludo = (function () {
         }
         sock.broadcast.to(sock.gameId).emit("restartGame", ludogame);
         callback(ludogame);
+    };
+    Ludo.prototype.getFromCache = function (gameId, callback) {
+        var ludogame;
+        try {
+            ludogame = cache.get(gameId);
+        }
+        catch (err) {
+            console.log("Getting error " + err);
+        }
+        callback(ludogame);
+    };
+    Ludo.prototype.fetchLudoGame = function (gameId, cb) {
+        var _this = this;
+        async.waterfall([
+            function (callback) {
+                _this.getFromCache(gameId, function (result) {
+                    console.log(" I am getting result from cache " + result);
+                    callback(null, result);
+                });
+            },
+            function (result, callback) {
+                if (result === null || typeof result === "undefined") {
+                    // console.log(" Result is null I am getting result from mongo " + gameId);
+                    persistence.getValue(gameId, function (resultfromdb) {
+                        var ludogame = resultfromdb[0];
+                        if (ludogame) {
+                            for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
+                                var player = _a[_i];
+                                player.isEmpty = true;
+                            }
+                            // console.log(" I resaving in cache " + ludogame);
+                            cache.set(ludogame.gameId, ludogame, function (err, success) {
+                                if (!err && success) {
+                                    console.log("Game from mongo is saved in cache successfully? " + success);
+                                }
+                                else {
+                                    console.log("Game from mongo is saved in cache successfully?  " + err);
+                                }
+                            });
+                        }
+                        console.log(" I am returning result from mongo " + ludogame);
+                        return callback(ludogame);
+                    });
+                }
+                else {
+                    // console.log(" I am returning result from cache " + result + " req" + gameId);
+                    callback(result);
+                }
+            },
+        ], function (result) {
+            // console.log(" I am returning frinal result " + result);
+            cb(result);
+        });
     };
     return Ludo;
 }());

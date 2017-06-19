@@ -22,6 +22,7 @@ import { LudoPlayer } from "../game/LudoPlayer";
 import { LudoGame } from "../game/LudoGame";
 import * as Paths from "../entities/Paths";
 declare var Example: any;
+declare var bootbox: any;
 let emit = Emit.getInstance();
 let Display = Example;
 const log = factory.getLogger("model.RuleEnforcer");
@@ -628,6 +629,23 @@ export class RuleEnforcer {
         this.socket.emit("aiPieceMovement", movement);
     }
 
+    private displayMessage(message: string, title: string): void {
+        bootbox.dialog({
+                buttons: {
+					exitgame: {
+						label: "OK",
+						// tslint:disable-next-line:object-literal-sort-keys
+						className: "btn-success btn-lg",
+						callback: function() {
+                            location.reload();
+						},
+					},
+                },
+				message: message,
+				title: title,
+        });
+    }
+
     private setSocketHandlers(): void {
         this.socket.on("connect", () => {
             log.debug(this.socket.id + "**Player is connected*****");
@@ -678,6 +696,10 @@ export class RuleEnforcer {
                 }
             }
             // log.debug("Play movement on : " + movement.pieceId);
+        });
+
+        this.socket.on("message", (message: string, title: string) => {
+            this.displayMessage(message, title);
         });
 
 
