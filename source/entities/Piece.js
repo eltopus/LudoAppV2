@@ -13,8 +13,10 @@ var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var Path_1 = require("../entities/Path");
 var Emit_1 = require("../emit/Emit");
 var EmitPiece_1 = require("../emit/EmitPiece");
+var LocalGame_1 = require("../game/LocalGame");
 // import * as Phasertips from "../Phasertips";
 var log = ConfigLog4j_1.factory.getLogger("model.Piece");
+var localGame = LocalGame_1.LocalGame.getInstance();
 var emit = Emit_1.Emit.getInstance();
 var Piece = (function (_super) {
     __extends(Piece, _super);
@@ -131,9 +133,9 @@ var Piece = (function (_super) {
             this.emitPiece.setParameters(this);
             this.socket.emit("selectActivePiece", this.emitPiece);
         }
-        else if (emit.getEnableSocket() === false && this.isSelected) {
+        else if (emit.isSinglePlayer() && this.isSelected) {
             this.emitPiece.setParameters(this);
-            this.signal.dispatch("selectActivePieceLocal", this.emitPiece);
+            localGame.selectActivePiece(this.emitPiece);
         }
     };
     /**

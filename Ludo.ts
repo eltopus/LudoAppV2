@@ -262,45 +262,50 @@ export class Ludo {
 
     private joinExistingGame(callback: any): void {
         let sock: any = this;
-        console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
-        let ludogame = cache.get(sock.handshake.session.gameId);
         let message = "";
         let ok = false;
-        let sessionId = sock.handshake.session.id;
-        if (ludogame) {
-            sock.gameId = sock.handshake.session.gameId;
-            sock.playerName = sock.handshake.session.playerName;
-            sock.playerId = sock.handshake.session.playerId;
-            ok = true;
-            message = `${ludogame.gameId} was successfuly joined....`;
-            sock.join(sock.handshake.session.gameId);
-            if (sock.handshake.session.playerName !== "ADMIN") {
-                if (ludogame.status === LudoGameStatus.NEW) {
-                    let playerMode = 0;
-                    for (let ludoplayer of ludogame.ludoPlayers) {
-                        if (ludoplayer.isEmpty === true) {
-                            ++playerMode;
+        let currentPlayerId;
+        if (sock.handshake.session && sock.handshake.session.gameId) {
+            //
+            console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
+            let ludogame = cache.get(sock.handshake.session.gameId);
+            let sessionId = sock.handshake.session.id;
+            if (ludogame) {
+                sock.gameId = sock.handshake.session.gameId;
+                sock.playerName = sock.handshake.session.playerName;
+                sock.playerId = sock.handshake.session.playerId;
+                currentPlayerId = ludogame.currrentPlayerId;
+                ok = true;
+                message = `${ludogame.gameId} was successfuly joined....`;
+                sock.join(sock.handshake.session.gameId);
+                if (sock.handshake.session.playerName !== "ADMIN") {
+                    if (ludogame.status === LudoGameStatus.NEW) {
+                        let playerMode = 0;
+                        for (let ludoplayer of ludogame.ludoPlayers) {
+                            if (ludoplayer.isEmpty === true) {
+                                ++playerMode;
+                            }
+                        }
+                        if (playerMode === 0) {
+                            ludogame.status = LudoGameStatus.INPROGRESS;
+                            console.log("Ludo game is in progress.... Setting value to true ");
+                            cache.set(ludogame.gameId, ludogame, (err: any, success: any) => {
+                                if ( !err && success ) {
+                                    console.log(`Game ${ludogame.gameId} was successfully jonined at ${new Date().toLocaleTimeString()}`);
+                                    persistence.setValue(ludogame);
+                                }else {
+                                console.log(`Game in progress update is saved in cache successfully?  ${err}`);
+                                }
+                            });
                         }
                     }
-                    if (playerMode === 0) {
-                        ludogame.status = LudoGameStatus.INPROGRESS;
-                        console.log("Ludo game is in progress.... Setting value to true ");
-                        cache.set(ludogame.gameId, ludogame, (err: any, success: any) => {
-                            if ( !err && success ) {
-                                console.log(`Game ${ludogame.gameId} was successfully jonined at ${new Date().toLocaleTimeString()}`);
-                                persistence.setValue(ludogame);
-                            }else {
-                            console.log(`Game in progress update is saved in cache successfully?  ${err}`);
-                            }
-                        });
-                    }
+                    sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
                 }
-                sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
+            }else {
+                message = sock.handshake.session.gameId + " does not exist!!!.";
             }
-        }else {
-            message = sock.handshake.session.gameId + " does not exist!!!.";
         }
-        callback({ok: ok, message: message, emit: false, currrentPlayerId: ludogame.currrentPlayerId});
+        callback({ok: ok, message: message, emit: false, currrentPlayerId: currentPlayerId});
 
     }
 
@@ -504,7 +509,7 @@ export class Ludo {
         callback(ludogame);
     }
 
-    private getNumberOfPlayersIn(gameId: string, callback): void {
+    private getNumberOfPlayersIn(gameId: string, callback: any): void {
         let ludogame = io.nsps["/"].adapter.rooms[gameId].sockets;
         callback(Object.keys(ludogame).length);
     }

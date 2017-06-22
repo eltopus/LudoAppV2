@@ -26,6 +26,9 @@ export class ActivePath {
         384, 336, 285,
     ];
 
+    private accelerationIndexes: number[] = [0, 5, 11, 12, 13, 18, 24, 25, 26, 31, 37, 38, 39, 44, 50, 51];
+    private indexes: number[] = [];
+
     public getPath(piece: PieceInterface, to: number, path: Path): Path {
         // check if piece is at home
         if (piece.isAtHome()) {
@@ -33,6 +36,7 @@ export class ActivePath {
             path.y.push(piece.startPosition.y);
             piece.setActive();
             path.newIndex = piece.startIndex;
+            this.indexes.push(piece.startIndex);
             // alog.debug("Setting piece to active: " + piece.index);
         }
 
@@ -52,6 +56,7 @@ export class ActivePath {
                     // Make sure to push entry point
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
+                    this.indexes.push(i);
                     let remainder = (to % entryPoint);
                     // alog.debug("Remainder is " + remainder + " to  is " + to);
                     path.moveRemainder = remainder;
@@ -63,6 +68,7 @@ export class ActivePath {
                      // when a piece is somewhere between entryindex and end of active index
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
+                    this.indexes.push(i);
                     path.newIndex = i;
                 }
                 // When a piece has reached end of active index and needs to roundrobin
@@ -73,6 +79,7 @@ export class ActivePath {
                     // alog.debug("After x " + this.x[j] + " y: " + this.y[j] + " remainder: " + remainder);
                     path.x.push(this.x[j]);
                     path.y.push(this.y[j]);
+                    this.indexes.push(i);
                 }
                 path.newIndex  = remainder - 1;
                 break;
@@ -81,6 +88,25 @@ export class ActivePath {
         // log.debug("Nothing to do.... " + path.moveRemainder);
         // hlog.debug("Path x " + path.x.join());
         // hlog.debug("Path y " + path.y.join());
+        // this.removeUnnecessaryPaths(this.indexes, path);
+        /*
+        if (path.isEmpty() === false && path.x.length > 1 && path.y.length > 1) {
+            let x: number[] = [];
+            let y: number[] = [];
+            x.push(path.x[0]);
+            y.push(path.y[0]);
+            this.indexes.shift();
+            for (let index of this.indexes) {
+                if (this.accelerationIndexes.indexOf(index) >= 0) {
+                    hlog.debug("NecessaryIndexes " + index + " x: " + path.x[index] + " y: " + path.y[index]);
+                }else {
+                    hlog.debug("UnnecessaryIndexes " + index + " x: " + path.x[index] + " y: " + path.y[index]);
+                }
+            }
+            this.indexes = [];
+        }
+        */
+        this.indexes = [];
         return path;
     }
 

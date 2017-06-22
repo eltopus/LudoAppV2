@@ -1,6 +1,7 @@
 "use strict";
 var EmitDie_1 = require("../emit/EmitDie");
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
+var PlayerMode_1 = require("../enums/PlayerMode");
 var log = ConfigLog4j_1.factory.getLogger("model.Emit");
 var Emit = (function () {
     function Emit() {
@@ -49,7 +50,7 @@ var Emit = (function () {
         };
         this.spinner = new Spinner(this.opts).spin();
         if (Emit.emitInstance) {
-            throw new Error("Error: Instantiation failed: Use SingletonDemo.getInstance() instead of new.");
+            throw new Error("Error: Instantiation failed: Use Emit.getInstance() instead of new.");
         }
         Emit.emitInstance = this;
     }
@@ -118,14 +119,22 @@ var Emit = (function () {
     Emit.prototype.getPieceByUniqueId = function (uniqueId) {
         return this.scheduler.getPieceByUniqueId(uniqueId);
     };
+    Emit.prototype.setGameMode = function (gameMode) {
+        this.gameMode = gameMode;
+    };
     Emit.prototype.checkPlayerId = function (playerId) {
-        if (playerId === this.currentPlayerId) {
-            this.emit = true;
-            this.gameIdText.fill = "#00ffff";
+        if (this.gameMode === PlayerMode_1.PlayerMode.SinglePlayer) {
         }
         else {
-            this.emit = false;
-            this.gameIdText.fill = "#F70C0C";
+            //
+            if (playerId === this.currentPlayerId) {
+                this.emit = true;
+                this.gameIdText.fill = "#00ffff";
+            }
+            else {
+                this.emit = false;
+                this.gameIdText.fill = "#F70C0C";
+            }
         }
     };
     Emit.prototype.isAdmin = function () {
@@ -133,6 +142,9 @@ var Emit = (function () {
     };
     Emit.prototype.isTheCreator = function (creatorPlayerId) {
         return (this.currentPlayerId === creatorPlayerId);
+    };
+    Emit.prototype.isSinglePlayer = function () {
+        return (this.gameMode === PlayerMode_1.PlayerMode.SinglePlayer);
     };
     Emit.emitInstance = new Emit();
     return Emit;

@@ -2,8 +2,8 @@
 var MoveStatus_1 = require("../enums/MoveStatus");
 var Path = (function () {
     function Path() {
-        this.x = new Array();
-        this.y = new Array();
+        this.x = [];
+        this.y = [];
         this.moveStatus = MoveStatus_1.MoveStatus.ShouldContinue;
         this.moveRemainder = 0;
         this.newIndex = -1;

@@ -256,48 +256,53 @@ var Ludo = (function () {
     };
     Ludo.prototype.joinExistingGame = function (callback) {
         var sock = this;
-        console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
-        var ludogame = cache.get(sock.handshake.session.gameId);
         var message = "";
         var ok = false;
-        var sessionId = sock.handshake.session.id;
-        if (ludogame) {
-            sock.gameId = sock.handshake.session.gameId;
-            sock.playerName = sock.handshake.session.playerName;
-            sock.playerId = sock.handshake.session.playerId;
-            ok = true;
-            message = ludogame.gameId + " was successfuly joined....";
-            sock.join(sock.handshake.session.gameId);
-            if (sock.handshake.session.playerName !== "ADMIN") {
-                if (ludogame.status === LudoGameStatus_1.LudoGameStatus.NEW) {
-                    var playerMode = 0;
-                    for (var _i = 0, _a = ludogame.ludoPlayers; _i < _a.length; _i++) {
-                        var ludoplayer = _a[_i];
-                        if (ludoplayer.isEmpty === true) {
-                            ++playerMode;
+        var currentPlayerId;
+        if (sock.handshake.session && sock.handshake.session.gameId) {
+            //
+            console.log("GameId: " + sock.handshake.session.gameId + " PlayerId: " + sock.handshake.session.playerId + " playerName: " + sock.handshake.session.playerName);
+            var ludogame_1 = cache.get(sock.handshake.session.gameId);
+            var sessionId = sock.handshake.session.id;
+            if (ludogame_1) {
+                sock.gameId = sock.handshake.session.gameId;
+                sock.playerName = sock.handshake.session.playerName;
+                sock.playerId = sock.handshake.session.playerId;
+                currentPlayerId = ludogame_1.currrentPlayerId;
+                ok = true;
+                message = ludogame_1.gameId + " was successfuly joined....";
+                sock.join(sock.handshake.session.gameId);
+                if (sock.handshake.session.playerName !== "ADMIN") {
+                    if (ludogame_1.status === LudoGameStatus_1.LudoGameStatus.NEW) {
+                        var playerMode = 0;
+                        for (var _i = 0, _a = ludogame_1.ludoPlayers; _i < _a.length; _i++) {
+                            var ludoplayer = _a[_i];
+                            if (ludoplayer.isEmpty === true) {
+                                ++playerMode;
+                            }
+                        }
+                        if (playerMode === 0) {
+                            ludogame_1.status = LudoGameStatus_1.LudoGameStatus.INPROGRESS;
+                            console.log("Ludo game is in progress.... Setting value to true ");
+                            cache.set(ludogame_1.gameId, ludogame_1, function (err, success) {
+                                if (!err && success) {
+                                    console.log("Game " + ludogame_1.gameId + " was successfully jonined at " + new Date().toLocaleTimeString());
+                                    persistence.setValue(ludogame_1);
+                                }
+                                else {
+                                    console.log("Game in progress update is saved in cache successfully?  " + err);
+                                }
+                            });
                         }
                     }
-                    if (playerMode === 0) {
-                        ludogame.status = LudoGameStatus_1.LudoGameStatus.INPROGRESS;
-                        console.log("Ludo game is in progress.... Setting value to true ");
-                        cache.set(ludogame.gameId, ludogame, function (err, success) {
-                            if (!err && success) {
-                                console.log("Game " + ludogame.gameId + " was successfully jonined at " + new Date().toLocaleTimeString());
-                                persistence.setValue(ludogame);
-                            }
-                            else {
-                                console.log("Game in progress update is saved in cache successfully?  " + err);
-                            }
-                        });
-                    }
+                    sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame_1, sock.handshake.session.playerName);
                 }
-                sock.to(sock.handshake.session.gameId).emit("updateJoinedPlayer", ludogame, sock.handshake.session.playerName);
+            }
+            else {
+                message = sock.handshake.session.gameId + " does not exist!!!.";
             }
         }
-        else {
-            message = sock.handshake.session.gameId + " does not exist!!!.";
-        }
-        callback({ ok: ok, message: message, emit: false, currrentPlayerId: ludogame.currrentPlayerId });
+        callback({ ok: ok, message: message, emit: false, currrentPlayerId: currentPlayerId });
     };
     Ludo.prototype.connected = function () {
         console.log("New socket connecting " + " was found " + socket.id);

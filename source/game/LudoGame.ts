@@ -7,6 +7,7 @@ import {LudoPlayer} from "./LudoPlayer";
 import {LudoDice} from "./LudoDice";
 import {Dice} from "../entities/Dice";
 import {Player} from "../entities/Player";
+import {PlayerMode} from "../enums/PlayerMode";
 
 
 export class LudoGame {
@@ -23,6 +24,7 @@ export class LudoGame {
     public originalLudoGame = "";
     public sequenceNumber = 0;
     public creatorPlayerId = "";
+    public gameMode: PlayerMode;
 
     constructor(players: Player[], dice: Dice, gameId: string) {
         for (let player of players){

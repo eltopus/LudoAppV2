@@ -2,6 +2,7 @@ import {Scheduler} from "../rules/Scheduler";
 import {Piece} from "../entities/Piece";
 import {EmitDie} from "../emit/EmitDie";
 import {factory} from "../logging/ConfigLog4j";
+import {PlayerMode} from "../enums/PlayerMode";
 
 const log = factory.getLogger("model.Emit");
 declare var Spinner: any;
@@ -18,6 +19,7 @@ export class Emit {
     private signal: Phaser.Signal;
     private emitDice: EmitDie = new EmitDie();
     private gameIdText: any;
+    private gameMode: PlayerMode;
     private opts = {
         lines: 13 // The number of lines to draw
         , length: 28 // The length of each line
@@ -127,15 +129,24 @@ export class Emit {
         return this.scheduler.getPieceByUniqueId(uniqueId);
     }
 
+    public setGameMode(gameMode: PlayerMode): void {
+        this.gameMode = gameMode;
+    }
+
     public checkPlayerId(playerId: string): void {
-        if (playerId === this.currentPlayerId) {
-            this.emit = true;
-            this.gameIdText.fill = "#00ffff";
-            // log.debug("Setting emit to " + this.emit);
+        if (this.gameMode === PlayerMode.SinglePlayer) {
+            //
         }else {
-            this.emit = false;
-            this.gameIdText.fill = "#F70C0C";
-            // log.debug("Setting emit to " + this.emit);
+           //
+           if (playerId === this.currentPlayerId) {
+                this.emit = true;
+                this.gameIdText.fill = "#00ffff";
+                // log.debug("Setting emit to " + this.emit);
+            }else {
+                this.emit = false;
+                this.gameIdText.fill = "#F70C0C";
+                // log.debug("Setting emit to " + this.emit);
+            }
         }
     }
 
@@ -147,9 +158,13 @@ export class Emit {
         return (this.currentPlayerId === creatorPlayerId);
     }
 
+    public isSinglePlayer(): boolean {
+        return (this.gameMode === PlayerMode.SinglePlayer);
+    }
+
     constructor() {
         if (Emit.emitInstance) {
-            throw new Error("Error: Instantiation failed: Use SingletonDemo.getInstance() instead of new.");
+            throw new Error("Error: Instantiation failed: Use Emit.getInstance() instead of new.");
         }
         Emit.emitInstance = this;
     }

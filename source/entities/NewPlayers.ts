@@ -13,6 +13,7 @@ export class NewPlayer {
 
 export class NewPlayers {
     public playerMode: PlayerMode = null;
+    public gameMode: PlayerMode = null;
     public newPlayers: NewPlayer[] = [];
     public playerName = "";
     public hasSavedGame = false;
@@ -27,4 +28,8 @@ export class NewPlayers {
         this.ludogame = ludogame;
     }
     */
+
+    public isSinglePlayer(): boolean {
+        return (this.gameMode === PlayerMode.SinglePlayer);
+    }
 }

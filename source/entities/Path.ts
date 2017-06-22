@@ -1,7 +1,7 @@
  import {MoveStatus} from "../enums/MoveStatus";
 export class Path {
-    public x: number[] = new Array();
-    public y: number[] = new Array();
+    public x: number[] = [];
+    public y: number[] = [];
     public moveStatus = MoveStatus.ShouldContinue;
     public moveRemainder = 0;
     public newIndex = -1;

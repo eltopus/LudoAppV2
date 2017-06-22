@@ -23,6 +23,8 @@ var ActivePath = (function () {
             624, 576, 528, 480, 432, 384, 384, 384, 384, 384,
             384, 336, 285,
         ];
+        this.accelerationIndexes = [0, 5, 11, 12, 13, 18, 24, 25, 26, 31, 37, 38, 39, 44, 50, 51];
+        this.indexes = [];
     }
     ActivePath.prototype.getPath = function (piece, to, path) {
         // check if piece is at home
@@ -31,6 +33,7 @@ var ActivePath = (function () {
             path.y.push(piece.startPosition.y);
             piece.setActive();
             path.newIndex = piece.startIndex;
+            this.indexes.push(piece.startIndex);
         }
         var entryPoint = piece.entryIndex;
         var from = piece.index + 1;
@@ -46,6 +49,7 @@ var ActivePath = (function () {
                     // Make sure to push entry point
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
+                    this.indexes.push(i);
                     var remainder = (to % entryPoint);
                     // alog.debug("Remainder is " + remainder + " to  is " + to);
                     path.moveRemainder = remainder;
@@ -58,6 +62,7 @@ var ActivePath = (function () {
                     // when a piece is somewhere between entryindex and end of active index
                     path.x.push(this.x[i]);
                     path.y.push(this.y[i]);
+                    this.indexes.push(i);
                     path.newIndex = i;
                 }
             }
@@ -68,6 +73,7 @@ var ActivePath = (function () {
                     // alog.debug("After x " + this.x[j] + " y: " + this.y[j] + " remainder: " + remainder);
                     path.x.push(this.x[j]);
                     path.y.push(this.y[j]);
+                    this.indexes.push(i);
                 }
                 path.newIndex = remainder - 1;
                 break;
@@ -76,6 +82,25 @@ var ActivePath = (function () {
         // log.debug("Nothing to do.... " + path.moveRemainder);
         // hlog.debug("Path x " + path.x.join());
         // hlog.debug("Path y " + path.y.join());
+        // this.removeUnnecessaryPaths(this.indexes, path);
+        /*
+        if (path.isEmpty() === false && path.x.length > 1 && path.y.length > 1) {
+            let x: number[] = [];
+            let y: number[] = [];
+            x.push(path.x[0]);
+            y.push(path.y[0]);
+            this.indexes.shift();
+            for (let index of this.indexes) {
+                if (this.accelerationIndexes.indexOf(index) >= 0) {
+                    hlog.debug("NecessaryIndexes " + index + " x: " + path.x[index] + " y: " + path.y[index]);
+                }else {
+                    hlog.debug("UnnecessaryIndexes " + index + " x: " + path.x[index] + " y: " + path.y[index]);
+                }
+            }
+            this.indexes = [];
+        }
+        */
+        this.indexes = [];
         return path;
     };
     ActivePath.prototype.getPiecePostionByIndex = function (index) {

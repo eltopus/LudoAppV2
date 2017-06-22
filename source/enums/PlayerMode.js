@@ -1,6 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var PlayerMode;
 (function (PlayerMode) {
     PlayerMode[PlayerMode["RegularTwoPlayer"] = 0] = "RegularTwoPlayer";
     PlayerMode[PlayerMode["RegularFourPlayer"] = 1] = "RegularFourPlayer";
@@ -8,5 +6,7 @@ var PlayerMode;
     PlayerMode[PlayerMode["AiFourPlayer"] = 3] = "AiFourPlayer";
     PlayerMode[PlayerMode["AiTwoPlayerAiVsAi"] = 4] = "AiTwoPlayerAiVsAi";
     PlayerMode[PlayerMode["AiFourPlayerAiVsAi"] = 5] = "AiFourPlayerAiVsAi";
-})(PlayerMode = exports.PlayerMode || (exports.PlayerMode = {}));
-//# sourceMappingURL=PlayerMode.js.map
+    PlayerMode[PlayerMode["SinglePlayer"] = 6] = "SinglePlayer";
+    PlayerMode[PlayerMode["Multiplayer"] = 7] = "Multiplayer";
+})(exports.PlayerMode || (exports.PlayerMode = {}));
+var PlayerMode = exports.PlayerMode;

@@ -9,9 +9,11 @@ import {Perimeter} from "./Perimeters";
 import {Emit} from "../emit/Emit";
 import {EmitPiece} from "../emit/EmitPiece";
 import {LudoPiece} from "../game/LudoPiece";
+import { LocalGame } from "../game/LocalGame";
 // import * as Phasertips from "../Phasertips";
 
 const log = factory.getLogger("model.Piece");
+let localGame = LocalGame.getInstance();
 let emit = Emit.getInstance();
 export interface PieceInterface {
     group: Phaser.Group;
@@ -177,9 +179,9 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         if (emit.getEmit() === true && this.isSelected()) {
             this.emitPiece.setParameters(this);
             this.socket.emit("selectActivePiece", this.emitPiece);
-        }else if (emit.getEnableSocket() === false && this.isSelected) {
+        }else if (emit.isSinglePlayer() && this.isSelected) {
             this.emitPiece.setParameters(this);
-            this.signal.dispatch("selectActivePieceLocal", this.emitPiece);
+            localGame.selectActivePiece(this.emitPiece);
         }
     }
     /**

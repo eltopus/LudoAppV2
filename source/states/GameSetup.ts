@@ -8,21 +8,37 @@ import {factory} from "../logging/ConfigLog4j";
 import * as $ from "jquery";
 import {Emit} from "../emit/Emit";
 
+declare var bootbox: any;
+
 let emit = Emit.getInstance();
 const log = factory.getLogger("model.GameSetup");
 let newCreatedPlayers: NewPlayers.NewPlayers = new NewPlayers.NewPlayers();
 let Display: any = Example;
-let signal = new Phaser.Signal();
 let creator = false;
+let game: any;
 export class GameSetup extends Phaser.State {
 
     public init() {
+        game = this.game;
         $("#playerName").prop("disabled", true);
         $("#redBtn").prop("disabled", true);
         $("#blueBtn").prop("disabled", true);
         $("#yellowBtn").prop("disabled", true);
         $("#greenBtn").prop("disabled", true);
         $("#createBtn").prop("disabled", true);
+        let ludogame = localStorage.getItem("gameId");
+         if (ludogame) {
+             let updatedludogame = JSON.parse(ludogame);
+             newCreatedPlayers.ludogame = updatedludogame;
+             newCreatedPlayers.hasSavedGame = true;
+             emit.setGameMode(PlayerMode.SinglePlayer);
+             emit.setCurrentPlayerId(updatedludogame.playerId);
+             emit.setEmit(false);
+             emit.setEnableSocket(false);
+             log.debug("Found local game: " + updatedludogame.gameId);
+         }else {
+             log.debug("Did not Find local game: ");
+         }
     }
 
 
@@ -99,13 +115,17 @@ export class GameSetup extends Phaser.State {
             }
 
             switch (newCreatedPlayers.playerMode) {
+                // Single player
                 case PlayerMode.AiTwoPlayer: {
                     let regularPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red, ColorType.Blue], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer);
                     let aiPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer);
+                    newCreatedPlayers.gameMode = PlayerMode.SinglePlayer;
+                    emit.setGameMode(PlayerMode.SinglePlayer);
                     break;
                 }
+                // single player
                 case PlayerMode.AiFourPlayer: {
                     let regularPlayer: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer);
@@ -115,15 +135,23 @@ export class GameSetup extends Phaser.State {
                     newCreatedPlayers.newPlayers.push(aiPlayer2);
                     let aiPlayer3: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer3);
+                    newCreatedPlayers.gameMode = PlayerMode.SinglePlayer;
+                    emit.setGameMode(PlayerMode.SinglePlayer);
                     break;
                 }
+                // multi player
                 case PlayerMode.RegularTwoPlayer: {
                     let regularPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red, ColorType.Blue], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer1);
                     let regularPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer2);
+                    newCreatedPlayers.gameMode = PlayerMode.Multiplayer;
+                    emit.setGameMode(PlayerMode.Multiplayer);
+                    emit.setEmit(true);
+                    emit.setEnableSocket(true);
                     break;
                 }
+                // multi player
                 case PlayerMode.RegularFourPlayer: {
                     let regularPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer1);
@@ -133,15 +161,23 @@ export class GameSetup extends Phaser.State {
                     newCreatedPlayers.newPlayers.push(regularPlayer3);
                     let regularPlayer4: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Green], false);
                     newCreatedPlayers.newPlayers.push(regularPlayer4);
+                    newCreatedPlayers.gameMode = PlayerMode.Multiplayer;
+                    emit.setGameMode(PlayerMode.SinglePlayer);
                     break;
                 }
+                // single player
                 case PlayerMode.AiTwoPlayerAiVsAi: {
                     let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red, ColorType.Blue], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer1);
                     let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer2);
+                    newCreatedPlayers.gameMode = PlayerMode.Multiplayer;
+                    emit.setGameMode(PlayerMode.Multiplayer);
+                    emit.setEmit(true);
+                    emit.setEnableSocket(true);
                     break;
                 }
+                // single player
                 case PlayerMode.AiFourPlayerAiVsAi: {
                     let aiPlayer1: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Red], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer1);
@@ -151,6 +187,8 @@ export class GameSetup extends Phaser.State {
                     newCreatedPlayers.newPlayers.push(aiPlayer3);
                     let aiPlayer4: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer4);
+                    newCreatedPlayers.gameMode = PlayerMode.SinglePlayer;
+                    emit.setGameMode(PlayerMode.SinglePlayer);
                     break;
                 }
             }
@@ -161,37 +199,72 @@ export class GameSetup extends Phaser.State {
             this.startGame();
          });
 
-         this.checkExistingSession();
+         if (emit.isSinglePlayer()) {
+            log.debug("Single Player....");
+            this.displayMessage(`Found game ${newCreatedPlayers.ludogame.gameId} saved locally! Do you want to continue?`, "Continue Game?");
+         }else {
+             log.debug("Multi Player....");
+         }
+         this.checkExistingSession(emit.isSinglePlayer());
 
     }
 
-    public checkExistingSession(): void {
-        $.ajax({
-            type: "POST",
-			url: "refresh",
-			// tslint:disable-next-line:object-literal-sort-keys
-			success: (ludogame) => {
-                // Expecting callback({ok: ok, // Expecting callback({ok: ok, updatedludogame: updatedludogame, message: message});: updatedludogame, message: message});
-			    if (ludogame.ok) {
-			        newCreatedPlayers.ludogame = ludogame.updatedludogame;
-                    newCreatedPlayers.hasSavedGame = true;
-                    emit.setCurrentPlayerId(ludogame.updatedludogame.playerId);
-                    this.startGame();
-                }else {
-                    Display.show(ludogame.message);
-                }
-            },
-			error: function(){
-			    Display.show("Session does not exists");
-			},
-        });
+    public checkExistingSession(singlePlayer: boolean): void {
+        if (singlePlayer === false) {
+            $.ajax({
+                type: "POST",
+                url: "refresh",
+                // tslint:disable-next-line:object-literal-sort-keys
+                success: (ludogame) => {
+                    // Expecting callback({ok: ok, // Expecting callback({ok: ok, updatedludogame: updatedludogame, message: message});: updatedludogame, message: message});
+                    if (ludogame.ok) {
+                        newCreatedPlayers.ludogame = ludogame.updatedludogame;
+                        newCreatedPlayers.hasSavedGame = true;
+                        emit.setCurrentPlayerId(ludogame.updatedludogame.playerId);
+                        this.startGame();
+                    }else {
+                        Display.show(ludogame.message);
+                    }
+                },
+                error: function(){
+                    Display.show("Session does not exists");
+                },
+            });
+        }
     }
 
     public startGame() {
         if (newCreatedPlayers.ludogame) {
             // log.debug("-+++- Ludo game" + JSON.stringify(newCreatedPlayers.ludogame));
         }
-        this.game.state.start("Game", true, false, newCreatedPlayers, signal);
+        game.state.start("Game", true, false, newCreatedPlayers);
+    }
+
+    private displayMessage(message: string, title: string): void {
+        let startGame = this.startGame;
+        bootbox.dialog({
+                buttons: {
+					continue: {
+						label: "CONTINUE NOW",
+						// tslint:disable-next-line:object-literal-sort-keys
+						className: "btn-success btn-lg",
+						callback: function() {
+                            startGame();
+						},
+					},
+                    discontinue: {
+						label: "CONTINUE LATER",
+						// tslint:disable-next-line:object-literal-sort-keys
+						className: "btn-danger btn-lg",
+						callback: function() {
+                            newCreatedPlayers.hasSavedGame = false;
+                            emit.setGameMode(null);
+						},
+					},
+                },
+				message: message,
+				title: title,
+        });
     }
 
 }

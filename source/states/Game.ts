@@ -35,6 +35,7 @@ declare var Example: any;
 const log = factory.getLogger("model.Game");
 
 let emit = Emit.getInstance();
+let localGame = LocalGame.getInstance();
 let Display = Example;
 export class Game extends Phaser.State {
     public dice: Dice;
@@ -47,13 +48,14 @@ export class Game extends Phaser.State {
     private gameId: string;
     private socket: any = null;
     private isCreator = false;
-    private localGame: LocalGame;
+    private gameMode: PlayerMode = null;
     private currentPlayerName: string;
     private playerNames = new Dictionary<String, any>();
 
-    public init(newPlayers: NewPlayers, signal: Phaser.Signal) {
+    public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
-        this.signal = signal;
+        log.debug("Single player? " + emit.isSinglePlayer());
+        this.gameMode = newPlayers.gameMode;
         if (this.newPlayers.hasSavedGame) {
             this.gameId = newPlayers.ludogame.gameId;
             this.playerMode = newPlayers.ludogame.playerMode;
@@ -67,10 +69,8 @@ export class Game extends Phaser.State {
     }
 
     public create() {
-
+        this.signal = new Phaser.Signal();
         let board = this.add.sprite(0, 0, "board");
-        this.signal.add(this.resaveGame, this, 0);
-        this.localGame = new LocalGame(this.signal);
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
         let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
@@ -97,13 +97,11 @@ export class Game extends Phaser.State {
         updateBtn.scale.y = 0.6;
         buttonGroup.add(updateBtn);
         this.game.stage.disableVisibilityChange = true;
+        this.signal.add(this.resaveGame, this, 0);
 
         if (this.newPlayers.hasSavedGame) {
             if (emit.getEnableSocket()) {
                 this.socket = cio({reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 5000, reconnectionAttempts: 5});
-            }
-            if (emit.getEnableSocket() === false) {
-                this.localGame.setLudoGame(this.newPlayers.ludogame);
             }
             let dieOneUUID = this.newPlayers.ludogame.ludoDice.dieOne.uniqueId;
             let dieTwoUUID = this.newPlayers.ludogame.ludoDice.dieTwo.uniqueId;
@@ -112,7 +110,7 @@ export class Game extends Phaser.State {
             this.dice.dieTwo.setDieFrame(this.newPlayers.ludogame.ludoDice.dieTwo);
             this.scheduler = new Scheduler(this.dice, this.socket, this.signal, this.newPlayers.ludogame.gameId);
             emit.setScheduler(this.scheduler);
-            this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
+            this.enforcer = new RuleEnforcer(this.signal, this.game, this.scheduler, this.dice, activeboard, homeboard,
                 onWayOutBoard, exitedBoard, this.newPlayers.ludogame.gameId, this.socket, currentPossibleMovements);
             this.enforcer.isCreator = this.isCreator;
             let players: Player[] = [];
@@ -140,23 +138,34 @@ export class Game extends Phaser.State {
                 }
             }
             this.players = players;
-            this.setSocketHandlers();
             this.displayGameId(this.newPlayers.ludogame.gameId);
-            this.joinExistingGame();
+            if (emit.isSinglePlayer()) {
+                localGame.setLudoGame(this.newPlayers.ludogame);
+                this.displayNames(this.newPlayers.ludogame);
+                this.waitUntilGameStarts();
+            }else {
+                if (emit.getEnableSocket()) {
+                    this.setSocketHandlers();
+                    this.joinExistingGame();
+                }
+            }
+            /*
             for (let player of this.players) {
                 log.debug("PlayerName Color " + player.getColorTypes() + " sequenceNumber " + player.sequenceNumber);
             }
+            */
 
         } else {
             if (emit.getEnableSocket()) {
                 this.socket = cio({reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 5000, reconnectionAttempts: 5});
             }
+            log.debug("Enable socket: " + emit.getEnableSocket());
             let dieOneUUID = UUID.UUID();
             let dieTwoUUID = UUID.UUID();
             this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID, this.socket, this.gameId);
             this.scheduler = new Scheduler(this.dice, this.socket, this.signal, this.gameId);
             emit.setScheduler(this.scheduler);
-            this.enforcer = new RuleEnforcer(this.signal, this.scheduler, this.dice, activeboard, homeboard,
+            this.enforcer = new RuleEnforcer(this.signal, this.game, this.scheduler, this.dice, activeboard, homeboard,
                 onWayOutBoard, exitedBoard, this.gameId, this.socket, currentPossibleMovements);
             this.enforcer.isCreator = this.isCreator;
             this.players = this.createNewPlayers(this.newPlayers);
@@ -181,10 +190,10 @@ export class Game extends Phaser.State {
                     playerOne.pieces[x].setExited();
                     playerOne.pieces[x].visible = false;
                 }
-                let p1 = playerOne.pieces[0];
-                homeboard.removePieceFromHomeBoard(p1);
+                // let p1 = playerOne.pieces[0];
+                // homeboard.removePieceFromHomeBoard(p1);
                 // this.setActivePieceParameters(p1, 19, States.Active, activeboard);
-                this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
+                // this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
                 this.saveGame();
             }
             */
@@ -236,11 +245,11 @@ export class Game extends Phaser.State {
     private waitUntilGameStarts(): void {
 
         // this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
-        // log.debug(" Emit is " + emit.getEmit());
+        log.debug(" Emit is " + emit.getEmit());
         if (this.scheduler.getCurrentPlayer().isAI) {
             log.debug("Hey I am AI " + emit.getEmit());
             if (this.dice.bothDiceConsumed()) {
-                if (emit.getEmit()) {
+                if (emit.getEmit() || emit.isSinglePlayer()) {
                     this.signal.dispatch("aiRollDice", this.dice, this.scheduler.getCurrentPlayer().playerId);
                 }
             } else {
@@ -261,25 +270,37 @@ export class Game extends Phaser.State {
 
     private saveGame(): void {
         let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+        ludogame.ludoDice.dieOne.isConsumed = false;
+        ludogame.ludoDice.dieTwo.isConsumed = false;
+        ludogame.ludoDice.dieOne.extFrame = 0;
+        ludogame.ludoDice.dieTwo.extFrame = 2;
+        ludogame.ludoDice.dieOne.dieValue = 6;
+        ludogame.ludoDice.dieTwo.dieValue = 2;
         log.debug(JSON.stringify(ludogame, null, "\t"));
         ludogame.ludoPlayers[0].playerName = this.currentPlayerName;
         ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
         ludogame.ludoPlayers[0].isEmpty = false;
-        this.socket.emit("saveGame", ludogame, (data: any) => {
-            log.debug(" I saved....");
-        });
+        if (emit.getEnableSocket() === true) {
+                this.socket.emit("saveGame", ludogame, (data: any) => {
+                log.debug(" I saved....");
+            });
+        }
     }
 
     private saveLudoGame(): void {
         if (this.isCreator === true) {
-            this.socket.emit("saveLudoGame", this.gameId, (ludogame: LudoGame) => {
-                if (ludogame) {
-                    log.debug(" I saved...." + ludogame.gameId);
-                }
-                Display.show(" I saved...." + ludogame.gameId);
-            });
+            if (emit.isSinglePlayer() === false) {
+                this.socket.emit("saveLudoGame", this.gameId, (ludogame: LudoGame) => {
+                    if (ludogame) {
+                        log.debug(" I saved...." + ludogame.gameId);
+                    }
+                    Display.show(" I saved...." + ludogame.gameId);
+                });
+            }
+        }else if (emit.isSinglePlayer()) {
+           localGame.saveLudoGame(this.gameId);
         }else {
-            Display.show("You cannot save because you are NOT the creator");
+             Display.show("You cannot save because you are NOT the creator");
         }
     }
 
@@ -292,13 +313,15 @@ export class Game extends Phaser.State {
             }
             emit.setEmit(true);
             // log.debug(JSON.stringify(ludogame, null, "\t"));
-            this.socket.emit("saveGame", ludogame, (data: any) => {
-                log.debug(" I resaved....");
-                let currentPlayer = this.scheduler.getCurrentPlayer();
-                if (currentPlayer.isAI && emit.getEmit()) {
-                    this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
-                }
-            });
+            if (emit.getEnableSocket()) {
+                    this.socket.emit("saveGame", ludogame, (data: any) => {
+                    log.debug(" I resaved....");
+                    let currentPlayer = this.scheduler.getCurrentPlayer();
+                    if (currentPlayer.isAI && emit.getEmit()) {
+                        this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
+                    }
+                });
+            }
         }
     }
 
@@ -312,8 +335,14 @@ export class Game extends Phaser.State {
         ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
         ludogame.creatorPlayerId = ludogame.ludoPlayers[0].playerId;
         ludogame.playerMode = this.getPlayerMode();
+        ludogame.gameMode = this.gameMode;
         this.displayGameId(ludogame.gameId);
-        if (emit.getEnableSocket()) {
+        if (emit.isSinglePlayer()) {
+            localGame.setLudoGame(ludogame);
+            this.displayNames(ludogame);
+            this.waitUntilGameStarts();
+        }else {
+            if (emit.getEnableSocket()) {
             this.socket.emit("createGame", ludogame, (data: any) => {
                 if (data.ok) {
                     emit.setEmit(data.emit);
@@ -322,8 +351,9 @@ export class Game extends Phaser.State {
                     this.waitForPlayers(ludogame);
                     log.debug(data.message + " playerId: " + emit.getCurrentPlayerId());
                     this.waitUntilGameStarts();
-                }
-            });
+                    }
+                });
+            }
         }
     }
 
@@ -395,11 +425,16 @@ export class Game extends Phaser.State {
     }
 
     private fullScreen(): void {
+        /*
         if (this.scale.isFullScreen) {
             this.scale.stopFullScreen();
         } else {
             this.scale.startFullScreen(false);
         }
+        */
+        log.debug("Writing to console " + this.gameId);
+        // localGame.writeGameToConsole(this.gameId);
+        localStorage.clear();
     }
 
     private generateGameId(length: number): string {
@@ -436,7 +471,7 @@ export class Game extends Phaser.State {
             }
         }
         if (emit.getEnableSocket() === false) {
-            this.localGame.setLudoGame(ludogame);
+            // this.localGame.setLudoGame(ludogame);
         }
         this.updatePlayername(ludogame.ludoPlayers);
     }
@@ -467,10 +502,12 @@ export class Game extends Phaser.State {
     }
 
     private setSocketHandlers(): void {
-        this.socket.on("updateJoinedPlayer", (ludogame: any, playerName: string) => {
-            Display.show(`${playerName} has joined game`);
-            this.displayNames(ludogame);
-        });
+        if (emit.getEnableSocket() === true) {
+                this.socket.on("updateJoinedPlayer", (ludogame: any, playerName: string) => {
+                Display.show(`${playerName} has joined game`);
+                this.displayNames(ludogame);
+            });
+        }
     }
 
     private getPlayerMode(): number {

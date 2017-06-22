@@ -7,7 +7,9 @@ var __extends = (this && this.__extends) || function (d, b) {
 var ConfigLog4j_1 = require("../logging/ConfigLog4j");
 var EmitDie_1 = require("../emit/EmitDie");
 var Emit_1 = require("../emit/Emit");
+var LocalGame_1 = require("../game/LocalGame");
 var log = ConfigLog4j_1.factory.getLogger("model.Die");
+var localGame = LocalGame_1.LocalGame.getInstance();
 var emit = Emit_1.Emit.getInstance();
 var Die = (function (_super) {
     __extends(Die, _super);
@@ -47,9 +49,9 @@ var Die = (function (_super) {
                 this.emitDice.setParameters(this);
                 this.socket.emit("unselectActiveDie", this.emitDice);
             }
-            else if (emit.getEnableSocket() === false) {
+            else if (emit.isSinglePlayer()) {
                 this.emitDice.setParameters(this);
-                this.signal.dispatch("unselectActiveDieLocal", this.emitDice);
+                localGame.unselectActiveDie(this.emitDice);
             }
         }
         else {
@@ -58,9 +60,9 @@ var Die = (function (_super) {
                 this.emitDice.setParameters(this);
                 this.socket.emit("selectActiveDie", this.emitDice);
             }
-            else if (emit.getEnableSocket() === false) {
+            else if (emit.isSinglePlayer()) {
                 this.emitDice.setParameters(this);
-                this.signal.dispatch("selectActiveDieLocal", this.emitDice);
+                localGame.selectActiveDie(this.emitDice);
             }
         }
     };
@@ -92,9 +94,9 @@ var Die = (function (_super) {
             this.emitDice.setParameters(this);
             this.socket.emit("rollDice", this.emitDice);
         }
-        else if (emit.getEnableSocket() === false) {
+        else if (emit.isSinglePlayer()) {
             this.emitDice.setParameters(this);
-            this.signal.dispatch("endOfDieRollLocal", this.emitDice);
+            localGame.rollDice(this.emitDice);
         }
     };
     Die.prototype.rollEmitDie = function (emitDieOne, emitDieTwo) {
@@ -111,9 +113,9 @@ var Die = (function (_super) {
             this.emitDice.setParameters(this);
             this.socket.emit("consumeDie", this.emitDice);
         }
-        else if (emit.getEnableSocket() === false) {
+        else if (emit.isSinglePlayer()) {
             this.emitDice.setParameters(this);
-            this.signal.dispatch("consumeDieLocal", this.emitDice);
+            localGame.consumeDie(this.emitDice);
         }
     };
     Die.prototype.consumeWithoutEmission = function () {

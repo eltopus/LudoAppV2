@@ -4,8 +4,10 @@ import {LudoDie} from "../game/LudoDie";
 import {factory} from "../logging/ConfigLog4j";
 import {EmitDie} from "../emit/EmitDie";
 import {Emit} from "../emit/Emit";
+import { LocalGame } from "../game/LocalGame";
 
 const log = factory.getLogger("model.Die");
+let localGame = LocalGame.getInstance();
 
 let emit = Emit.getInstance();
 export class Die extends Phaser.Sprite {
@@ -55,18 +57,18 @@ export class Die extends Phaser.Sprite {
             if (emit.getEmit() === true) {
                 this.emitDice.setParameters(this);
                 this.socket.emit("unselectActiveDie", this.emitDice);
-            }else if (emit.getEnableSocket() === false) {
+            }else if (emit.isSinglePlayer()) {
                 this.emitDice.setParameters(this);
-                this.signal.dispatch("unselectActiveDieLocal", this.emitDice);
+                localGame.unselectActiveDie(this.emitDice);
             }
         }else {
             this.alpha = 0.5;
             if (emit.getEmit() === true && emit.getEnableSocket()) {
                 this.emitDice.setParameters(this);
                 this.socket.emit("selectActiveDie", this.emitDice);
-            }else if (emit.getEnableSocket() === false) {
+            }else if (emit.isSinglePlayer()) {
                 this.emitDice.setParameters(this);
-                this.signal.dispatch("selectActiveDieLocal", this.emitDice);
+                localGame.selectActiveDie(this.emitDice);
             }
         }
     }
@@ -101,9 +103,9 @@ export class Die extends Phaser.Sprite {
         if (emit.getEmit() === true) {
             this.emitDice.setParameters(this);
             this.socket.emit("rollDice", this.emitDice);
-        }else if (emit.getEnableSocket() === false) {
+        }else if (emit.isSinglePlayer()) {
             this.emitDice.setParameters(this);
-            this.signal.dispatch("endOfDieRollLocal", this.emitDice);
+            localGame.rollDice(this.emitDice);
         }
     }
 
@@ -121,9 +123,9 @@ export class Die extends Phaser.Sprite {
         if (emit.getEmit() === true) {
             this.emitDice.setParameters(this);
             this.socket.emit("consumeDie", this.emitDice);
-        }else if (emit.getEnableSocket() === false) {
+        }else if (emit.isSinglePlayer()) {
             this.emitDice.setParameters(this);
-            this.signal.dispatch("consumeDieLocal", this.emitDice);
+            localGame.consumeDie(this.emitDice);
         }
     }
 
