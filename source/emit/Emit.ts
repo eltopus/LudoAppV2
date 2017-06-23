@@ -10,7 +10,7 @@ export class Emit {
 
     private static emitInstance: Emit = new Emit();
     private emit = false;
-    private enableSocket = true;
+    private enableSocket = false;
     private peckAndStay =  false;
     private scheduler: Scheduler;
     private sessionId: string;
@@ -136,7 +136,7 @@ export class Emit {
     public checkPlayerId(playerId: string): void {
         if (this.gameMode === PlayerMode.SinglePlayer) {
             //
-        }else {
+        }else if (this.gameMode === PlayerMode.Multiplayer) {
            //
            if (playerId === this.currentPlayerId) {
                 this.emit = true;

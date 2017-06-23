@@ -60,6 +60,7 @@ export class ActivePath {
                     let remainder = (to % entryPoint);
                     // alog.debug("Remainder is " + remainder + " to  is " + to);
                     path.moveRemainder = remainder;
+                    path.mockMoveRemainder = remainder;
                     path.newIndex = entryPoint;
                     path.moveStatus = MoveStatus.ShouldBeExiting;
                     // alog.debug("i === entryPoint " + entryPoint + " time to enter entry with " + path.moveRemainder);
@@ -82,6 +83,7 @@ export class ActivePath {
                     this.indexes.push(i);
                 }
                 path.newIndex  = remainder - 1;
+                path.mockMoveRemainder = remainder - 1;
                 break;
             }
         }

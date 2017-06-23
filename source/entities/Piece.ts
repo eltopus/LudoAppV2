@@ -372,6 +372,15 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         }
     }
 
+    public resetPiece(): void {
+        this.x = this.homePosition.x;
+        this.y = this.homePosition.y;
+        this.state = States.AtHome;
+        this.index = -1;
+        this.frame = 0;
+        this.visible = true;
+    }
+
     private onCompleteBackToHomeMovement(): void {
         this.isMoving = false;
     }

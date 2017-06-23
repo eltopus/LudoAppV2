@@ -227,13 +227,24 @@ export class RuleEnforcer {
     }
 
     public mockPieceCollision(uniqueId: string, index: number): boolean {
-        let id = this.rule.getUniqueIdCollision(uniqueId, index);
-        let currentPlayer = this.scheduler.getCurrentPlayer();
-        if (id !== "NOTFOUND" && !currentPlayer.pieceBelongsToMe(id)) {
-            return true;
-        } else {
-            return false;
+        let collision = false;
+        let enemyPieceId = this.rule.getUniqueIdCollision(uniqueId, index);
+        let enemyPiece = this.scheduler.getPieceByUniqueId(enemyPieceId);
+        if (enemyPiece) {
+            let currentPlayer = this.scheduler.getCurrentPlayer();
+            if (currentPlayer.pieceBelongsToMe(enemyPiece.playerId) === false) {
+                collision = true;
+            }
         }
+        return collision;
+    }
+
+    public mockPiecePassing(path: Path, startingIndex: number): boolean {
+        return this.scheduler.isMockPiecePassing(path.newIndex, path.mockMoveRemainder, startingIndex);
+    }
+
+    public mockPieceLudoing(path: Path): boolean {
+        return this.scheduler.isMockPieceLudoing(path.newIndex);
     }
 
     public readAllMoves(): void {
@@ -285,6 +296,17 @@ export class RuleEnforcer {
                                 for (let player of this.players) {
                                     player.updateOnReloadLudoPieces(ludogame);
                                     this.rule.updateOnRestartBoards(player.pieces);
+                                }
+                                this.players.sort((a: Player, b: Player) => {
+                                        if (a.sequenceNumber < b.sequenceNumber) {
+                                            return -1;
+                                        }
+                                        if (a.sequenceNumber > b.sequenceNumber) {
+                                            return 1;
+                                        }
+                                        return 0;
+                                    });
+                                for (let player of this.players) {
                                     this.scheduler.enqueue(player);
                                 }
                             }
@@ -575,7 +597,11 @@ export class RuleEnforcer {
             log.debug(`Times called wins!!! + ${++timecalled}`);
             Display.show(`Player  wins!!!`);
             if (this.isCreator === true) {
-                this.restartGame();
+                if (emit.getEmit() && emit.getEnableSocket()) {
+                    this.restartMultiPlayerGame();
+                }else {
+                    this.restartSinglePlayerGame();
+                }
             }
         } else {
             let currentPlayer = this.scheduler.getCurrentPlayer();
@@ -591,34 +617,63 @@ export class RuleEnforcer {
         }
     }
 
-    private restartGame(): void {
-        this.socket.emit("restartGame", (ludogame: LudoGame) => {
-            if (ludogame.gameId) {
-                this.dice.consumeWithoutEmission();
-                emit.checkPlayerId(ludogame.ludoPlayers[0].playerId);
-                this.scheduler.resetScheduler();
-                this.players.sort((a: Player, b: Player) => {
-                    if (a.sequenceNumber < b.sequenceNumber) {
-                        return -1;
+    private restartMultiPlayerGame(): void {
+            this.socket.emit("restartGame", (ludogame: LudoGame) => {
+                if (ludogame.gameId) {
+                    this.dice.consumeWithoutEmission();
+                    emit.checkPlayerId(ludogame.ludoPlayers[0].playerId);
+                    this.scheduler.resetScheduler();
+                    this.players.sort((a: Player, b: Player) => {
+                        if (a.sequenceNumber < b.sequenceNumber) {
+                            return -1;
+                        }
+                        if (a.sequenceNumber > b.sequenceNumber) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+                    this.rule.clearBoards();
+                    for (let player of this.players) {
+                        player.updateOnRestartLudoPieces(ludogame);
+                        this.rule.updateOnRestartBoards(player.pieces);
+                        this.scheduler.enqueue(player);
                     }
-                    if (a.sequenceNumber > b.sequenceNumber) {
-                        return 1;
-                    }
-                    return 0;
-                });
-                this.rule.clearBoards();
-                for (let player of this.players) {
-                    player.updateOnRestartLudoPieces(ludogame);
-                    this.rule.updateOnRestartBoards(player.pieces);
-                    this.scheduler.enqueue(player);
                 }
-            }
-            this.rule.checkBoardConsistencies();
-            let currentPlayer = this.scheduler.getCurrentPlayer();
-            if (currentPlayer.isAI && emit.isAdmin() === false) {
-                this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
-            }
-        });
+                this.rule.checkBoardConsistencies();
+                let currentPlayer = this.scheduler.getCurrentPlayer();
+                if (currentPlayer.isAI && emit.isAdmin() === false) {
+                    this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
+                }
+            });
+    }
+
+    private restartSinglePlayerGame(): void {
+        this.dice.consumeWithoutEmission();
+        this.scheduler.resetScheduler();
+        this.rule.clearBoards();
+        for (let player of this.players) {
+            player.resetPlayer();
+            player.resetPlayerPieces();
+        }
+        this.players.sort((a: Player, b: Player) => {
+                if (a.sequenceNumber < b.sequenceNumber) {
+                    return -1;
+                }
+                if (a.sequenceNumber > b.sequenceNumber) {
+                    return 1;
+                }
+                return 0;
+            });
+        for (let player of this.players) {
+            this.rule.updateOnRestartBoards(player.pieces);
+            this.scheduler.enqueue(player);
+        }
+        this.rule.checkBoardConsistencies();
+        let currentPlayer = this.scheduler.getCurrentPlayer();
+        this.dice.resetDice();
+        if (currentPlayer.isAI && emit.isAdmin() === false) {
+            this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
+        }
     }
 
     private setStateChange(listener: string, piece: Piece): void {

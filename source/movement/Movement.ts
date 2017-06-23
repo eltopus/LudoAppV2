@@ -26,8 +26,8 @@ export class PieceMovement implements Movement {
         let currentIndex = piece.index;
         let path: Path = new Path();
         let finalIndex = currentIndex + newIndex;
-        // log.debug("Moving to finalIndex " + finalIndex + " from: " + currentIndex);
         path = this.activePath.getPath(piece, finalIndex, path);
+        // log.debug("Moving to finalIndex " + finalIndex + " from: " + currentIndex + " remainder: " + path.moveRemainder);
         // path.remainder has to be greater than zero to make this call
         if (path.moveStatus === MoveStatus.ShouldBeExiting && path.moveRemainder > 0) {
             path = this.constructOnWayOutPath(piece, 0, path.moveRemainder, path);

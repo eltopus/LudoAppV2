@@ -123,6 +123,8 @@ export class GameSetup extends Phaser.State {
                     newCreatedPlayers.newPlayers.push(aiPlayer);
                     newCreatedPlayers.gameMode = PlayerMode.SinglePlayer;
                     emit.setGameMode(PlayerMode.SinglePlayer);
+                    emit.setEmit(false);
+                    emit.setEnableSocket(false);
                     break;
                 }
                 // single player
@@ -137,6 +139,8 @@ export class GameSetup extends Phaser.State {
                     newCreatedPlayers.newPlayers.push(aiPlayer3);
                     newCreatedPlayers.gameMode = PlayerMode.SinglePlayer;
                     emit.setGameMode(PlayerMode.SinglePlayer);
+                    emit.setEmit(false);
+                    emit.setEnableSocket(false);
                     break;
                 }
                 // multi player
@@ -171,10 +175,11 @@ export class GameSetup extends Phaser.State {
                     newCreatedPlayers.newPlayers.push(aiPlayer1);
                     let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer2);
-                    newCreatedPlayers.gameMode = PlayerMode.Multiplayer;
-                    emit.setGameMode(PlayerMode.Multiplayer);
-                    emit.setEmit(true);
-                    emit.setEnableSocket(true);
+                    newCreatedPlayers.gameMode = PlayerMode.SinglePlayer;
+                    // emit.setGameMode(PlayerMode.Multiplayer);
+                    // emit.setEmit(true);
+                    // emit.setEnableSocket(true);
+                    emit.setGameMode(PlayerMode.SinglePlayer);
                     break;
                 }
                 // single player
@@ -192,7 +197,7 @@ export class GameSetup extends Phaser.State {
                     break;
                 }
             }
-            emit.setEmit(true);
+            // emit.setEmit(true);
             newCreatedPlayers.isCreator = true;
             creator = true;
             newCreatedPlayers.playerName = playerName;
@@ -259,6 +264,7 @@ export class GameSetup extends Phaser.State {
 						callback: function() {
                             newCreatedPlayers.hasSavedGame = false;
                             emit.setGameMode(null);
+                            localStorage.clear();
 						},
 					},
                 },

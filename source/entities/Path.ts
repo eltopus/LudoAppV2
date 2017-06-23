@@ -4,6 +4,7 @@ export class Path {
     public y: number[] = [];
     public moveStatus = MoveStatus.ShouldContinue;
     public moveRemainder = 0;
+    public mockMoveRemainder = 0;
     public newIndex = -1;
 
     public setPath(x: number[], y: number[]): void {

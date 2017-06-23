@@ -193,6 +193,10 @@ export class Die extends Phaser.Sprite {
         }
     }
 
+    public setDieFrameValue(frame: number): void {
+        this.frame = frame;
+    }
+
     public getValue(): number {
         switch (this.frame) {
             case 0:

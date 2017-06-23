@@ -394,6 +394,14 @@ export abstract class Player extends PieceFactory {
         return colorTypes;
     }
 
+    public getStartingIndexes(): number[] {
+        let startingIndexes: number[] = [];
+        for (let color of this.colorTypes){
+            startingIndexes.push(this.getStartIndex(color));
+        }
+        return startingIndexes;
+    }
+
     public getColor(color: ColorType): string {
         switch (color) {
             case ColorType.Red:
@@ -433,6 +441,12 @@ export abstract class Player extends PieceFactory {
         this.previousDoubleSix = false;
     }
 
+    public resetPlayerPieces(): void {
+        for (let piece of this.pieces) {
+            piece.resetPiece();
+        }
+    }
+
     public updateOnRestartLudoPieces(ludogame: LudoGame): void {
         for (let ludoplayer of ludogame.ludoPlayers) {
             if (ludoplayer.playerId === this.playerId) {
@@ -447,11 +461,27 @@ export abstract class Player extends PieceFactory {
     public updateOnReloadLudoPieces(ludogame: LudoGame): void {
         for (let ludoplayer of ludogame.ludoPlayers) {
             if (ludoplayer.playerId === this.playerId) {
+                this.sequenceNumber = ludoplayer.sequenceNumber;
                 for (let piece of this.pieces){
                     piece.updateOnReloadLudoPieces(ludoplayer.pieces);
                 }
                 break;
             }
+        }
+    }
+
+    private getStartIndex(color: ColorType): number {
+        switch (color) {
+            case ColorType.Red:
+            return 1;
+            case ColorType.Blue:
+            return 14;
+            case ColorType.Yellow:
+            return 27;
+            case ColorType.Green:
+            return 40;
+            default:
+            return 0;
         }
     }
 

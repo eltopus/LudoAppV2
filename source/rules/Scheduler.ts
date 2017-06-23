@@ -112,7 +112,7 @@ export class Scheduler {
         return enemyPerimeter;
     }
 
-    public getActiveEnemyPerimeterss(): Perimeter[] {
+    public getActiveEnemyPerimeters(): Perimeter[] {
         let currentPlayer = this.getCurrentPlayer();
         let enemyPerimeter: Perimeter[] = [];
         for (let player of this.players){
@@ -166,6 +166,49 @@ export class Scheduler {
             }
         }
         return winningPlayer;
+    }
+    // Assumes mock piece is active
+    public isMockPiecePassing(index: number, remainder: number, startingIndex: number): boolean {
+        let passing = false;
+        let playerId = this.getCurrentPlayer().playerId;
+        let pieceIndex = 0;
+        for (let player of this.players) {
+            if (player.playerId !== playerId) {
+                for (let piece of player.pieces) {
+                    if (piece.isActive()) {
+                        pieceIndex = piece.index;
+                        if (remainder > 0 || index === 0) {
+                            index += 52;
+                        }
+                        if (startingIndex < piece.index && index > piece.index) {
+                            passing = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        // log.debug("startingIndex: "  + startingIndex + " index: " + index + " enemyIndex " + pieceIndex + " ispassing? " + passing);
+        return passing;
+    }
+
+    public isMockPieceLudoing(index: number): boolean {
+        let ludoing = false;
+        let playerId = this.getCurrentPlayer().playerId;
+        let startingIndexes: number[] = [];
+        for (let player of this.players) {
+            if (player.playerId !== playerId) {
+                startingIndexes = startingIndexes.concat(player.getStartingIndexes());
+            }
+        }
+        for (let startIndex of startingIndexes) {
+            if (startIndex === index) {
+                ludoing = true;
+                break;
+            }
+        }
+        // log.debug("UniqueId: " + startingIndexes.join() + " ludoing: " + ludoing);
+        return ludoing;
     }
 
     private compareCheckSum(check_sum_from_server: string): void {

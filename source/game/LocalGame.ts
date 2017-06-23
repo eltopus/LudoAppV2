@@ -32,7 +32,7 @@ $(window).on("beforeunload", function() {
     if (emit.isSinglePlayer()) {
         let ludogame = cache.get(savedgameId);
         if (ludogame) {
-            log.debug(`key ${savedgameId} has been deleted at ${new Date().toLocaleTimeString()}`);
+            // log.debug(`key ${savedgameId} has been deleted at ${new Date().toLocaleTimeString()}`);
             localStorage.setItem("gameId", JSON.stringify(ludogame));
         }
     }

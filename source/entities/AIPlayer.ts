@@ -1,21 +1,25 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
-import {Piece} from "../entities/Piece";
-import {PieceFactory} from "../entities/PieceFactory";
-import {ColorType} from "../enums/ColorType";
-import {factory} from "../logging/ConfigLog4j";
-import {Board} from "./Board";
-import {Dice} from "./Dice";
-import {Player} from "./Player";
-import {RuleEnforcer} from "../rules/RuleEnforcer";
-import {AllPossibleMoves} from "../rules/AllPossibleMoves";
-import {Move} from "../rules/Move";
-import {AIBrainBox} from "../ai/AIBrainBox";
-import {MockPiece} from "../ai/MockPiece";
-import {PieceInterface} from "../entities/Piece";
-import {AIStrategy} from "../enums/AIStrategy";
-import {Perimeters} from "./Perimeters";
-import {Perimeter} from "./Perimeters";
-import {LudoPiece} from "../game/LudoPiece";
+import { Piece } from "../entities/Piece";
+import { PieceFactory } from "../entities/PieceFactory";
+import { ColorType } from "../enums/ColorType";
+import { factory } from "../logging/ConfigLog4j";
+import { Board } from "./Board";
+import { Dice } from "./Dice";
+import { Player } from "./Player";
+import { RuleEnforcer } from "../rules/RuleEnforcer";
+import { AllPossibleMoves } from "../rules/AllPossibleMoves";
+import { Move } from "../rules/Move";
+import { AIBrainBox } from "../ai/AIBrainBox";
+import { MockPiece } from "../ai/MockPiece";
+import { PieceInterface } from "../entities/Piece";
+import { AIStrategy } from "../enums/AIStrategy";
+import { MoveStatus } from "../enums/MoveStatus";
+import { States } from "../enums/States";
+import { Perimeters } from "./Perimeters";
+import { Perimeter } from "./Perimeters";
+import { LudoPiece } from "../game/LudoPiece";
+import { Path } from "../entities/Path";
+import { MockMovementStatus } from "../movement/MockMovementStatus";
 
 
 const log = factory.getLogger("model.PlayerAI");
@@ -23,6 +27,7 @@ export class AIPlayer extends Player {
     private ruleEnforcer: RuleEnforcer = null;
     private logic: AIBrainBox;
     private strategy: AIStrategy;
+    private mockMovements: MockMovementStatus = new MockMovementStatus();
     constructor(game: Phaser.Game, playerId: string, turn: boolean, colorTypes: ColorType[], signal: Phaser.Signal, playerName: string,
     socket: any, gameId: string, ludoPiece?: LudoPiece[],
      ruleEnforcer?: RuleEnforcer, previousDoubleSix?: boolean) {
@@ -38,16 +43,54 @@ export class AIPlayer extends Player {
     public playAIPlayerMovement(listener: string, playerId: string, currentPossibleMovements: AllPossibleMoves): void {
         if (listener === "aiPlayerMovement" && this.playerId === playerId) {
             let movements = currentPossibleMovements.getConcatenatedPossibleMoves();
-            let possibleMovesTotal = movements.length;
-            if (possibleMovesTotal > 0) {
-                let bestMove = this.bestMovement(movements);
+            if (movements.length > 0) {
+                let randomIndex = (Math.floor(Math.random() * movements.length + 1)) - 1;
+                let bestMovement = movements[randomIndex];
+                this.findAllMockMovements(movements);
+                if (this.mockMovements.containsPecking()) {
+                    log.debug("Choosing pecking movement");
+                    log.debug("--------------------------------------------------");
+                    bestMovement = this.mockMovements.peckingMovements[0];
+                }else {
+                    let contextMovement: Move = null;
+                    if (bestMovement.isActiveMovement() && this.mockMovements.isLudoing(bestMovement)) {
+                        log.debug("Switching ludoing context.....");
+                        for (let movement of movements) {
+                            if (movement.isActiveMovement() && this.mockMovements.isLudoing(movement) === false) {
+                                contextMovement = movement;
+                                break;
+                            }
+                        }
+                    }
+                    if (contextMovement === null && bestMovement.isActiveMovement() && this.mockMovements.isPassing(bestMovement)) {
+                        log.debug("Switching passing context.....");
+                        for (let movement of movements) {
+                            if (movement.isActiveMovement() && this.mockMovements.isPassing(movement) === false) {
+                                contextMovement = movement;
+                                break;
+                            }
+                        }
+                    }
+                    /*
+                    if (bestMovement.isActiveMovement() && this.mockMovements.isCrossing(bestMovement)) {
+                        // encourage context
+                    }
+                    */
+                    if (contextMovement !== null) {
+                        bestMovement = contextMovement;
+                    }
+                }
+                this.mockMovements.resetAll();
+                if (bestMovement.isHomeMovement()) {
+                    bestMovement = this.checkHomeMovement(bestMovement);
+                }
                 // log.debug("movementIndex: " + movementIndex + " PossibleMovements:" + possibleMovesTotal);
-                let piece = this.getPieceByUniqueId(bestMove.pieceId);
+                let piece = this.getPieceByUniqueId(bestMovement.pieceId);
                 setTimeout(() => {
                     if (piece) {
                         piece.setActivePiece();
                     }
-                    this.ruleEnforcer.generateAIPieceMovement(piece, bestMove);
+                    this.ruleEnforcer.generateAIPieceMovement(piece, bestMovement);
                 }, 1000);
             }else {
                 log.debug("AI HANDLE EMPTY MOVEMENT!!!!!!!!!!!!!!!!!! SIGN OF BAD RULE FILTER");
@@ -55,56 +98,73 @@ export class AIPlayer extends Player {
             }
         }
     }
-    private aiRollDice(listener: string, dice: Dice, playerId: string) {
-        if (listener === "aiRollDice") {
-             setTimeout(() => this.roll(dice), 1000);
+
+    /**
+     * Find and return all mock movements
+     * @param movements
+     */
+    private findAllMockMovements(movements: Move[]): void {
+        for (let movement of movements){
+            let piece = this.ruleEnforcer.scheduler.getPieceByUniqueId(movement.pieceId);
+            if (typeof piece !== "undefined" && piece !== null) {
+                let mockPiece: PieceInterface = new MockPiece(piece);
+                let startingIndex = mockPiece.index;
+                if (mockPiece.isAtHome()) {
+                    movement = this.ruleEnforcer.consumeDieMockValueSix(movement);
+                    mockPiece.index = mockPiece.startIndex;
+                }else {
+                    movement.mockDiceId = movement.diceId;
+                }
+                let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(movement.mockDiceId);
+                if (diceValueArr.length > 0) {
+                    let diceValue = this.ruleEnforcer.addDiceValues(diceValueArr);
+                    if (movement.mockConsumeDieValueSix) {
+                        diceValue = 0;
+                        movement.mockConsumeDieValueSix = false;
+                        movement.mockDiceId = "";
+                    }
+                    let initialState = piece.state;
+                    let path = this.logic.constructMockpath(mockPiece, diceValue);
+                    if (this.ruleEnforcer.mockPieceCollision(mockPiece.uniqueId, path.newIndex)) {
+                        this.mockMovements.peckingMovements.push(movement);
+                    }if (initialState === States.Active && mockPiece.isOnWayOut()) {
+                        this.mockMovements.crossingMovements.push(movement);
+                    }if (this.ruleEnforcer.mockPiecePassing(path, startingIndex)) {
+                       this.mockMovements.passingMovements.push(movement);
+                    }if (this.ruleEnforcer.mockPieceLudoing(path)) {
+                        this.mockMovements.ludoingMovements.push(movement);
+                    }
+                }
+            }
         }
     }
 
-    private bestMovement(movements: Move[]): Move {
-        let bestMove: Move = null;
-        for (let movement of movements){
+    private checkHomeMovement(movement: Move): Move {
+        if (this.colorTypes.length > 1) {
             let piece = this.ruleEnforcer.scheduler.getPieceByUniqueId(movement.pieceId);
-            bestMove = this.findPeckMove(movement, piece, bestMove);
-            if (bestMove !== null) {
-                // log.debug("USING PECK MOVE!!!!!!!!!!!!!!!!");
-                break;
-            }
-        }
-        if (bestMove === null) {
-            let movementIndex = 0;
-            movementIndex = (Math.floor(Math.random() * movements.length + 1)) - 1;
-            bestMove = movements[movementIndex];
-            if (bestMove.isHomeMovement()) {
-                // Player has more than one color
-                if (this.colorTypes.length > 1) {
-                    let piece = this.ruleEnforcer.scheduler.getPieceByUniqueId(bestMove.pieceId);
-                    if (piece !== null) {
-                        let perimeters = this.ruleEnforcer.scheduler.getHomeEnemyPerimeters();
-                        for (let perimeter of perimeters){
-                            // log.debug("After PerimeterIndex: " + perimeter.pieceIndex + " PerimeterColor: " + perimeter.pieceColor + " id " + this.playerId);
-                        }
-                        if (perimeters.length > 0) {
-                            let colorWithFewerEnemies = this.getColorWithFewerEnemies(perimeters);
-                            if (colorWithFewerEnemies !== null && colorWithFewerEnemies !== piece.color) {
-                                let anotherPiece = this.sampleHomePieceByColor(colorWithFewerEnemies);
-                                if (anotherPiece !== null) {
-                                    // log.debug("Switching Piece to another color");
-                                    bestMove.pieceId = anotherPiece.uniqueId;
-                                }
-                            }else {
-                                // log.debug("No need to Switching Piece to another color");
-                            }
-                            this.ruleEnforcer.scheduler.addPerimetersToPool(perimeters, this.playerId);
-                        }
-                    }
+            if (piece !== null) {
+                let perimeters = this.ruleEnforcer.scheduler.getHomeEnemyPerimeters();
+                for (let perimeter of perimeters){
+                    // log.debug("After PerimeterIndex: " + perimeter.pieceIndex + " PerimeterColor: " + perimeter.pieceColor + " id " + this.playerId);
                 }
-            }else if (bestMove.isActiveMovement()) {
-                // TODO
+                if (perimeters.length > 0) {
+                    let colorWithFewerEnemies = this.getColorWithFewerEnemies(perimeters);
+                    if (colorWithFewerEnemies !== null && colorWithFewerEnemies !== piece.color) {
+                        let anotherPiece = this.sampleHomePieceByColor(colorWithFewerEnemies);
+                        if (anotherPiece !== null) {
+                            // log.debug("Switching Piece to another color");
+                            movement.pieceId = anotherPiece.uniqueId;
+                            log.debug("Switching home piece with one with fewer or no enemies");
+                        }
+                    }else {
+                        // log.debug("No need to Switching Piece to another color");
+                    }
+                    this.ruleEnforcer.scheduler.addPerimetersToPool(perimeters, this.playerId);
+                }
             }
         }
 
-        return bestMove;
+        return movement;
     }
 
     private getColorWithFewerEnemies(perimeters: Perimeter[]): ColorType {
@@ -146,35 +206,6 @@ export class AIPlayer extends Player {
         return matchingPiece;
     }
 
-    private findPeckMove(movement: Move, piece: Piece, peckMove: Move): Move {
-        if (typeof piece !== "undefined" && piece !== null) {
-            let mockPiece: PieceInterface = new MockPiece(piece);
-            if (mockPiece.isAtHome()) {
-                movement = this.ruleEnforcer.consumeDieMockValueSix(movement);
-                mockPiece.index = mockPiece.startIndex;
-            }else {
-                movement.mockDiceId = movement.diceId;
-            }
-            let diceValueArr = this.ruleEnforcer.dice.getDieValueArrayByUniqueId(movement.mockDiceId);
-            if (diceValueArr.length > 0) {
-                let diceValue = this.ruleEnforcer.addDiceValues(diceValueArr);
-                if (movement.mockConsumeDieValueSix) {
-                    diceValue = 0;
-                    movement.mockConsumeDieValueSix = false;
-                    movement.mockDiceId = "";
-                }
-                let path = this.logic.constructMockpath(mockPiece, diceValue);
-                if (this.ruleEnforcer.mockPieceCollision(mockPiece.uniqueId, path.newIndex)) {
-                    // log.debug("END >>>>>>>>>>>>>>>>MOVE CAN PECK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + path.newIndex);
-                    peckMove = movement;
-                }
-            }
-        }else {
-            log.debug("PIECE IS NULL.....................");
-        }
-        return peckMove;
-    }
-
     private scanPerimeterForEnemies(movements: Move[]): Move[] {
 
         return movements;
@@ -186,6 +217,12 @@ export class AIPlayer extends Player {
 
     private isDefault(): boolean {
         return this.strategy === AIStrategy.Default;
+    }
+
+    private aiRollDice(listener: string, dice: Dice, playerId: string) {
+        if (listener === "aiRollDice") {
+             setTimeout(() => this.roll(dice), 1000);
+        }
     }
 
 }

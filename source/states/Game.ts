@@ -66,6 +66,10 @@ export class Game extends Phaser.State {
             this.playerMode = newPlayers.playerMode;
             this.isCreator = true;
         }
+
+        if (emit.isSinglePlayer()) {
+            this.isCreator = true;
+        }
     }
 
     public create() {
@@ -160,6 +164,7 @@ export class Game extends Phaser.State {
                 this.socket = cio({reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 5000, reconnectionAttempts: 5});
             }
             log.debug("Enable socket: " + emit.getEnableSocket());
+            log.debug("Enable emit: " + emit.getEmit());
             let dieOneUUID = UUID.UUID();
             let dieTwoUUID = UUID.UUID();
             this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID, this.socket, this.gameId);
@@ -179,24 +184,35 @@ export class Game extends Phaser.State {
                 }
             }
             this.enforcer.players = this.players;
-            this.setSocketHandlers();
-            this.createGame();
-            /*
+            this.scheduler.getNextPlayer();
             if (this.isCreator) {
-                let playerOne = this.scheduler.getCurrentPlayer();
+                let playerOne = this.players[0];
+                // this.saveGame();
                 for (let x = 1; x < playerOne.pieces.length; x++) {
                     homeboard.removePieceFromHomeBoard(playerOne.pieces[x]);
                     exitedBoard.addPieceToActiveBoard(playerOne.pieces[x]);
                     playerOne.pieces[x].setExited();
                     playerOne.pieces[x].visible = false;
                 }
-                // let p1 = playerOne.pieces[0];
-                // homeboard.removePieceFromHomeBoard(p1);
-                // this.setActivePieceParameters(p1, 19, States.Active, activeboard);
-                // this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
-                this.saveGame();
+
+                let p1 = playerOne.pieces[0];
+                homeboard.removePieceFromHomeBoard(p1);
+                // this.setActivePieceParameters(p1, 51, States.Active, activeboard);
+                this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
+                let playerTwo = this.players[1];
+                let p2 = playerTwo.pieces[0];
+                homeboard.removePieceFromHomeBoard(p2);
+                this.setActivePieceParameters(p2, 40, States.Active, activeboard);
+
+                let p3 = playerTwo.pieces[5];
+                homeboard.removePieceFromHomeBoard(p3);
+                this.setActivePieceParameters(p3, 27, States.Active, activeboard);
+
+                this.dice.dieOne.setDieFrameValue(0);
+                this.dice.dieTwo.setDieFrameValue(0);
             }
-            */
+            this.setSocketHandlers();
+            this.createGame();
         }
 
         log.debug(" Iscreator is " + this.isCreator);
