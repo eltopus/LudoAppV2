@@ -14,7 +14,7 @@ import {LudoPersistence} from "./LudoPersistence";
 import {States} from "./source/enums/States";
 import {LudoGameStatus} from "./source/enums/LudoGameStatus";
 
-let cache = new NodeCache({stdTTL: 3600, checkperiod: 3800, useClones: false});
+let cache = new NodeCache({stdTTL: 36000, checkperiod: 38000, useClones: false});
 /*
 let redis = new ioredis({
     family: 4,
@@ -106,28 +106,47 @@ export class Ludo {
                 if (updatedludogame) {
                     ok = true;
                 }else {
-                    message = `Error! ${req.session.gameId} cannot be found!`;
+                    message = `Error! ${req.session.gameId} cannot be found or may be full!`;
                 }
                 callback({ok: ok, updatedludogame: updatedludogame, message: message});
             });
         });
     }
 
+    public cancelRefreshGame(req: any, callback: any): void {
+        let ok = false;
+        let playerName;
+        let ludogame = cache.get(req.session.gameId);
+        if (ludogame) {
+            for (let availPlayer of ludogame.ludoPlayers){
+                 if (availPlayer.playerId === req.session.playerId) {
+                     availPlayer.isEmpty = true;
+                     playerName = availPlayer.playerName;
+                     ok = true;
+                     break;
+                }
+            }
+        }
+        callback({ok: ok, playerName: playerName});
+    }
+
     private assignRefreshPlayer(ludogame: LudoGame, req: any, callback: any): void {
+        let updatedludogame: any;
         if (ludogame === null || typeof ludogame === "undefined" || req.session.playerName === "ADMIN") {
             if (ludogame && req.session.playerName === "ADMIN") {
                 ludogame.playerId = "SOMETHING COMPLETELY RANDOM";
             }
         }else {
-            ludogame.playerId = req.session.playerId;
              for (let availPlayer of ludogame.ludoPlayers){
-                    if (availPlayer.playerId === req.session.playerId) {
-                        availPlayer.isEmpty = false;
-                        break;
-                    }
+                 if (availPlayer.playerId === req.session.playerId && availPlayer.isEmpty) {
+                    availPlayer.isEmpty = false;
+                    ludogame.playerId = req.session.playerId;
+                    updatedludogame = ludogame;
+                    break;
                 }
+            }
         }
-        callback(ludogame);
+        callback(updatedludogame);
     }
 
     private assignPlayer(ludogame: LudoGame, req: any, callback: any): void {
@@ -147,18 +166,17 @@ export class Ludo {
                 console.log("Admin is joining the game.....");
             }
         }else {
-            let playerName = req.body.playerName;
             if (ludogame.status === LudoGameStatus.INPROGRESS) {
                 for (let availPlayer of ludogame.ludoPlayers){
                     if (availPlayer.isEmpty === true) {
-                        // console.log("Available name " + availPlayer.playerName);
-                        if (playerName === availPlayer.playerName) {
+                        console.log("Available name " + availPlayer.playerName);
+                        if (req.body.playerName === availPlayer.playerName) {
                             ludogame.playerId = availPlayer.playerId;
-                            availPlayer.isEmpty = false;
-                            req.session.playerName = playerName;
+                            req.session.playerName = req.body.playerName;
                             req.session.gameId = ludogame.gameId;
                             req.session.playerId = availPlayer.playerId;
                             foundGame = true;
+                            availPlayer.isEmpty = false;
                             break;
                         }
                         availablePlayerNames.push(availPlayer.playerName);
@@ -166,16 +184,19 @@ export class Ludo {
                 }
                 if (availablePlayerNames.length === 0) {
                     message = `Cannot join ${req.body.gameId} because it is full`;
+                    for (let player of ludogame.ludoPlayers) {
+                        console.log("Player Name: " + player.playerName + " empty: " + player.isEmpty);
+                    }
                 }
 
              }else {
                 for (let availPlayer of ludogame.ludoPlayers){
                     if (availPlayer.isEmpty) {
-                        availPlayer.playerName = playerName;
+                        availPlayer.playerName = req.body.playerName;
                         ludogame.playerId = availPlayer.playerId;
                         ludogame.availableColors = this.getAvailableColors(availPlayer.colors, ludogame);
                         availPlayer.isEmpty = false;
-                        req.session.playerName = playerName;
+                        req.session.playerName = req.body.playerName;
                         req.session.gameId = ludogame.gameId;
                         req.session.playerId = availPlayer.playerId;
                         foundGame = true;
@@ -200,7 +221,7 @@ export class Ludo {
                 if (disconnectedPlayer.playerId === sock.playerId) {
                     disconnectedPlayer.isEmpty = true;
                     io.in(sock.gameId).emit("disconnectedPlayerId", sock.playerId);
-                    sock.leave(sock.gameId);
+                    console.log(sock.playerName + " HAS DICONNECTED ");
                     break;
                 }
             }
@@ -208,12 +229,11 @@ export class Ludo {
             let numClients = (typeof clients !== "undefined") ? Object.keys(clients).length : 0;
             if (numClients === 0 && ludogame.status === LudoGameStatus.INPROGRESS) {
                 console.log("Room is empty! Saving to database..........." + numClients);
-                persistence.setValue(ludogame);
+                persistence.setUpdate(ludogame);
             }
-        }else if (ludogame && sock.playerName === "ADMIN") {
-            sock.leave(sock.gameId);
         }
         console.log("Playername: " + sock.playerName + " has diconnected");
+        sock.leave(sock.gameId);
     }
 
     private getAvailableColors(chosenColors: string[], ludogame: LudoGame): string[] {
@@ -597,10 +617,10 @@ export class Ludo {
                     persistence.getValue(gameId, (resultfromdb: any) => {
                         let ludogame = resultfromdb[0];
                         if (ludogame) {
+                            // console.log(" I resaving in cache " + ludogame);
                             for (let player of ludogame.ludoPlayers) {
                                 player.isEmpty = true;
                             }
-                            // console.log(" I resaving in cache " + ludogame);
                             cache.set(ludogame.gameId, ludogame, (err: any, success: any) => {
                             if ( !err && success ) {
                                 console.log(`Game from mongo is saved in cache successfully? ${success}`);

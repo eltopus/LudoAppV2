@@ -10,6 +10,7 @@ import * as ExpressSession from "express-session";
 import * as sharedSession from "express-socket.io-session";
 import {Ludo} from "./Ludo";
 
+let MongoStore = require("connect-mongo")(ExpressSession);
 class Server {
     public static PORT = 3000;
     public app: any;
@@ -18,6 +19,7 @@ class Server {
     private port: number;
     private sharedsession: any;
     private session: any;
+    private memoryStore: any;
 
     private ludo = new Ludo();
 
@@ -78,6 +80,16 @@ class Server {
             }
         });
 
+        router.post("/cancelrefresh", (req: any, res, next) => {
+            if (req.session.gameId) {
+                this.ludo.cancelRefreshGame(req, (message: any) => {
+                    res.send(message);
+                });
+            }else {
+                res.send({message: `${req.session.gameId} cannot be found!`});
+            }
+        });
+
         router.post("/join", (req, res, next) => {
             if (req.body.gameId) {
                 this.ludo.getExistingGame(req, (ludogame: any) => {
@@ -97,6 +109,12 @@ class Server {
             resave: false,
             saveUninitialized: true,
             secret: "i-love-husky",
+            store: new MongoStore({
+                url: "mongodb://192.168.5.129:27017/ludodb",
+                // ttl: 14 * 24 * 60 * 60, // = 14 days. Default
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                fallbackMemory: false,
+            }),
         });
         this.app.use(this.session);
     }

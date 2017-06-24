@@ -1,5 +1,4 @@
-import {Rule} from "../source/rules/Rule";
-import {Actions} from "../source/enums/Actions";
+
 import {expect} from "chai";
 /*
 describe("Rule Class", () => {

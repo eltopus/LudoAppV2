@@ -1,1 +1,2 @@
-export enum PlayerMode { RegularTwoPlayer, RegularFourPlayer, AiTwoPlayer, AiFourPlayer, AiTwoPlayerAiVsAi, AiFourPlayerAiVsAi, SinglePlayer, Multiplayer}
+export enum PlayerMode { RegularTwoPlayer, RegularFourPlayer, AiTwoPlayer, AiFourPlayer,
+     AiTwoPlayerAiVsAi, AiFourPlayerAiVsAi, SinglePlayer, Multiplayer, Default}

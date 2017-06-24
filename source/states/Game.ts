@@ -47,28 +47,19 @@ export class Game extends Phaser.State {
     private newPlayers: NewPlayers;
     private gameId: string;
     private socket: any = null;
-    private isCreator = false;
-    private gameMode: PlayerMode = null;
     private currentPlayerName: string;
     private playerNames = new Dictionary<String, any>();
 
     public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
-        log.debug("Single player? " + emit.isSinglePlayer());
-        this.gameMode = newPlayers.gameMode;
+        log.debug("Single player? " + emit.isSinglePlayer() + " Multi player? " + emit.isMultiPlayer() + " Creator? " + emit.getCreator());
         if (this.newPlayers.hasSavedGame) {
             this.gameId = newPlayers.ludogame.gameId;
             this.playerMode = newPlayers.ludogame.playerMode;
-            this.setCreator(newPlayers.ludogame.creatorPlayerId);
         } else {
             this.gameId = this.generateGameId(5);
             this.currentPlayerName = this.newPlayers.playerName;
             this.playerMode = newPlayers.playerMode;
-            this.isCreator = true;
-        }
-
-        if (emit.isSinglePlayer()) {
-            this.isCreator = true;
         }
     }
 
@@ -116,7 +107,6 @@ export class Game extends Phaser.State {
             emit.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.game, this.scheduler, this.dice, activeboard, homeboard,
                 onWayOutBoard, exitedBoard, this.newPlayers.ludogame.gameId, this.socket, currentPossibleMovements);
-            this.enforcer.isCreator = this.isCreator;
             let players: Player[] = [];
             for (let ludoPlayer of this.newPlayers.ludogame.ludoPlayers) {
                 if (ludoPlayer !== null && typeof ludoPlayer !== "undefined") {
@@ -153,11 +143,6 @@ export class Game extends Phaser.State {
                     this.joinExistingGame();
                 }
             }
-            /*
-            for (let player of this.players) {
-                log.debug("PlayerName Color " + player.getColorTypes() + " sequenceNumber " + player.sequenceNumber);
-            }
-            */
 
         } else {
             if (emit.getEnableSocket()) {
@@ -172,7 +157,6 @@ export class Game extends Phaser.State {
             emit.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.game, this.scheduler, this.dice, activeboard, homeboard,
                 onWayOutBoard, exitedBoard, this.gameId, this.socket, currentPossibleMovements);
-            this.enforcer.isCreator = this.isCreator;
             this.players = this.createNewPlayers(this.newPlayers);
             let sequenceNumber = 0;
             for (let player of this.players) {
@@ -184,8 +168,9 @@ export class Game extends Phaser.State {
                 }
             }
             this.enforcer.players = this.players;
-            this.scheduler.getNextPlayer();
-            if (this.isCreator) {
+            /*
+            if (emit.getCreator()) {
+                this.scheduler.getNextPlayer();
                 let playerOne = this.players[0];
                 // this.saveGame();
                 for (let x = 1; x < playerOne.pieces.length; x++) {
@@ -211,11 +196,13 @@ export class Game extends Phaser.State {
                 this.dice.dieOne.setDieFrameValue(0);
                 this.dice.dieTwo.setDieFrameValue(0);
             }
+            */
             this.setSocketHandlers();
             this.createGame();
         }
 
-        log.debug(" Iscreator is " + this.isCreator);
+        log.debug(" Iscreator is " + emit.getCreator());
+        this.checkIfPlayerWon();
 
     }
 
@@ -304,7 +291,7 @@ export class Game extends Phaser.State {
     }
 
     private saveLudoGame(): void {
-        if (this.isCreator === true) {
+        if (emit.getCreator()) {
             if (emit.isSinglePlayer() === false) {
                 this.socket.emit("saveLudoGame", this.gameId, (ludogame: LudoGame) => {
                     if (ludogame) {
@@ -321,7 +308,7 @@ export class Game extends Phaser.State {
     }
 
     private resaveGame(listener: string): void {
-        if (listener === "resaveGame" && this.isCreator === true) {
+        if (listener === "resaveGame" && emit.getCreator()) {
             let ludogame = new LudoGame(this.players, this.dice, this.gameId);
             ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
             for (let ludoplayer of ludogame.ludoPlayers) {
@@ -350,8 +337,8 @@ export class Game extends Phaser.State {
         emit.setCurrentPlayerId(ludogame.ludoPlayers[0].playerId);
         ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
         ludogame.creatorPlayerId = ludogame.ludoPlayers[0].playerId;
-        ludogame.playerMode = this.getPlayerMode();
-        ludogame.gameMode = this.gameMode;
+        ludogame.playerMode = this.newPlayers.numOfPlayers;
+        ludogame.gameMode = emit.getGameMode();
         this.displayGameId(ludogame.gameId);
         if (emit.isSinglePlayer()) {
             localGame.setLudoGame(ludogame);
@@ -526,22 +513,6 @@ export class Game extends Phaser.State {
         }
     }
 
-    private getPlayerMode(): number {
-        let mode = 0;
-        if (this.playerMode === PlayerMode.AiFourPlayer || this.playerMode === PlayerMode.AiFourPlayerAiVsAi || this.playerMode === PlayerMode.RegularFourPlayer) {
-            mode = 4;
-        } else if (this.playerMode === PlayerMode.AiTwoPlayer || this.playerMode === PlayerMode.AiTwoPlayerAiVsAi || this.playerMode === PlayerMode.RegularTwoPlayer) {
-            mode = 2;
-        }
-        return mode;
-    }
-
-    private setCreator(creatorPlayerId: string): void {
-        if (emit.isTheCreator(creatorPlayerId)) {
-            this.isCreator = true;
-        }
-    }
-
     private waitForPlayers(ludogame: LudoGame): void {
         /*
         bootbox.dialog({
@@ -583,5 +554,15 @@ export class Game extends Phaser.State {
                     $("#player" + x).val(ludogame.ludoPlayers[x].playerName);
                 }
                 */
+    }
+
+    private checkIfPlayerWon(): void {
+        if (emit.getCreator() && this.scheduler.weHaveAWinningPlayer()) {
+            if (emit.isMultiPlayer()) {
+                this.enforcer.restartMultiPlayerGame();
+            }else if (emit.isSinglePlayer()) {
+                this.enforcer.restartSinglePlayerGame();
+            }
+        }
     }
 }

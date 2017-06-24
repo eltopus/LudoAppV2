@@ -36,7 +36,6 @@ export class RuleEnforcer {
     public rule: Rules;
     public scheduler: Scheduler;
     public dice: Dice;
-    public isCreator = false;
     public players: Player[] = [];
     private signal: Phaser.Signal;
     private rollCounter = 0;
@@ -371,6 +370,65 @@ export class RuleEnforcer {
         return indexTotal;
     }
 
+    public restartMultiPlayerGame(): void {
+            this.socket.emit("restartGame", (ludogame: LudoGame) => {
+                if (ludogame.gameId) {
+                    this.dice.consumeWithoutEmission();
+                    emit.checkPlayerId(ludogame.ludoPlayers[0].playerId);
+                    this.scheduler.resetScheduler();
+                    this.players.sort((a: Player, b: Player) => {
+                        if (a.sequenceNumber < b.sequenceNumber) {
+                            return -1;
+                        }
+                        if (a.sequenceNumber > b.sequenceNumber) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+                    this.rule.clearBoards();
+                    for (let player of this.players) {
+                        player.updateOnRestartLudoPieces(ludogame);
+                        this.rule.updateOnRestartBoards(player.pieces);
+                        this.scheduler.enqueue(player);
+                    }
+                }
+                this.rule.checkBoardConsistencies();
+                let currentPlayer = this.scheduler.getCurrentPlayer();
+                if (currentPlayer.isAI && emit.isAdmin() === false) {
+                    this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
+                }
+            });
+    }
+
+    public restartSinglePlayerGame(): void {
+        this.dice.consumeWithoutEmission();
+        this.scheduler.resetScheduler();
+        this.rule.clearBoards();
+        for (let player of this.players) {
+            player.resetPlayer();
+            player.resetPlayerPieces();
+        }
+        this.players.sort((a: Player, b: Player) => {
+                if (a.sequenceNumber < b.sequenceNumber) {
+                    return -1;
+                }
+                if (a.sequenceNumber > b.sequenceNumber) {
+                    return 1;
+                }
+                return 0;
+            });
+        for (let player of this.players) {
+            this.rule.updateOnRestartBoards(player.pieces);
+            this.scheduler.enqueue(player);
+        }
+        this.rule.checkBoardConsistencies();
+        let currentPlayer = this.scheduler.getCurrentPlayer();
+        this.dice.resetDice();
+        if (currentPlayer.isAI && emit.isAdmin() === false) {
+            this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
+        }
+    }
+
     private generateAllPossibleMoves(callback: any): void {
         let currentPlayer: Player = this.scheduler.getCurrentPlayer();
         this.currentPossibleMovements.resetMoves();
@@ -596,10 +654,10 @@ export class RuleEnforcer {
         if (listener === "completeMovement" && this.scheduler.weHaveAWinningPlayer()) {
             log.debug(`Times called wins!!! + ${++timecalled}`);
             Display.show(`Player  wins!!!`);
-            if (this.isCreator === true) {
-                if (emit.getEmit() && emit.getEnableSocket()) {
+            if (emit.getCreator()) {
+                if (emit.isMultiPlayer()) {
                     this.restartMultiPlayerGame();
-                }else {
+                }else if (emit.isSinglePlayer()) {
                     this.restartSinglePlayerGame();
                 }
             }
@@ -614,65 +672,6 @@ export class RuleEnforcer {
                     }
                 }
             }
-        }
-    }
-
-    private restartMultiPlayerGame(): void {
-            this.socket.emit("restartGame", (ludogame: LudoGame) => {
-                if (ludogame.gameId) {
-                    this.dice.consumeWithoutEmission();
-                    emit.checkPlayerId(ludogame.ludoPlayers[0].playerId);
-                    this.scheduler.resetScheduler();
-                    this.players.sort((a: Player, b: Player) => {
-                        if (a.sequenceNumber < b.sequenceNumber) {
-                            return -1;
-                        }
-                        if (a.sequenceNumber > b.sequenceNumber) {
-                            return 1;
-                        }
-                        return 0;
-                    });
-                    this.rule.clearBoards();
-                    for (let player of this.players) {
-                        player.updateOnRestartLudoPieces(ludogame);
-                        this.rule.updateOnRestartBoards(player.pieces);
-                        this.scheduler.enqueue(player);
-                    }
-                }
-                this.rule.checkBoardConsistencies();
-                let currentPlayer = this.scheduler.getCurrentPlayer();
-                if (currentPlayer.isAI && emit.isAdmin() === false) {
-                    this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
-                }
-            });
-    }
-
-    private restartSinglePlayerGame(): void {
-        this.dice.consumeWithoutEmission();
-        this.scheduler.resetScheduler();
-        this.rule.clearBoards();
-        for (let player of this.players) {
-            player.resetPlayer();
-            player.resetPlayerPieces();
-        }
-        this.players.sort((a: Player, b: Player) => {
-                if (a.sequenceNumber < b.sequenceNumber) {
-                    return -1;
-                }
-                if (a.sequenceNumber > b.sequenceNumber) {
-                    return 1;
-                }
-                return 0;
-            });
-        for (let player of this.players) {
-            this.rule.updateOnRestartBoards(player.pieces);
-            this.scheduler.enqueue(player);
-        }
-        this.rule.checkBoardConsistencies();
-        let currentPlayer = this.scheduler.getCurrentPlayer();
-        this.dice.resetDice();
-        if (currentPlayer.isAI && emit.isAdmin() === false) {
-            this.signal.dispatch("aiRollDice", this.dice, currentPlayer.playerId);
         }
     }
 

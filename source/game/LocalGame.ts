@@ -7,7 +7,7 @@ import * as NodeCache from "node-cache";
 
 let cache = new NodeCache({stdTTL: 36000, checkperiod: 39000, useClones: false});
 const log = factory.getLogger("model.LocalGame");
-const ttlExtension = 10;
+const ttlExtension = 1000;
 let savedgameId = "";
 let emit = Emit.getInstance();
 cache.on( "del", function( gameId: any, ludogame: LudoGame ){
@@ -21,8 +21,10 @@ cache.on( "del", function( gameId: any, ludogame: LudoGame ){
 
 let saveToLocalStorage = function(gameId: any, ludogame: LudoGame ): void {
         if (ludogame) {
-            log.debug(`key ${gameId} has been deleted at ${new Date().toLocaleTimeString()}`);
-            localStorage.setItem("gameId", JSON.stringify(ludogame));
+            if (typeof(Storage) !== "undefined") {
+                log.debug(`key ${gameId} has been deleted at ${new Date().toLocaleTimeString()}`);
+                localStorage.setItem("gameId", JSON.stringify(ludogame));
+            }
         }else {
             log.debug("Cannot save Ludo game....");
         }
@@ -30,10 +32,12 @@ let saveToLocalStorage = function(gameId: any, ludogame: LudoGame ): void {
 
 $(window).on("beforeunload", function() {
     if (emit.isSinglePlayer()) {
-        let ludogame = cache.get(savedgameId);
-        if (ludogame) {
-            // log.debug(`key ${savedgameId} has been deleted at ${new Date().toLocaleTimeString()}`);
-            localStorage.setItem("gameId", JSON.stringify(ludogame));
+        if (typeof(Storage) !== "undefined") {
+            let ludogame = cache.get(savedgameId);
+            if (ludogame) {
+                // log.debug(`key ${savedgameId} has been deleted at ${new Date().toLocaleTimeString()}`);
+                localStorage.setItem("gameId", JSON.stringify(ludogame));
+            }
         }
     }
 });
@@ -56,8 +60,10 @@ export class LocalGame {
     public saveLudoGame(gameId: string): void {
         let ludogame = cache.get(gameId);
         if (ludogame) {
-            log.debug(`key ${gameId} has been deleted at ${new Date().toLocaleTimeString()}`);
-            localStorage.setItem("gameId", JSON.stringify(ludogame));
+            if (typeof(Storage) !== "undefined") {
+                log.debug(`key ${gameId} has been deleted at ${new Date().toLocaleTimeString()}`);
+                localStorage.setItem("gameId", JSON.stringify(ludogame));
+            }
         }else {
             log.debug("Cannot save Ludo game...." + ludogame);
         }
@@ -70,7 +76,9 @@ export class LocalGame {
                 log.debug(`Game created and saved in cache successfully is ${success} at ${new Date().toLocaleTimeString()}`);
                 log.debug(`key ${ludogame.gameId} was saved to local storage ${new Date().toLocaleTimeString()}`);
                 savedgameId = ludogame.gameId;
-                localStorage.setItem("gameId", JSON.stringify(ludogame));
+                if (typeof(Storage) !== "undefined") {
+                    localStorage.setItem("gameId", JSON.stringify(ludogame));
+                }
             }else {
                log.debug(`Game created saved in cache successfully is ${err}`);
             }

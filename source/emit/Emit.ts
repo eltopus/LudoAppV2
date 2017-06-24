@@ -12,6 +12,7 @@ export class Emit {
     private emit = false;
     private enableSocket = false;
     private peckAndStay =  false;
+    private creator = false;
     private scheduler: Scheduler;
     private sessionId: string;
     private currentPlayerId: string;
@@ -19,7 +20,7 @@ export class Emit {
     private signal: Phaser.Signal;
     private emitDice: EmitDie = new EmitDie();
     private gameIdText: any;
-    private gameMode: PlayerMode;
+    private gameMode: PlayerMode = PlayerMode.Default;
     private opts = {
         lines: 13 // The number of lines to draw
         , length: 28 // The length of each line
@@ -103,6 +104,10 @@ export class Emit {
         return this.emit;
     }
 
+    public getCreator(): boolean {
+        return this.creator;
+    }
+
     public setEnableSocket(enableSocket: boolean): void {
         this.enableSocket = enableSocket;
     }
@@ -124,13 +129,42 @@ export class Emit {
         this.signal = signal;
     }
 
+    public setIsCreator(): any {
+        this.creator = true;
+    }
+
+    public unsetIsCreator(): any {
+        this.creator = false;
+    }
+
 
     public getPieceByUniqueId(uniqueId: string): Piece {
         return this.scheduler.getPieceByUniqueId(uniqueId);
     }
 
-    public setGameMode(gameMode: PlayerMode): void {
-        this.gameMode = gameMode;
+    public setSinglePlayer(): void {
+        this.gameMode = PlayerMode.SinglePlayer;
+        this.emit = false;
+        this.enableSocket = false;
+        this.creator = true;
+    }
+
+    public setMultiPlayer(): void {
+        this.gameMode = PlayerMode.Multiplayer;
+        this.emit = true;
+        this.enableSocket = true;
+        this.creator = false;
+    }
+
+    public setDefaultPlayer(): void {
+        this.gameMode = PlayerMode.Default;
+        this.emit = false;
+        this.enableSocket = false;
+        this.creator = false;
+    }
+
+    public getGameMode(): PlayerMode {
+        return this.gameMode;
     }
 
     public checkPlayerId(playerId: string): void {
@@ -154,12 +188,24 @@ export class Emit {
         return this.currentPlayerId === "SOMETHING COMPLETELY RANDOM";
     }
 
-    public isTheCreator(creatorPlayerId: string): boolean {
-        return (this.currentPlayerId === creatorPlayerId);
+    public setCreatorPlayerName(creatorPlayerId: string): void {
+        if (this.currentPlayerId === creatorPlayerId) {
+            this.creator = true;
+        }else {
+            this.creator = false;
+        }
     }
 
     public isSinglePlayer(): boolean {
         return (this.gameMode === PlayerMode.SinglePlayer);
+    }
+
+    public isMultiPlayer(): boolean {
+        return (this.gameMode === PlayerMode.Multiplayer);
+    }
+
+    public isDefaultPlayer(): boolean {
+        return (this.gameMode === PlayerMode.Default);
     }
 
     constructor() {

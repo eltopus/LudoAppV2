@@ -8,5 +8,6 @@
     PlayerMode[PlayerMode["AiFourPlayerAiVsAi"] = 5] = "AiFourPlayerAiVsAi";
     PlayerMode[PlayerMode["SinglePlayer"] = 6] = "SinglePlayer";
     PlayerMode[PlayerMode["Multiplayer"] = 7] = "Multiplayer";
+    PlayerMode[PlayerMode["Default"] = 8] = "Default";
 })(exports.PlayerMode || (exports.PlayerMode = {}));
 var PlayerMode = exports.PlayerMode;

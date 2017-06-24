@@ -10,6 +10,7 @@ var bodyParser = require("body-parser");
 var ExpressSession = require("express-session");
 var sharedSession = require("express-socket.io-session");
 var Ludo_1 = require("./Ludo");
+var MongoStore = require("connect-mongo")(ExpressSession);
 var Server = (function () {
     function Server() {
         this.ludo = new Ludo_1.Ludo();
@@ -62,6 +63,16 @@ var Server = (function () {
                 res.send({ message: "This condition for gameId " + req.session.gameId + " should never be needed!" });
             }
         });
+        router.post("/cancelrefresh", function (req, res, next) {
+            if (req.session.gameId) {
+                _this.ludo.cancelRefreshGame(req, function (message) {
+                    res.send(message);
+                });
+            }
+            else {
+                res.send({ message: req.session.gameId + " cannot be found!" });
+            }
+        });
         router.post("/join", function (req, res, next) {
             if (req.body.gameId) {
                 _this.ludo.getExistingGame(req, function (ludogame) {
@@ -78,7 +89,13 @@ var Server = (function () {
         this.session = ExpressSession({
             resave: false,
             saveUninitialized: true,
-            secret: "i-love-husky"
+            secret: "i-love-husky",
+            store: new MongoStore({
+                url: "mongodb://192.168.5.129:27017/ludodb",
+                // ttl: 14 * 24 * 60 * 60, // = 14 days. Default
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                fallbackMemory: false
+            })
         });
         this.app.use(this.session);
     };
