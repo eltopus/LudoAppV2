@@ -17,7 +17,8 @@ export class LudoPlayer {
     public colors: string[];
     public isEmpty = true;
 
-    constructor(player: Player) {
+
+    public setParameters(player: Player): void {
         this.name = player.name;
         this.playerId = player.playerId;
         this.turn = player.turn;
@@ -33,9 +34,10 @@ export class LudoPlayer {
         this.createPieces(player.pieces);
     }
 
-    public createPieces(pieces: Piece[]): void {
+     public createPieces(pieces: Piece[]): void {
         for (let piece of pieces){
-            let ludoPiece = new LudoPiece(piece);
+            let ludoPiece = new LudoPiece();
+            ludoPiece.setParameters(piece);
             this.pieces.push(ludoPiece);
         }
     }

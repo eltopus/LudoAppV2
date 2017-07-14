@@ -135,6 +135,16 @@ export class Dice {
         this.dieTwo.consume();
     }
 
+    public selectBothDice(): void {
+        this.dieOne.select();
+        this.dieTwo.select();
+    }
+
+    public unselectBothDice(): void {
+        this.dieOne.unSelectActiveDie();
+        this.dieTwo.unSelectActiveDie();
+    }
+
     public consumeWithoutEmission(): void {
         this.dieOne.consumeWithoutEmission();
         this.dieTwo.consumeWithoutEmission();
@@ -168,8 +178,12 @@ export class Dice {
     /**
      * Returns true if both dice values are greater than 0
      */
-    public bothDiceHasLegitValues(): boolean {
+    public haveTwoLegitValues(): boolean {
         return (this.dieOne.getValue() > 0 && this.dieTwo.getValue() > 0);
+    }
+
+    public hasAtLeastOneLegitValue(): boolean {
+        return (this.dieOne.getValue() > 0 || this.dieTwo.getValue() > 0);
     }
 
     public hasSameDiceValues(): boolean {

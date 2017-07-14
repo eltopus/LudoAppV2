@@ -5,8 +5,10 @@ export class LudoDice {
     public dieOne: LudoDie;
     public dieTwo: LudoDie;
 
-    constructor(dice: Dice) {
-        this.dieOne = new LudoDie(dice.dieOne);
-        this.dieTwo = new LudoDie(dice.dieTwo);
+    public setParameters(dice: Dice): void {
+        this.dieOne = new LudoDie();
+        this.dieOne.setParameters(dice.dieOne);
+        this.dieTwo = new LudoDie();
+        this.dieTwo.setParameters(dice.dieTwo);
     }
 }

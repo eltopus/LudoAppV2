@@ -1,36 +1,39 @@
 /// <reference path = "../../node_modules/phaser/typescript/phaser.d.ts" />
 /// <reference path = "../../node_modules/angular2-uuid/index.d.ts" />
-import { UUID } from "angular2-uuid";
-import { Piece } from "../entities/Piece";
-import { AIPlayer } from "../entities/AIPlayer";
-import { Player } from "../entities/Player";
-import { RegularPlayer } from "../entities/RegularPlayer";
-import { ColorType } from "../enums/ColorType";
 import { ActiveBoard } from "../entities/ActiveBoard";
-import { HomeBoard } from "../entities/HomeBoard";
-import { OnWayOutBoard } from "../entities/OnWayOutBoard";
-import { ExitedBoard } from "../entities/ExitedBoard";
+import { AIPlayer } from "../entities/AIPlayer";
 import { AllPossibleMoves } from "../rules/AllPossibleMoves";
-import { Dice } from "../entities/Dice";
-import { Rules } from "../rules/Rules";
-import { factory } from "../logging/ConfigLog4j";
-import { Scheduler } from "../rules/Scheduler";
-import { RuleEnforcer } from "../rules/RuleEnforcer";
-import * as Paths from "../entities/Paths";
-import { States } from "../enums/States";
-import { PlayerMode } from "../enums/PlayerMode";
 import { Board } from "../entities/Board";
-import { PiecePosition } from "../entities/PiecePosition";
-import { Move } from "../rules/Move";
+import { ColorType } from "../enums/ColorType";
+import { Dice } from "../entities/Dice";
+import { DiceSelection } from "../entities/DiceSelection";
+import { Dictionary } from "typescript-collections";
+import { Emit } from "../emit/Emit";
+import { ExitedBoard } from "../entities/ExitedBoard";
+import { factory } from "../logging/ConfigLog4j";
+import { HomeBoard } from "../entities/HomeBoard";
+import { LocalGame } from "../game/LocalGame";
 import { LudoGame } from "../game/LudoGame";
 import { LudoPlayer } from "../game/LudoPlayer";
+import { Move } from "../rules/Move";
 import { NewPlayers } from "../entities/NewPlayers";
-import { Emit } from "../emit/Emit";
-import { LocalGame } from "../game/LocalGame";
-import { Dictionary } from "typescript-collections";
+import { OnWayOutBoard } from "../entities/OnWayOutBoard";
+import { Piece } from "../entities/Piece";
+import { PiecePosition } from "../entities/PiecePosition";
+import { Player } from "../entities/Player";
+import { PlayerMode } from "../enums/PlayerMode";
+import { RegularPlayer } from "../entities/RegularPlayer";
+import { Rules } from "../rules/Rules";
+import { RuleEnforcer } from "../rules/RuleEnforcer";
+import { Scheduler } from "../rules/Scheduler";
+import { States } from "../enums/States";
+import { UUID } from "angular2-uuid";
 import * as $ from "jquery";
 import * as cio from "socket.io-client";
+import * as Paths from "../entities/Paths";
+import * as Swipe from "phaser-swipe";
 declare var Example: any;
+declare var Swipe: any;
 
 const log = factory.getLogger("model.Game");
 
@@ -49,6 +52,7 @@ export class Game extends Phaser.State {
     private socket: any = null;
     private currentPlayerName: string;
     private playerNames = new Dictionary<String, any>();
+    private diceSelection: DiceSelection;
 
     public init(newPlayers: NewPlayers) {
         this.newPlayers = newPlayers;
@@ -65,7 +69,7 @@ export class Game extends Phaser.State {
 
     public create() {
         this.signal = new Phaser.Signal();
-        let board = this.add.sprite(0, 0, "board");
+        let board = this.add.sprite(0, this.game.world.bottom, "board");
         let activeboard: ActiveBoard = new ActiveBoard(this.signal);
         let homeboard: HomeBoard = new HomeBoard(this.signal);
         let onWayOutBoard: OnWayOutBoard = new OnWayOutBoard(this.signal);
@@ -103,6 +107,7 @@ export class Game extends Phaser.State {
             this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID, this.socket, this.newPlayers.ludogame.gameId);
             this.dice.dieOne.setDieFrame(this.newPlayers.ludogame.ludoDice.dieOne);
             this.dice.dieTwo.setDieFrame(this.newPlayers.ludogame.ludoDice.dieTwo);
+            this.diceSelection = new DiceSelection(this.signal, this.dice);
             this.scheduler = new Scheduler(this.dice, this.socket, this.signal, this.newPlayers.ludogame.gameId);
             emit.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.game, this.scheduler, this.dice, activeboard, homeboard,
@@ -153,6 +158,7 @@ export class Game extends Phaser.State {
             let dieOneUUID = UUID.UUID();
             let dieTwoUUID = UUID.UUID();
             this.dice = new Dice(this.game, "die", this.signal, dieOneUUID, dieTwoUUID, this.socket, this.gameId);
+            this.diceSelection = new DiceSelection(this.signal, this.dice);
             this.scheduler = new Scheduler(this.dice, this.socket, this.signal, this.gameId);
             emit.setScheduler(this.scheduler);
             this.enforcer = new RuleEnforcer(this.signal, this.game, this.scheduler, this.dice, activeboard, homeboard,
@@ -172,7 +178,7 @@ export class Game extends Phaser.State {
             if (emit.getCreator()) {
                 this.scheduler.getNextPlayer();
                 let playerOne = this.players[0];
-                // this.saveGame();
+                /*
                 for (let x = 1; x < playerOne.pieces.length; x++) {
                     homeboard.removePieceFromHomeBoard(playerOne.pieces[x]);
                     exitedBoard.addPieceToActiveBoard(playerOne.pieces[x]);
@@ -182,13 +188,14 @@ export class Game extends Phaser.State {
 
                 let p1 = playerOne.pieces[0];
                 homeboard.removePieceFromHomeBoard(p1);
-                // this.setActivePieceParameters(p1, 51, States.Active, activeboard);
-                this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
+                this.setActivePieceParameters(p1, 31, States.Active, activeboard);
+                // this.setOnWayOutPieceParameters(p1, 2, States.onWayOut, onWayOutBoard);
+                /*
                 let playerTwo = this.players[1];
                 let p2 = playerTwo.pieces[0];
                 homeboard.removePieceFromHomeBoard(p2);
-                this.setActivePieceParameters(p2, 40, States.Active, activeboard);
-
+                this.setActivePieceParameters(p2, 29, States.Active, activeboard);
+                /*
                 let p3 = playerTwo.pieces[5];
                 homeboard.removePieceFromHomeBoard(p3);
                 this.setActivePieceParameters(p3, 27, States.Active, activeboard);
@@ -202,9 +209,14 @@ export class Game extends Phaser.State {
         }
 
         log.debug(" Iscreator is " + emit.getCreator());
-        this.checkIfPlayerWon();
+        // this.checkIfPlayerWon();
 
     }
+    /*
+    public resize(w, h): void {
+        log.debug(w + " " + h);
+    }
+    */
 
     public rollDice(): void {
         this.enforcer.scheduler.getCurrentPlayer().roll(this.dice);
@@ -246,8 +258,6 @@ export class Game extends Phaser.State {
     }
 
     private waitUntilGameStarts(): void {
-
-        // this.dice.setDicePlayerId(this.scheduler.getCurrentPlayer().playerId);
         log.debug(" Emit is " + emit.getEmit());
         if (this.scheduler.getCurrentPlayer().isAI) {
             log.debug("Hey I am AI " + emit.getEmit());
@@ -272,7 +282,8 @@ export class Game extends Phaser.State {
     }
 
     private saveGame(): void {
-        let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+        let ludogame = new LudoGame();
+        ludogame.setParameters(this.players, this.dice, this.gameId);
         ludogame.ludoDice.dieOne.isConsumed = false;
         ludogame.ludoDice.dieTwo.isConsumed = false;
         ludogame.ludoDice.dieOne.extFrame = 0;
@@ -292,7 +303,7 @@ export class Game extends Phaser.State {
 
     private saveLudoGame(): void {
         if (emit.getCreator()) {
-            if (emit.isSinglePlayer() === false) {
+            if (emit.isMultiPlayer()) {
                 this.socket.emit("saveLudoGame", this.gameId, (ludogame: LudoGame) => {
                     if (ludogame) {
                         log.debug(" I saved...." + ludogame.gameId);
@@ -309,7 +320,8 @@ export class Game extends Phaser.State {
 
     private resaveGame(listener: string): void {
         if (listener === "resaveGame" && emit.getCreator()) {
-            let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+            let ludogame = new LudoGame();
+            ludogame.setParameters(this.players, this.dice, this.gameId);
             ludogame.currrentPlayerId = ludogame.ludoPlayers[0].playerId;
             for (let ludoplayer of ludogame.ludoPlayers) {
                 ludoplayer.isEmpty = false;
@@ -329,7 +341,8 @@ export class Game extends Phaser.State {
     }
 
     private createGame(): void {
-        let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+        let ludogame = new LudoGame();
+        ludogame.setParameters(this.players, this.dice, this.gameId);
         // first player is always the creator's player
         ludogame.ludoPlayers[0].playerName = this.currentPlayerName;
         ludogame.ludoPlayers[0].sequenceNumber = 0;
@@ -349,7 +362,6 @@ export class Game extends Phaser.State {
             this.socket.emit("createGame", ludogame, (data: any) => {
                 if (data.ok) {
                     emit.setEmit(data.emit);
-                    // Display.show(data.message);
                     this.displayNames(ludogame);
                     this.waitForPlayers(ludogame);
                     log.debug(data.message + " playerId: " + emit.getCurrentPlayerId());
@@ -363,7 +375,6 @@ export class Game extends Phaser.State {
     private joinExistingGame(): void {
         this.currentPlayerName = this.scheduler.getPlayerName(emit.getCurrentPlayerId());
         if (emit.getEnableSocket()) {
-            log.debug(" playerId before : " + emit.getCurrentPlayerId());
             this.socket.emit("joinExistingGame", (data: any) => {
                 if (data.ok) {
                     Display.show(data.message);
@@ -428,16 +439,11 @@ export class Game extends Phaser.State {
     }
 
     private fullScreen(): void {
-        /*
         if (this.scale.isFullScreen) {
             this.scale.stopFullScreen();
         } else {
             this.scale.startFullScreen(false);
         }
-        */
-        log.debug("Writing to console " + this.gameId);
-        // localGame.writeGameToConsole(this.gameId);
-        localStorage.clear();
     }
 
     private generateGameId(length: number): string {
@@ -473,9 +479,6 @@ export class Game extends Phaser.State {
                 }
             }
         }
-        if (emit.getEnableSocket() === false) {
-            // this.localGame.setLudoGame(ludogame);
-        }
         this.updatePlayername(ludogame.ludoPlayers);
     }
 
@@ -505,7 +508,7 @@ export class Game extends Phaser.State {
     }
 
     private setSocketHandlers(): void {
-        if (emit.getEnableSocket() === true) {
+        if (emit.getEnableSocket()) {
                 this.socket.on("updateJoinedPlayer", (ludogame: any, playerName: string) => {
                 Display.show(`${playerName} has joined game`);
                 this.displayNames(ludogame);

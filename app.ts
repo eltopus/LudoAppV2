@@ -113,7 +113,7 @@ class Server {
                 url: "mongodb://192.168.5.129:27017/ludodb",
                 // ttl: 14 * 24 * 60 * 60, // = 14 days. Default
                 maxAge: 7 * 24 * 60 * 60 * 1000,
-                fallbackMemory: false,
+                fallbackMemory: true,
             }),
         });
         this.app.use(this.session);

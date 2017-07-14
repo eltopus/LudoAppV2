@@ -8,7 +8,7 @@ export class LudoDie {
     public isSelected: boolean;
     public isConsumed: boolean;
 
-    constructor(die: Die) {
+    public setParameters(die: Die): void {
         this.uniqueId = die.uniqueId;
         this.playerId = die.playerId;
         this.extFrame = die.getFrame(die.getValue());

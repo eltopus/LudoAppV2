@@ -482,20 +482,20 @@ export class RuleEnforcer {
                 the other value that onwayout piece cannot play
             */
             if (onWayOutPieceMovements.length >= 1 && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) { // cond-004
-                if (this.dice.bothDiceHasLegitValues()) {
+                if (this.dice.haveTwoLegitValues()) {
                     if ((this.homeManyShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves)) === 1) {
                         this.onwayoutShareDiceWithActivePiece(this.currentPossibleMovements.onWayOutMoves, this.currentPossibleMovements.activeMoves, true);
                     }
                 }
                 // cond-005
-            } else if (onWayOutPieceMovements.length === 0 && this.dice.bothDiceHasLegitValues() && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
+            } else if (onWayOutPieceMovements.length === 0 && this.dice.haveTwoLegitValues() && (!this.dice.rolledAtLeastOneSix() && player.hasHomePieces())) {
                 // cond-009
                 if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) {
                     currentPossibleMovements.activeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.activeMoves);
                 }
             } else {
                 // cond-007
-                if (this.dice.bothDiceHasLegitValues() && this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) { // cond-008
+                if (this.dice.haveTwoLegitValues() && this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix()) { // cond-008
                     if (player.hasHomePieces()) { // cond-010
                         currentPossibleMovements.activeMoves = this.removeMoveWithDieValueSix(currentPossibleMovements.activeMoves);
                     } else if (this.moveContainTwoDice(currentPossibleMovements.activeMoves)) { // cond-011
@@ -538,7 +538,7 @@ export class RuleEnforcer {
     private filterOnAllPiecesAreAtHome(currentPossibleMovements: AllPossibleMoves, player: Player): AllPossibleMoves {
         if (player.hasExactlyOnePieceLeft()) {
             currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.homeMoves);
-        }else if (!player.hasActivePieces() && !this.dice.rolledDoubleSix()) {
+        }else if (this.dice.rolledAtLeastOneSix() && !this.dice.rolledDoubleSix() && this.dice.haveTwoLegitValues()) {
             currentPossibleMovements.homeMoves = this.removeMoveWithSingleDieValues(currentPossibleMovements.homeMoves);
         }
         return currentPossibleMovements;

@@ -43,13 +43,6 @@ export class Scheduler {
             player.turn = true;
             let currentplayer = this.players.pop();
             this.players.unshift(currentplayer);
-            /*
-            if (!emit.getEmit()) {
-                this.socket.emit("getCheckSum", this.gameId, (game_check_sum: string) => {
-                    this.compareCheckSum(game_check_sum);
-                });
-            }
-            */
         }else {
             // Returning same player. Set value back to false
             player.previousDoubleSix =  false;
@@ -212,7 +205,8 @@ export class Scheduler {
     }
 
     private compareCheckSum(check_sum_from_server: string): void {
-        let ludogame = new LudoGame(this.players, this.dice, this.gameId);
+        let ludogame = new LudoGame();
+        ludogame.setParameters(this.players, this.dice, this.gameId);
         let check_sum_from_client = "";
         for (let lp of ludogame.ludoPlayers){
             check_sum_from_client = check_sum_from_client + "#" + (checksum(JSON.stringify(lp.pieces)));

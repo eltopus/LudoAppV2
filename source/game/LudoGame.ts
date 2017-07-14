@@ -26,12 +26,14 @@ export class LudoGame {
     public creatorPlayerId = "";
     public gameMode: PlayerMode;
 
-    constructor(players: Player[], dice: Dice, gameId: string) {
+    public setParameters(players: Player[], dice: Dice, gameId: string): void {
         for (let player of players){
-            let ludoPlayer = new LudoPlayer(player);
+            let ludoPlayer = new LudoPlayer();
+            ludoPlayer.setParameters(player);
             this.ludoPlayers.push(ludoPlayer);
         }
-        this.ludoDice = new LudoDice(dice);
+        this.ludoDice = new LudoDice();
+        this.ludoDice.setParameters(dice);
         this.gameId = gameId;
     }
 }

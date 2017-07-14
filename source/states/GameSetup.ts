@@ -25,6 +25,7 @@ export class GameSetup extends Phaser.State {
         $("#yellowBtn").prop("disabled", true);
         $("#greenBtn").prop("disabled", true);
         $("#createBtn").prop("disabled", true);
+        /*
         if (typeof(Storage) !== "undefined") {
             let ludogame = localStorage.getItem("gameId");
             if (ludogame !== null && typeof ludogame !== "undefined") {
@@ -51,6 +52,19 @@ export class GameSetup extends Phaser.State {
 				title: "UNSUPPORTED",
                 },
             });
+        }
+        */
+        if (this.game.device.desktop) {
+            this.scale.scaleMode = Phaser.ScaleManager.RESIZE;
+            this.game.stage.smoothed = true;
+            this.game.scale.pageAlignHorizontally = true;
+            this.game.scale.pageAlignVertically = true;
+        }else {
+            this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+            this.game.stage.smoothed = true;
+            this.game.scale.pageAlignHorizontally = true;
+            this.game.scale.pageAlignVertically = true;
+            this.game.scale.forceOrientation(false, true);
         }
     }
 
@@ -185,7 +199,7 @@ export class GameSetup extends Phaser.State {
                     let aiPlayer2: NewPlayers.NewPlayer = new NewPlayers.NewPlayer([ColorType.Yellow, ColorType.Green], true);
                     newCreatedPlayers.newPlayers.push(aiPlayer2);
                     newCreatedPlayers.numOfPlayers = 2;
-                    emit.setMultiPlayer();
+                    emit.setSinglePlayer();
                     break;
                 }
                 // single player
@@ -209,11 +223,34 @@ export class GameSetup extends Phaser.State {
          });
 
         if (emit.isSinglePlayer() && newCreatedPlayers.ludogame) {
-            this.displayLocalGameMessage(`Found game ${newCreatedPlayers.ludogame.gameId} saved locally! Do you want to continue?`, "Continue Game?");
+        // this.displayLocalGameMessage(`<b><p class="text-primary"> Game ${newCreatedPlayers.ludogame.gameId}
+         // was saved locally. Do you want to continue?</p></b>`, `<b><p class="text-primary">Continue Game?</p></b>`);
         }else {
-            this.checkExistingSession();
+            // this.checkExistingSession();
         }
 
+        this.checkExistingSession2();
+
+    }
+    public checkExistingSession2(): void {
+        if (emit.isDefaultPlayer()) {
+            $.ajax({
+                type: "POST",
+                url: "refresh",
+                // tslint:disable-next-line:object-literal-sort-keys
+                success: (ludogame) => {
+                    // Expecting callback({ok: ok, // Expecting callback({ok: ok, updatedludogame: updatedludogame, message: message});: updatedludogame, message: message});
+                    if (ludogame.ok) {
+                        newCreatedPlayers.ludogame = ludogame.updatedludogame;
+                        newCreatedPlayers.hasSavedGame = true;
+                        this.startGame();
+                    }
+                },
+                error: function(){
+                    Display.show("Session does not exists");
+                },
+            });
+        }
     }
 
     public checkExistingSession(): void {
@@ -227,10 +264,11 @@ export class GameSetup extends Phaser.State {
                     if (ludogame.ok) {
                         newCreatedPlayers.ludogame = ludogame.updatedludogame;
                         newCreatedPlayers.hasSavedGame = true;
-                        this.displayRemoteGameMessage(`Found game ${newCreatedPlayers.ludogame.gameId} saved on the server! Do you want to continue?`,
-                         "Continue Game?", ludogame.updatedludogame.playerId, ludogame.updatedludogame.creatorPlayerId);
+            this.displayRemoteGameMessage(`<p class="text-primary"> Game ${newCreatedPlayers.ludogame.gameId} was saved on the server! Do you want to continue?</p>`,
+                         `<b><p class="text-primary">Continue Game?</p></b>`, ludogame.updatedludogame.playerId, ludogame.updatedludogame.creatorPlayerId);
                     }else {
-                        Display.show(ludogame.message);
+                        // Display.show(ludogame.message);
+                        this.gameSetup();
                     }
                 },
                 error: function(){
@@ -317,6 +355,97 @@ export class GameSetup extends Phaser.State {
 				title: title,
         });
     }
+
+    private gameSetup(): void {
+        bootbox.dialog({
+				message: `<p class="text-primary"> <b> Do you want to create a new game or join an existing game?</b></p>`,
+				title: `<p class="text-primary SELECT ONE </p>`,
+				buttons: {
+					join: {
+						label: "JOIN GAME",
+						className: "btn-info btn-md",
+						callback: () => {
+								//
+
+						},
+					},
+					create: {
+						label: "NEW GAME",
+						className: "btn-success btn-md",
+						callback: () => {
+                            this.gameModeSetup();
+						},
+					},
+
+				},
+
+			});
+    }
+
+    private gameModeSetup(): void {
+        bootbox.dialog({
+				message: `<p class="text-primary"> <b>Single player ot multiplayer?</b></p>`,
+				title: `<p class="text-primary SELECT ONE </p>`,
+				buttons: {
+                    back: {
+						label: "PREVIOUS",
+						className: "btn-info btn-md",
+						callback: () => {
+                            this.gameSetup();
+						},
+					},
+					join: {
+						label: "SINGLE-PLAYER",
+						className: "btn-success btn-md",
+						callback: () => {
+								//
+
+						},
+					},
+					create: {
+						label: "MULTI-PLAYER",
+						className: "btn-success btn-md",
+						callback: () => {
+                            this.playerModeSetup();
+						},
+					},
+
+				},
+
+			});
+    }
+
+    private playerModeSetup(): void {
+        bootbox.dialog({
+					message: `<div class="btn-toolbar text-center well">` +
+					`<button class="btn btn-primary" id="selectTwoPlayer" type="button" onclick="selectTwoPlayerHandler()"> 2-PLAYER </button>` +
+					`<button class="btn btn-primary" id="selectFourPlayer" type="button" onclick="selectFourPlayerHandler()"> 4-PLAYER </button>` +
+					`<div class="playerModeKlass" id="playerModeText"> ` +
+					`<h5 class="red-text text-center">PLAYER MODE</h5>` +
+					`</div>` +
+					`</div>`,
+					title: "SELECT ONE",
+					buttons: {
+						danger: {
+							label: "PREVIOUS",
+							className: "btn-info",
+							callback: () => {
+								this.gameModeSetup();
+							},
+						},
+						success: {
+							label: "NEXT",
+							className: "btn-success",
+							callback: () => {
+								//
+
+							},
+						},
+					},
+
+				});
+    }
+
 
     private cancelRemoteRefresh(): void {
         if (emit.isDefaultPlayer()) {

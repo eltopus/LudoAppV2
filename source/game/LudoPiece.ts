@@ -17,7 +17,7 @@ export class LudoPiece {
     public collidingPiece: string = null;
     public imageId: string;
 
-    constructor(piece: Piece) {
+    public setParameters(piece: Piece) {
         this.color = piece.color;
         this.playerId = piece.playerId;
         this.uniqueId = piece.uniqueId;

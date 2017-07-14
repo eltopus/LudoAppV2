@@ -10,11 +10,14 @@ import {Emit} from "../emit/Emit";
 import {EmitPiece} from "../emit/EmitPiece";
 import {LudoPiece} from "../game/LudoPiece";
 import { LocalGame } from "../game/LocalGame";
+import * as Swipe from "phaser-swipe";
 // import * as Phasertips from "../Phasertips";
-
+declare var Swipe: any;
+declare var Example: any;
 const log = factory.getLogger("model.Piece");
 let localGame = LocalGame.getInstance();
 let emit = Emit.getInstance();
+let curDir: any;
 export interface PieceInterface {
     group: Phaser.Group;
     color: ColorType;
@@ -59,6 +62,8 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
     public isMoving = false;
     private socket: any;
     private emitPiece: EmitPiece;
+    private secondClick = false;
+    private swipe: any;
       // public tips: Phasertips;
 
     constructor(game: Phaser.Game, x: number, y: number, imageId: string, color: ColorType,
@@ -92,6 +97,9 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.emitPiece = new EmitPiece();
         // this.tips = new Phasertips(game, {targetObject: this, context: this.uniqueId, strokeColor: 0xff0000 });
         this.events.onInputDown.add(this.setActivePiece, this);
+        this.events.onInputDown.add(this.doubleClick, this);
+        this.swipe = new Swipe(game);
+        this.blendMode.toExponential(20);
 
     }
 
@@ -175,7 +183,16 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
      * @param uniqueId
      */
     public setActivePiece(): void {
+        if (this.isSelected()) {
+            this.secondClick = true;
+        }else {
+            this.secondClick = false;
+        }
         this.signal.dispatch("select", this.uniqueId, this.playerId);
+        this.signal.dispatch("secondClick", this.uniqueId, this.playerId, this.secondClick);
+        if (this.secondClick === false) {
+            this.secondClick = true;
+        }
         if (emit.getEmit() === true && this.isSelected()) {
             this.emitPiece.setParameters(this);
             this.socket.emit("selectActivePiece", this.emitPiece);
@@ -381,6 +398,54 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
         this.visible = true;
     }
 
+    public update(): void {
+        let direction = this.swipe.check();
+        if (direction !== null && direction.direction !== curDir) {
+            switch (direction.direction) {
+                case this.swipe.DIRECTION_LEFT: // do something
+                log.debug("DIRECTION_LEFT");
+                Example.show("DIRECTION_LEFT");
+                curDir = this.swipe.DIRECTION_LEFT;
+                break;
+                case this.swipe.DIRECTION_RIGHT:
+                log.debug("DIRECTION_RIGHT");
+                Example.show("DIRECTION_RIGHT");
+                curDir = this.swipe.DIRECTION_RIGHT;
+                break;
+                case this.swipe.DIRECTION_UP:
+                log.debug("DIRECTION_UP");
+                Example.show("DIRECTION_UP");
+                curDir = this.swipe.DIRECTION_UP;
+                break;
+                case this.swipe.DIRECTION_DOWN:
+                log.debug("DIRECTION_DOWN");
+                Example.show("DIRECTION_DOWN");
+                curDir = this.swipe.DIRECTION_DOWN;
+                break;
+                case this.swipe.DIRECTION_UP_LEFT:
+                log.debug("DIRECTION_UP_LEFT");
+                Example.show("DIRECTION_UP_LEFT");
+                curDir = this.swipe.DIRECTION_UP_LEFT;
+                break;
+                case this.swipe.DIRECTION_UP_RIGHT:
+                log.debug("DIRECTION_UP_RIGHT");
+                Example.show("DIRECTION_UP_RIGHT");
+                curDir = this.swipe.DIRECTION_UP_RIGHT;
+                break;
+                case this.swipe.DIRECTION_DOWN_LEFT:
+                log.debug("DIRECTION_DOWN_LEFT");
+                Example.show("DIRECTION_DOWN_LEFT");
+                curDir = this.swipe.DIRECTION_DOWN_LEFT;
+                break;
+                case this.swipe.DIRECTION_DOWN_RIGHT:
+                log.debug("DIRECTION_DOWN_RIGHT");
+                Example.show("DIRECTION_DOWN_RIGHT");
+                curDir = this.swipe.DIRECTION_DOWN_RIGHT;
+                break;
+            }
+        }
+    }
+
     private onCompleteBackToHomeMovement(): void {
         this.isMoving = false;
     }
@@ -422,4 +487,11 @@ export class Piece extends Phaser.Sprite implements PieceInterface {
             return 0;
         }
     }
+
+    private doubleClick(sprite: any, pointer: any): void {
+        if (pointer.msSinceLastClick < this.game.input.doubleTapRate) {
+            log.debug("Doble click event..");
+        }
+    }
+
 }
